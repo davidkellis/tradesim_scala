@@ -106,5 +106,37 @@ object ordering {
 
   def buyImmediately(currentState: State, symbol: String, qty: Long): State = buy(currentState, currentState.time, symbol, qty)
 
+  def limitBuy(currentState: State, time: DateTime, symbol: String, qty: Long, limitPrice: BigDecimal): State = {
+    val newOrders = currentState.orders :+ LimitBuy(time, symbol, qty, limitPrice, None)
+    currentState.copy(orders = newOrders)
+  }
 
+  def sell(currentState: State, time: DateTime, symbol: String, qty: Long): State = {
+    val newOrders = currentState.orders :+ MarketSell(time, symbol, qty, None)
+    currentState.copy(orders = newOrders)
+  }
+
+  def sellImmediately(currentState: State, symbol: String, qty: Long): State = sell(currentState, currentState.time, symbol, qty)
+
+  def limitSell(currentState: State, time: DateTime, symbol: String, qty: Long, limitPrice: BigDecimal): State = {
+    val newOrders = currentState.orders :+ LimitSell(time, symbol, qty, limitPrice, None)
+    currentState.copy(orders = newOrders)
+  }
+
+  def closeOpenStockPosition(currentState: State, symbol: String): State = {
+    val qtyOnHand = sharesOnHand(currentState.portfolio, symbol)
+    qtyOnHand match {
+      case qty if qty > 0 => sellImmediately(currentState, symbol, qtyOnHand)   // we own shares, so sell them
+      case qty if qty < 0 => buyImmediately(currentState, symbol, -qtyOnHand)    // we owe a share debt, so buy those shares back (we negate qtyOnHand because it is negative, and we want to buy a positive quantity)
+      case 0 => currentState
+    }
+  }
+
+  def closeAllOpenStockPositions(currentState: State): State = {
+    val stocks = currentState.portfolio.stocks
+    if (!stocks.isEmpty)
+      stocks.keys.foldLeft(currentState)(closeOpenStockPosition)
+    else
+      currentState
+  }
 }
