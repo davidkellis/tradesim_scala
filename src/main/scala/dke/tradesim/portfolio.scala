@@ -2,13 +2,13 @@ package dke.tradesim
 
 import org.joda.time.DateTime
 import dke.tradesim.datetime.isInstantBetweenInclusive
-import dke.tradesim.core.Portfolio
+import dke.tradesim.core.{EodBar, Portfolio}
 
 object portfolio {
-  type BarQuoteFn = (DayBar) => BigDecimal
+  type BarQuoteFn = (EodBar) => BigDecimal
 
   def stockValue(symbol: String, qty: Long, time: DateTime, priorBarPriceFn: BarQuoteFn, currentBarPriceFn: BarQuoteFn): BigDecimal = {
-    val bar = findDayBar(time, symbol)
+    val bar = findEodBar(time, symbol)
     val priceFn = if (isInstantBetweenInclusive(time, bar.startTime, bar.endTime)) currentBarPriceFn else priorBarPriceFn
     val price = priceFn(bar)
     val priceObservationTime = bar.endTime

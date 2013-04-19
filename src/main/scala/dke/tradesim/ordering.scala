@@ -82,17 +82,47 @@ object ordering {
 //  def isLimitSellFillable(trial: Trial, portfolio: Portfolio, order: LimitOrder, fillPriceFn: PriceQuoteFn): Boolean =
 //    isMarketSellFillable(trial, portfolio, order, fillPriceFn) && fillPriceFn(order.time, order.symbol) >= order.limitPrice
 
-  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: MarketBuy, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-    purchaseCost(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, purchaseFillPriceFn) <= portfolio.cash
+  // this is what a type class looks like in Scala - ewwwwww - say hello to java-esque boilerplate and a bunch of stupid implicits
+  trait IsOrderFillable[OrderType] {
+    def isOrderFillable(order: OrderType, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean
+  }
 
-  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: MarketSell, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-    saleProceeds(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, saleFillPriceFn) >= 0.0
+  object IsOrderFillable {
+    implicit object IsMarketBuyFillable extends IsOrderFillable[MarketBuy] {
+      def isOrderFillable(order: MarketBuy, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+        purchaseCost(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, purchaseFillPriceFn) <= portfolio.cash
+    }
 
-  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: LimitBuy, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-    isOrderFillable(trial, portfolio, order.asInstanceOf[MarketBuy], purchaseFillPriceFn, saleFillPriceFn) && purchaseFillPriceFn(order.time, order.symbol) <= order.limitPrice
+    implicit object IsMarketSellFillable extends IsOrderFillable[MarketSell] {
+      def isOrderFillable(order: MarketSell, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+        saleProceeds(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, saleFillPriceFn) >= 0.0
+    }
 
-  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: LimitSell, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-    isOrderFillable(trial, portfolio, order.asInstanceOf[MarketSell], purchaseFillPriceFn, saleFillPriceFn) && saleFillPriceFn(order.time, order.symbol) >= order.limitPrice
+    implicit object IsLimitBuyFillable extends IsOrderFillable[LimitBuy] {
+      def isOrderFillable(order: LimitBuy, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+        IsMarketBuyFillable.isOrderFillable(order.asInstanceOf[MarketBuy], trial, portfolio, purchaseFillPriceFn, saleFillPriceFn) && purchaseFillPriceFn(order.time, order.symbol) <= order.limitPrice
+    }
+
+    implicit object IsLimitSellFillable extends IsOrderFillable[LimitSell] {
+      def isOrderFillable(order: LimitSell, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+        IsMarketSellFillable.isOrderFillable(order.asInstanceOf[MarketSell], trial, portfolio, purchaseFillPriceFn, saleFillPriceFn) && saleFillPriceFn(order.time, order.symbol) >= order.limitPrice
+    }
+  }
+
+  def isOrderFillable[OrderType](order: OrderType, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn)(implicit iof: IsOrderFillable[OrderType]): Boolean =
+    iof.isOrderFillable(order, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
+
+//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: MarketBuy, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+//    purchaseCost(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, purchaseFillPriceFn) <= portfolio.cash
+//
+//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: MarketSell, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+//    saleProceeds(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, saleFillPriceFn) >= 0.0
+//
+//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: LimitBuy, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+//    isOrderFillable(trial, portfolio, order.asInstanceOf[MarketBuy], purchaseFillPriceFn, saleFillPriceFn) && purchaseFillPriceFn(order.time, order.symbol) <= order.limitPrice
+//
+//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: LimitSell, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
+//    isOrderFillable(trial, portfolio, order.asInstanceOf[MarketSell], purchaseFillPriceFn, saleFillPriceFn) && saleFillPriceFn(order.time, order.symbol) >= order.limitPrice
 
   def orderFillPrice(order: BuyOrder, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): BigDecimal = purchaseFillPriceFn(order.time, order.symbol)
   def orderFillPrice(order: SellOrder, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): BigDecimal = saleFillPriceFn(order.time, order.symbol)

@@ -5,14 +5,14 @@ import util.Random
 
 object datetime {
   val EasternTimeZone = findTimeZone("US/Eastern")
-  val CentralTimeZone = findTimeZone("US/Central")
-  val PacificTimeZone = findTimeZone("US/Pacific")
+//  val CentralTimeZone = findTimeZone("US/Central")
+//  val PacificTimeZone = findTimeZone("US/Pacific")
 
   def datetime(year: Int): DateTime = datetime(year, 1, 1, 0, 0, 0)
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
   def datetime(year: Int, month: Int, day: Int): DateTime = datetime(year, month, day, 0, 0, 0)
   def datetime(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int): DateTime =
-    new DateTime(year, month, day, hour, minute, second)
+    new DateTime(year, month, day, hour, minute, second, EasternTimeZone)
 
   def timestamp(datetime: ReadableDateTime): String = datetime.toString("yyyyMMddHHmmss")
 
@@ -32,7 +32,12 @@ object datetime {
 
   def midnight(datetime: DateTime): DateMidnight = datetime.toDateMidnight
 
-  def periodBetween(t1: DateTime, t2: DateTime): Period = new Period(t1, t2)
+  def hours(n: Int): Period = Hours.hours(n).toPeriod
+
+  def millis(n: Long): Period = new Period(n)
+
+  def periodBetween(t1: ReadableInstant, t2: ReadableInstant): Period = new Period(t1, t2)
+  def periodBetween(t1: ReadablePartial, t2: ReadablePartial): Period = new Period(t1, t2)
 
   def durationBetween(t1: DateTime, t2: DateTime): Duration = new Duration(t1, t2)
 
@@ -56,17 +61,20 @@ object datetime {
     interval.getStart() == interval.getEnd()
   }
 
-  def compareDateTimes(t1: DateTime, t2: DateTime): Int = t1.compareTo(t2)
-
   // t1 < t2
   def isBefore(t1: DateTime, t2: DateTime): Boolean = t1.isBefore(t2)
 
   // t1 > t2
   def isAfter(t1: DateTime, t2: DateTime): Boolean = t1.isAfter(t2)
 
+  def compareDateTimes(t1: DateTime, t2: DateTime): Int = t1.compareTo(t2)
+  def compareDateTimes(d1: LocalDate, d2: LocalDate): Int = d1.compareTo(d2)
+
   def isBeforeOrEqual(t1: DateTime, t2: DateTime): Boolean = compareDateTimes(t1, t2) <= 0
+  def isBeforeOrEqual(d1: LocalDate, d2: LocalDate): Boolean = compareDateTimes(d1, d2) <= 0
 
   def isAfterOrEqual(t1: DateTime, t2: DateTime): Boolean = compareDateTimes(t1, t2) >= 0
+  def isAfterOrEqual(d1: LocalDate, d2: LocalDate): Boolean = compareDateTimes(d1, d2) >= 0
 
   def maxDateTime(t1: DateTime, t2: DateTime): DateTime = if (t1.isAfter(t2)) t1 else t2
 
@@ -91,10 +99,15 @@ object datetime {
   }
 
   def timeSeries(startTime: DateTime, nextTimeFn: (DateTime) => DateTime): Stream[DateTime] = Stream.iterate(startTime)(nextTimeFn)
+  def timeSeries(startDate: LocalDate, nextDateFn: (LocalDate) => LocalDate): Stream[LocalDate] = Stream.iterate(startDate)(nextDateFn)
 
-  def interspersedTimeSeries(startTime: DateTime, period: Period): Stream[DateTime] = timeSeries(startTime, _.plus(period))
-  def interspersedTimeSeries(startTime: DateTime, endTime: DateTime, period: Period): Stream[DateTime] =
+  def interspersedTimeSeries(startTime: DateTime, period: ReadablePeriod): Stream[DateTime] = timeSeries(startTime, (t: DateTime) => t.plus(period))
+  def interspersedTimeSeries(startDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] = timeSeries(startDate, (d: LocalDate) => d.plus(period))
+
+  def interspersedTimeSeries(startTime: DateTime, endTime: DateTime, period: ReadablePeriod): Stream[DateTime] =
     interspersedTimeSeries(startTime, period).takeWhile(isBeforeOrEqual(_, endTime))
+  def interspersedTimeSeries(startDate: LocalDate, endDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] =
+    interspersedTimeSeries(startDate, period).takeWhile(isBeforeOrEqual(_, endDate))
 
   def interspersedIntervals(startTime: DateTime, intervalLength: Period, separationLength: Period): Stream[Interval] = {
     val startTimes = interspersedTimeSeries(startTime, separationLength)
@@ -104,6 +117,7 @@ object datetime {
   def daysInMonth(month: Int, year: Int): Int = datetime(year, month).dayOfMonth().getMaximumValue()
 
   def dayOfWeek(t: DateTime): Int = t.getDayOfWeek()
+  def dayOfWeek(t: LocalDate): Int = t.getDayOfWeek()
 
   /**
    * returns the number of days that must be added to the first day of the given month to arrive at the first
@@ -118,11 +132,11 @@ object datetime {
    * year is an integer indicating the year (e.g. 1999, 2010, 2012, etc.)
    * Example:
    *   offsetOfFirstWeekdayInMonth(1, 2, 2012)    ; monday
-   *   => 5
+   *   > 5
    *   offsetOfFirstWeekdayInMonth(3, 2, 2012)    ; wednesday
-   *   => 0
+   *   > 0
    *   offsetOfFirstWeekdayInMonth(5, 2, 2012)    ; friday
-   *   => 2
+   *   > 2
    */
   def offsetOfFirstWeekdayInMonth(desiredWeekday: Int, month: Int, year: Int): Int =
     (desiredWeekday - dayOfWeek(datetime(year, month)) + 7) % 7
@@ -149,7 +163,7 @@ object datetime {
    *   daysInMonth - (DayOfWeek(daysInMonth,month,year) - desiredWeekday + 7)%7
    * Example:
    *   lastWeekday(1, 2, 2012)     ; last monday in february 2012
-   *   => #<DateTime 2012-02-27>
+   *   > #<DateTime 2012-02-27>
    */
   def lastWeekday(desiredWeekday: Int, month: Int, year: Int): DateTime = {
     val days = daysInMonth(month, year)
@@ -163,6 +177,18 @@ object datetime {
    * Example: isHoliday(datetime(2012, 1, 16), martinLutherKingJrDay) => true
    */
   def isHoliday(date: DateTime, holidayFn: (Int) => DateTime): Boolean = date == holidayFn(date.getYear())
+
+  val HolidayLookupFunctions = Vector[(Int) => DateTime](
+    newYears _,
+    martinLutherKingJrDay _,
+    presidentsDay _,
+    goodFriday _,
+    memorialDay _,
+    independenceDay _,
+    laborDay _,
+    thanksgiving _,
+    christmas _
+  )
 
   def newYears(year: Int): DateTime = datetime(year, 1, 1)
 
