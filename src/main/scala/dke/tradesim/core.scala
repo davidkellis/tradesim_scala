@@ -48,6 +48,8 @@ object core {
     def changeFillPrice(newFillPrice: BigDecimal): LimitSell = this.copy(fillPrice = Option(newFillPrice))
   }
 
+  type PriceQuoteFn = (DateTime, String) => BigDecimal
+
   case class State(previousTime: DateTime,
                    time: DateTime,
                    portfolio: Portfolio,
@@ -61,8 +63,8 @@ object core {
                    startTime: DateTime,
                    endTime: DateTime,
                    incrementTime: (DateTime) => DateTime,
-                   purchaseFillPrice: (DateTime, String) => BigDecimal,
-                   saleFillPrice: (DateTime, String) => BigDecimal)
+                   purchaseFillPrice: PriceQuoteFn,
+                   saleFillPrice: PriceQuoteFn)
 
   case class Strategy(buildInitState: (Strategy, Trial) => State,
                       buildNextState: (Strategy, Trial, State) => State,

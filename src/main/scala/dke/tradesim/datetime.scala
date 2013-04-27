@@ -87,15 +87,14 @@ object datetime {
     case _ => t
   }
 
-  def offsetDatePair(pair: Tuple2[DateTime, DateTime],
+  def offsetInterval(interval: Interval,
                      startOffsetDirection: Symbol,
                      startOffsetMagnitude: Period,
                      endOffsetDirection: Symbol,
-                     endOffsetMagnitude: Period): Tuple2[DateTime, DateTime] = {
-    val (startDateTime, endDateTime) = pair
-    val adjustedStart = offsetDateTime(startDateTime, startOffsetDirection, startOffsetMagnitude)
-    val adjustedEnd = offsetDateTime(endDateTime, endOffsetDirection, endOffsetMagnitude)
-    (adjustedStart, adjustedEnd)
+                     endOffsetMagnitude: Period): Interval = {
+    val adjustedStart = offsetDateTime(interval.getStart, startOffsetDirection, startOffsetMagnitude)
+    val adjustedEnd = offsetDateTime(interval.getEnd, endOffsetDirection, endOffsetMagnitude)
+    intervalBetween(adjustedStart, adjustedEnd)
   }
 
   def timeSeries(startTime: DateTime, nextTimeFn: (DateTime) => DateTime): Stream[DateTime] = Stream.iterate(startTime)(nextTimeFn)

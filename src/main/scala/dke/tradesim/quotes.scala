@@ -77,7 +77,7 @@ object quotes {
     val priceHistoryId = symbol ++ ":" ++ year.toString
     val cachedPriceHistory = Option(priceHistoryCache.get(priceHistoryId))
     cachedPriceHistory match {
-      case Some(priceHistoryElement) => priceHistoryElement.getObjectValue().asInstanceOf[PriceHistory]
+      case Some(priceHistoryElement) => priceHistoryElement.getObjectValue.asInstanceOf[PriceHistory]
       case None =>
         val newPriceHistory = loadPriceHistory(symbol, datetime(year, 1, 1), datetime(year, 12, 31, 23, 59, 59))    // load one calendar year of price history into a NavigableMap
         priceHistoryCache.put(new Element(priceHistoryId, newPriceHistory))

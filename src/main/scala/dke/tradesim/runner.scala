@@ -7,12 +7,19 @@ import net.sf.ehcache.store.MemoryStoreEvictionPolicy
 import dke.tradesim.strategies.buyandhold
 
 object Runner {
-  def setupCache() {
+  def setupCaches() {
     val singletonManager = CacheManager.create()
+
     val priceHistoryCacheConfiguration = new CacheConfiguration("priceHistoryCache", 32)
       .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LRU)
       .eternal(false)
     singletonManager.addCache(new Cache(priceHistoryCacheConfiguration))
+
+    val corporateActionCacheConfiguration = new CacheConfiguration("corporateActionCache", 32)
+      .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LRU)
+      .eternal(false)
+    singletonManager.addCache(new Cache(corporateActionCacheConfiguration))
+
   }
 
   def cleanupCache() {
@@ -20,7 +27,7 @@ object Runner {
   }
 
   def main(args: Array[String]) {
-    setupCache()
+    setupCaches()
 
     Database.forURL("jdbc:h2:mem:test1", driver = "org.h2.Driver") withSession {
       // The session is never named explicitly. It is bound to the current
