@@ -30,7 +30,7 @@ object datetime {
     datetime(year, month, day, hour, minute, second)
   }
 
-  def midnight(datetime: DateTime): DateMidnight = datetime.toDateMidnight
+  def midnight(datetime: DateTime): DateTime = datetime.toDateMidnight.toDateTime
 
   def hours(n: Int): Period = Hours.hours(n).toPeriod
 

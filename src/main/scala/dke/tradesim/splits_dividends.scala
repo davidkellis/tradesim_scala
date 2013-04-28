@@ -5,8 +5,10 @@ import org.joda.time.DateTime
 import net.sf.ehcache.{Element, CacheManager}
 import java.util.{NavigableMap, TreeMap}
 import dke.tradesim.datetime._
-import dke.tradesim.core.Bar
+import dke.tradesim.core.{LimitOrder, MarketOrder, Order, Portfolio, Bar, threadThrough}
 import dke.tradesim.quotes.{findEodBarPriorTo, barClose}
+import dke.tradesim.math.{floor}
+import dke.tradesim.ordering.{sharesOnHand, setSharesOnHand, addCash, setOrderQty, setLimitPrice}
 
 object splits_dividends {
   trait CorporateAction {
@@ -70,7 +72,7 @@ object splits_dividends {
     val endTimestamp = timestamp(endTime)
     val subHistory = history.subMap(startTimestamp, true, endTimestamp, true)
     val corporateActions = subHistory.values()
-    corporateActions.toVector   // Iterable#toVector by implicit conversion
+    corporateActions.toVector   // calls Iterable#toVector by implicit conversion
   }
 
   def findCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
@@ -119,6 +121,12 @@ object splits_dividends {
     }
   }
 
+  /*
+   * See http://www.crsp.com/documentation/product/stkind/definitions/factor_to_adjust_price_in_period.html for implementation notes.
+   * Returns an adjustment factor that:
+   * 1. when multiplied by an unadjusted stock price, yields an adjusted stock price. i.e. unadjusted-price * adjustment-factor = adjusted-price
+   * 2. when divided into an unadjusted share count, yields an adjusted share count. i.e. unadjusted-qty / adjustment-factor = adjusted-qty
+   */
   def computeSplitAdjustmentFactor(splitRatio: BigDecimal): BigDecimal = 1 / splitRatio
 
   /*
@@ -161,4 +169,90 @@ object splits_dividends {
    */
   def adjustPriceForCorporateActions(price: BigDecimal, symbol: String, priceObservationTime: DateTime, adjustmentTime: DateTime): BigDecimal =
     price * cumulativePriceAdjustmentFactor(symbol, priceObservationTime, adjustmentTime)
+
+  def adjustPortfolioForCorporateActions(portfolio: Portfolio, earlierObservationTime: DateTime, laterObservationTime: DateTime): Portfolio = {
+    val symbols = portfolio.stocks.keys.toVector
+    val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
+    println("********* Corporate Actions (for portfolio): $corporateActions for $symbols ; #earlierObservationTime $laterObservationTime")
+    corporateActions.foldLeft(portfolio)((memoPortfolio, corporateAction) => adjustPortfolio(corporateAction, memoPortfolio))
+  }
+
+  def adjustOpenOrdersForCorporateActions(openOrders: IndexedSeq[Order],
+                                          earlierObservationTime: DateTime,
+                                          laterObservationTime: DateTime): IndexedSeq[Order] = {
+    if (openOrders.isEmpty) Vector[Order]()
+    else {
+      val symbols = openOrders.map(_.symbol)
+      val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
+      val corporateActionsPerSymbol = corporateActions.groupBy(_.symbol)
+      println("********* Corporate Actions (for open orders): $corporateActions for $symbols ; #earlierObservationTime $laterObservationTime")
+      openOrders.map { (openOrder) =>
+        val corporateActionsForSymbol = corporateActionsPerSymbol(openOrder.symbol)
+        corporateActionsForSymbol.foldLeft(openOrder)((order, corporateAction) => adjustOpenOrder(corporateAction, order))
+      }
+    }
+  }
+
+  def adjustPortfolio(corporateAction: CorporateAction, portfolio: Portfolio): Portfolio = corporateAction match {
+    case split: Split => adjustPortfolio(split, portfolio)
+    case dividend: Dividend => adjustPortfolio(dividend, portfolio)
+  }
+
+  /*
+   * Given a portfolio and split, this function applies the split to the portfolio and returns a split-adjusted portfolio.
+   * Note:
+   *   new holdings = old holdings * split ratio
+   */
+  def adjustPortfolio(split: Split, portfolio: Portfolio): Portfolio = {
+    val symbol = split.symbol
+    val exDate = split.exDate
+    val splitRatio = split.ratio
+    val qty = sharesOnHand(portfolio, symbol)
+    val adjQty = qty * splitRatio
+    val adjSharesOnHand = floor(adjQty).toLong
+    val fractionalShareQty = adjQty - adjSharesOnHand
+    val eodBar = findEodBarPriorTo(midnight(exDate), symbol)
+    if (eodBar.isDefined) {
+      val closingPrice = barClose(eodBar.get)
+      val splitAdjustedSharePrice = adjustPriceForCorporateActions(closingPrice, symbol, eodBar.get.endTime, exDate)
+      val fractionalShareCashValue = fractionalShareQty * splitAdjustedSharePrice
+      threadThrough(portfolio,
+                    setSharesOnHand(_, symbol, adjSharesOnHand),
+                    addCash(_, fractionalShareCashValue))
+    } else portfolio
+  }
+
+  def adjustPortfolio(dividend: Dividend, portfolio: Portfolio): Portfolio = {
+    addCash(portfolio, computeDividendPaymentAmount(portfolio, dividend))
+  }
+
+  def adjustOpenOrder(corporateAction: CorporateAction, openOrder: Order): Order = corporateAction match {
+    case split: Split => adjustOpenOrder(split, openOrder)
+    case dividend: Dividend => adjustOpenOrder(dividend, openOrder)
+  }
+
+  def adjustOpenOrder(split: Split, openOrder: Order): Order = {
+    val splitRatio = split.ratio
+    val orderQty = openOrder.qty
+    val adjQty = floor(orderQty * splitRatio).toLong
+    openOrder match {
+      case marketOrder: MarketOrder => setOrderQty(marketOrder, adjQty)
+      case limitOrder: LimitOrder =>
+        val limitPrice = limitOrder.limitPrice
+        val adjLimitPrice = limitPrice / splitRatio
+        threadThrough(limitOrder,
+                      setOrderQty(_, adjQty),
+                      o => setLimitPrice(o.asInstanceOf[LimitOrder], adjLimitPrice))
+    }
+  }
+
+  def adjustOpenOrder(dividend: Dividend, openOrder: Order): Order = openOrder
+
+  // returns the amount of cash the given portfolio is entitled to receive from the given cash-dividend
+  def computeDividendPaymentAmount(portfolio: Portfolio, cashDividend: Dividend): BigDecimal = {
+    val symbol = cashDividend.symbol
+    val dividendAmount = cashDividend.amount
+    val qty = sharesOnHand(portfolio, symbol)
+    qty * dividendAmount
+  }
 }

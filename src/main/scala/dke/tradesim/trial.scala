@@ -122,8 +122,6 @@ object trial {
 
   def incrementStateTime(nextTime: DateTime, currentState: State): State = currentState.copy(previousTime = currentState.time, time = nextTime)
 
-  def threadThrough[T](o: T, fns: (T => T)*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))
-
   def closeAllOpenPositions(trial: Trial, currentState: State): State =
     threadThrough(currentState, cancelAllPendingOrders, closeAllOpenStockPositions, executeOrders(trial, _))
 

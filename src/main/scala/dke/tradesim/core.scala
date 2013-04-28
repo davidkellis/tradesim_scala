@@ -95,4 +95,7 @@ object core {
                                                                          Portfolio(principal, Map[String, Long]()),
                                                                          Vector(),
                                                                          Vector())
+
+  // like the -> (thread) operator in clojure
+  def threadThrough[T](o: T, fns: (T => T)*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))
 }
