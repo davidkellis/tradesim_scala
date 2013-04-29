@@ -4,6 +4,7 @@ import dke.tradesim.core.{State, Trial, Strategy, defaultInitialState}
 import dke.tradesim.datetime.{randomDateTime}
 import dke.tradesim.quotes.{barHigh, barLow, barClose, barSimQuote}
 import org.joda.time.LocalTime
+import dke.tradesim.trial
 
 object buyandhold {
   def initialState(strategy: Strategy, trial: Trial): State = defaultInitialState(trial.startTime, trial.principal)

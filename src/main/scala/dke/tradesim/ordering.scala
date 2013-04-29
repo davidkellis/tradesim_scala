@@ -68,18 +68,6 @@ object ordering {
     (principal - commissionPerTrade).quot(bestOfferPriceFn(time, symbol) + commissionPerShare)
   }
 
-//  def isMarketBuyFillable(trial: Trial, portfolio: Portfolio, order: MarketOrder, fillPriceFn: PriceQuoteFn): Boolean =
-//    purchaseCost(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, fillPriceFn) <= portfolio.cash
-//
-//  def isMarketSellFillable(trial: Trial, portfolio: Portfolio, order: MarketOrder, fillPriceFn: PriceQuoteFn): Boolean =
-//    saleProceeds(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, fillPriceFn) >= 0.0
-//
-//  def isLimitBuyFillable(trial: Trial, portfolio: Portfolio, order: LimitOrder, fillPriceFn: PriceQuoteFn): Boolean =
-//    isMarketBuyFillable(trial, portfolio, order, fillPriceFn) && fillPriceFn(order.time, order.symbol) <= order.limitPrice
-//
-//  def isLimitSellFillable(trial: Trial, portfolio: Portfolio, order: LimitOrder, fillPriceFn: PriceQuoteFn): Boolean =
-//    isMarketSellFillable(trial, portfolio, order, fillPriceFn) && fillPriceFn(order.time, order.symbol) >= order.limitPrice
-
   def isOrderFillable(order: MarketBuy, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
     purchaseCost(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, purchaseFillPriceFn) <= portfolio.cash
 
@@ -99,18 +87,6 @@ object ordering {
       case limitBuy: LimitBuy => isOrderFillable(limitBuy, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
       case limitSell: LimitSell => isOrderFillable(limitSell, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
     }
-
-//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: MarketBuy, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-//    purchaseCost(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, purchaseFillPriceFn) <= portfolio.cash
-//
-//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: MarketSell, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-//    saleProceeds(order.time, order.symbol, order.qty, trial.commissionPerTrade, trial.commissionPerShare, saleFillPriceFn) >= 0.0
-//
-//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: LimitBuy, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-//    isOrderFillable(trial, portfolio, order.asInstanceOf[MarketBuy], purchaseFillPriceFn, saleFillPriceFn) && purchaseFillPriceFn(order.time, order.symbol) <= order.limitPrice
-//
-//  def isOrderFillable(trial: Trial, portfolio: Portfolio, order: LimitSell, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
-//    isOrderFillable(trial, portfolio, order.asInstanceOf[MarketSell], purchaseFillPriceFn, saleFillPriceFn) && saleFillPriceFn(order.time, order.symbol) >= order.limitPrice
 
   def orderFillPrice(order: BuyOrder, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): BigDecimal = purchaseFillPriceFn(order.time, order.symbol)
   def orderFillPrice(order: SellOrder, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): BigDecimal = saleFillPriceFn(order.time, order.symbol)

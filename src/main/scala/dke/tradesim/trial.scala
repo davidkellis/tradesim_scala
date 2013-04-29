@@ -1,14 +1,13 @@
 package dke.tradesim
 
+import org.joda.time.{Interval, DateTime, Period, ReadablePartial}
 import dke.tradesim.core._
 import dke.tradesim.datetime.{isAfterOrEqual, interspersedIntervals}
 import dke.tradesim.schedule.{TradingSchedule, nextTradingDay}
-import dke.tradesim.ordering.{isOrderFillable, orderFillPrice, adjustPortfolioFromFilledOrder}
+import dke.tradesim.ordering.{isOrderFillable, orderFillPrice, adjustPortfolioFromFilledOrder, cancelAllPendingOrders, closeAllOpenStockPositions}
 import dke.tradesim.quotes.{barSimQuote}
-import org.joda.time.{Interval, DateTime, Period, ReadablePartial}
-import dke.tradesim.core.State
-import dke.tradesim.core.Trial
-import dke.tradesim.core.Strategy
+import dke.tradesim.price_history.{commonTrialPeriodStartDates}
+import dke.tradesim.splits_dividends.{adjustPortfolioForCorporateActions, adjustPriceForCorporateActions, adjustOpenOrdersForCorporateActions}
 
 object trial {
   def fixedTradingPeriodIsFinalState(strategy: Strategy, trial: Trial, state: State): Boolean = isAfterOrEqual(state.time, trial.endTime)
@@ -59,7 +58,7 @@ object trial {
   def tradingBloxFillPriceWithSlippage(priceBarFn: (DateTime, String) => Bar,
                                        orderPriceFn: (Bar) => BigDecimal,
                                        priceBarExtremumFn: (Bar) => BigDecimal,
-                                       slippage: BigDecimal): BigDecimal = {
+                                       slippage: BigDecimal): PriceQuoteFn = {
     (time: DateTime, symbol: String) => {
       val bar = priceBarFn(time, symbol)
       val orderPrice = orderPriceFn(bar)
@@ -81,7 +80,7 @@ object trial {
     val purchaseFillPriceFn = trial.purchaseFillPrice
     val saleFillPriceFn = trial.saleFillPrice
 
-    def executeOrders(portfolio: Portfolio, orders: Seq[Order], unfilledOrders: Seq[Order], transactions: Seq[Order]): State = {
+    def executeOrders(portfolio: Portfolio, orders: IndexedSeq[Order], unfilledOrders: IndexedSeq[Order], transactions: IndexedSeq[Order]): State = {
       if (orders.isEmpty)                                                                     // if there aren't any open orders...
         currentState.copy(portfolio = portfolio,                                              // return the new/next current state
                           orders = unfilledOrders,
@@ -175,14 +174,12 @@ object trial {
     runTrial(buildInitStrategyState(strategy, trial))
   }
 
-  // TODO: make sure this implementation is correct - the clojure version was wrong
   def buildAllTrialIntervals(symbolList: Seq[String], intervalLength: Period, separationLength: Period): Seq[Interval] = {
     val startDateRange = commonTrialPeriodStartDates(symbolList, intervalLength)
-    val startDate = startDateRange.getStart
-    interspersedIntervals(startDate, intervalLength, separationLength)
+    startDateRange.map(startDateRange => interspersedIntervals(startDateRange.getStart, intervalLength, separationLength)).getOrElse(Vector[Interval]())
   }
 
-  type TrialGenerator = (Seq[String], DateTime, DateTime) => Trial
+  type TrialGenerator = (IndexedSeq[String], DateTime, DateTime) => Trial
 
   def buildTrialGenerator(principal: BigDecimal,
                           commissionPerTrade: BigDecimal,
@@ -190,20 +187,20 @@ object trial {
                           timeIncrementerFn: (DateTime) => DateTime,
                           purchaseFillPriceFn: PriceQuoteFn,
                           saleFillPriceFn: PriceQuoteFn): TrialGenerator =
-    (symbolList: Seq[String], startTime: DateTime, endTime: DateTime) => Trial(symbolList,
-                                                                               principal,
-                                                                               commissionPerShare,
-                                                                               commissionPerTrade,
-                                                                               startTime,
-                                                                               endTime,
-                                                                               timeIncrementerFn,
-                                                                               purchaseFillPriceFn,
-                                                                               saleFillPriceFn)
+    (symbolList: IndexedSeq[String], startTime: DateTime, endTime: DateTime) => Trial(symbolList,
+                                                                                      principal,
+                                                                                      commissionPerShare,
+                                                                                      commissionPerTrade,
+                                                                                      startTime,
+                                                                                      endTime,
+                                                                                      timeIncrementerFn,
+                                                                                      purchaseFillPriceFn,
+                                                                                      saleFillPriceFn)
 
   def buildTrials(strategy: Strategy,
-                  trialIntervalGeneratorFn: (Seq[String]) => Seq[Interval],
+                  trialIntervalGeneratorFn: (IndexedSeq[String]) => IndexedSeq[Interval],
                   trialGeneratorFn: TrialGenerator,
-                  symbolList: Seq[String]): Seq[Trial] = {
+                  symbolList: IndexedSeq[String]): IndexedSeq[Trial] = {
     val trialIntervals = trialIntervalGeneratorFn(symbolList)
     trialIntervals.map(interval => trialGeneratorFn(symbolList, interval.getStart, interval.getEnd))
   }

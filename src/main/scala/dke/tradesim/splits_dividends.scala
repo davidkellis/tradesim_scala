@@ -18,12 +18,15 @@ object splits_dividends {
   case class Split(symbol: String,
                    exDate: DateTime,
                    ratio: BigDecimal) extends CorporateAction
-  case class Dividend(symbol: String,
-                      declarationDate: DateTime,
-                      exDate: DateTime,
-                      recordDate: DateTime,
-                      payableDate: DateTime,
-                      amount: BigDecimal) extends CorporateAction
+
+  // See http://www.investopedia.com/articles/02/110802.asp#axzz24Wa9LgDj for the various dates associated with dividend payments
+  // See also http://www.sec.gov/answers/dividen.htm
+  case class CashDividend(symbol: String,
+                          declarationDate: DateTime,    // date at which the announcement to shareholders/market that company will pay a dividend is made
+                          exDate: DateTime,             // on or after this date, the security trades without the dividend
+                          recordDate: DateTime,         // date at which shareholders of record are identified as recipients of the dividend
+                          payableDate: DateTime,        // date at which company issues payment of dividend
+                          amount: BigDecimal) extends CorporateAction
 
   case class AdjustmentFactor(corporateAction: CorporateAction, priorEodBar: Option[Bar], adjustmentFactor: BigDecimal)
 
@@ -37,11 +40,9 @@ object splits_dividends {
   def createCorporateAction = ???
 
   def queryCorporateActions(symbol: String): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
-  def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = {
-  }
+  def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = ???
   def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
-  def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-  }
+  def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = ???
 
   type Timestamp = String
   type CorporateActionHistory = NavigableMap[Timestamp, CorporateAction]
@@ -117,7 +118,7 @@ object splits_dividends {
   def computeAdjustmentFactor(corporateAction: CorporateAction, priorEodBar: Option[Bar], priorAdjustmentFactors: IndexedSeq[AdjustmentFactor]): BigDecimal = {
     corporateAction match {
       case Split(_, _, ratio) => computeSplitAdjustmentFactor(ratio)
-      case Dividend(symbol, _, exDate, _, _, amount) => computeDividendAdjustmentFactor(corporateAction.asInstanceOf[Dividend], priorEodBar, priorAdjustmentFactors)
+      case CashDividend(symbol, _, exDate, _, _, amount) => computeDividendAdjustmentFactor(corporateAction.asInstanceOf[CashDividend], priorEodBar, priorAdjustmentFactors)
     }
   }
 
@@ -137,7 +138,7 @@ object splits_dividends {
    * 1. when multiplied by an unadjusted stock price, yields an adjusted stock price. i.e. unadjusted-price * adjustment-factor = adjusted-price
    * 2. when divided into an unadjusted share count, yields an adjusted share count. i.e. unadjusted-qty / adjustment-factor = adjusted-qty
    */
-  def computeDividendAdjustmentFactor(dividend: Dividend, priorEodBar: Option[Bar], priorAdjustmentFactors: IndexedSeq[AdjustmentFactor]): BigDecimal = {
+  def computeDividendAdjustmentFactor(dividend: CashDividend, priorEodBar: Option[Bar], priorAdjustmentFactors: IndexedSeq[AdjustmentFactor]): BigDecimal = {
     priorEodBar.map(eodBar =>
       1 - dividend.amount / (barClose(eodBar) * computeCumulativeDividendAdjustmentFactor(dividend, eodBar, priorAdjustmentFactors))
     ).getOrElse(1)
@@ -147,7 +148,7 @@ object splits_dividends {
    * priorAdjustmentFactors is a sequence of AdjustmentFactor(corporate-action, prior-eod-bar, adjustment-factor) tuples ordered in ascending
    *   (i.e. oldest to most recent) order of the corporate action's ex-date.
    */
-  def computeCumulativeDividendAdjustmentFactor(dividend: Dividend, priorEodBar: Bar, priorAdjustmentFactors: IndexedSeq[AdjustmentFactor]): BigDecimal = {
+  def computeCumulativeDividendAdjustmentFactor(dividend: CashDividend, priorEodBar: Bar, priorAdjustmentFactors: IndexedSeq[AdjustmentFactor]): BigDecimal = {
     val adjustmentFactorsInDescendingOrderOfExDate = priorAdjustmentFactors.reverse
     val applicableAdjustmentFactors = adjustmentFactorsInDescendingOrderOfExDate.takeWhile(_.priorEodBar == priorEodBar)
     applicableAdjustmentFactors.map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
@@ -195,7 +196,7 @@ object splits_dividends {
 
   def adjustPortfolio(corporateAction: CorporateAction, portfolio: Portfolio): Portfolio = corporateAction match {
     case split: Split => adjustPortfolio(split, portfolio)
-    case dividend: Dividend => adjustPortfolio(dividend, portfolio)
+    case dividend: CashDividend => adjustPortfolio(dividend, portfolio)
   }
 
   /*
@@ -222,13 +223,13 @@ object splits_dividends {
     } else portfolio
   }
 
-  def adjustPortfolio(dividend: Dividend, portfolio: Portfolio): Portfolio = {
+  def adjustPortfolio(dividend: CashDividend, portfolio: Portfolio): Portfolio = {
     addCash(portfolio, computeDividendPaymentAmount(portfolio, dividend))
   }
 
   def adjustOpenOrder(corporateAction: CorporateAction, openOrder: Order): Order = corporateAction match {
     case split: Split => adjustOpenOrder(split, openOrder)
-    case dividend: Dividend => adjustOpenOrder(dividend, openOrder)
+    case dividend: CashDividend => adjustOpenOrder(dividend, openOrder)
   }
 
   def adjustOpenOrder(split: Split, openOrder: Order): Order = {
@@ -246,10 +247,10 @@ object splits_dividends {
     }
   }
 
-  def adjustOpenOrder(dividend: Dividend, openOrder: Order): Order = openOrder
+  def adjustOpenOrder(dividend: CashDividend, openOrder: Order): Order = openOrder
 
   // returns the amount of cash the given portfolio is entitled to receive from the given cash-dividend
-  def computeDividendPaymentAmount(portfolio: Portfolio, cashDividend: Dividend): BigDecimal = {
+  def computeDividendPaymentAmount(portfolio: Portfolio, cashDividend: CashDividend): BigDecimal = {
     val symbol = cashDividend.symbol
     val dividendAmount = cashDividend.amount
     val qty = sharesOnHand(portfolio, symbol)

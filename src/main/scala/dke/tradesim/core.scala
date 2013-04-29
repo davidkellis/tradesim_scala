@@ -53,10 +53,10 @@ object core {
   case class State(previousTime: DateTime,
                    time: DateTime,
                    portfolio: Portfolio,
-                   orders: Seq[Order],
-                   transactions: Seq[Order])
+                   orders: IndexedSeq[Order],
+                   transactions: IndexedSeq[Order])
 
-  case class Trial(symbols: Seq[String],
+  case class Trial(symbols: IndexedSeq[String],
                    principal: BigDecimal,
                    commissionPerTrade: BigDecimal,
                    commissionPerShare: BigDecimal,
