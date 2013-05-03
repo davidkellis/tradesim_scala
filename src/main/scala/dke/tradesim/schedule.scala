@@ -1,7 +1,7 @@
 package dke.tradesim
 
 import org.joda.time._
-import dke.tradesim.datetime.{dayOfWeek, intervalBetween, isHoliday, HolidayLookupFunctions, interspersedTimeSeries, isBeforeOrEqual}
+import dke.tradesim.datetimeUtils.{dayOfWeek, intervalBetween, isHoliday, HolidayLookupFunctions, interspersedTimeSeries, isBeforeOrEqual}
 import dke.tradesim.minterval.{MInterval, emptyMInterval, createMInterval, overlaps, subtractMInterval, isEmpty}
 
 object schedule {
@@ -16,17 +16,17 @@ object schedule {
     DateTimeConstants.THURSDAY -> defaultDailyTradingHours,
     DateTimeConstants.FRIDAY -> defaultDailyTradingHours)
 
-  def defaultTradingSchedule(time: DateTime): MInterval = {
-    val tradingHours = defaultWeeklyTradingHours.get(dayOfWeek(time))
+  def defaultTradingSchedule(date: LocalDate): MInterval = {
+    val tradingHours = defaultWeeklyTradingHours.get(dayOfWeek(date))
     tradingHours.map { tradingHours =>
-      createMInterval(Vector(intervalBetween(tradingHours._1.toDateTime(time), tradingHours._2.toDateTime(time))))
+      createMInterval(Vector(intervalBetween(tradingHours._1.toDateTime(date.toDateMidnight), tradingHours._2.toDateTime(date.toDateMidnight))))
     }.getOrElse(emptyMInterval)
   }
 
   // returns an MInterval spanning the time of the holiday - this MInterval represents the time we take off for the holiday
-  def defaultHolidaySchedule(time: DateTime): MInterval = {
-    if (HolidayLookupFunctions.exists(holidayLookupFn => isHoliday(time, holidayLookupFn)))
-      defaultTradingSchedule(time)
+  def defaultHolidaySchedule(date: LocalDate): MInterval = {
+    if (HolidayLookupFunctions.exists(holidayLookupFn => isHoliday(date, holidayLookupFn)))
+      defaultTradingSchedule(date)
     else
       emptyMInterval
   }

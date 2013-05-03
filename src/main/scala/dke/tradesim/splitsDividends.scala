@@ -4,13 +4,13 @@ package dke.tradesim
 import org.joda.time.DateTime
 import net.sf.ehcache.{Element, CacheManager}
 import java.util.{NavigableMap, TreeMap}
-import dke.tradesim.datetime._
+import dke.tradesim.datetimeUtils._
 import dke.tradesim.core.{LimitOrder, MarketOrder, Order, Portfolio, Bar, threadThrough}
 import dke.tradesim.quotes.{findEodBarPriorTo, barClose}
 import dke.tradesim.math.{floor}
 import dke.tradesim.ordering.{sharesOnHand, setSharesOnHand, addCash, setOrderQty, setLimitPrice}
 
-object splits_dividends {
+object splitsDividends {
   trait CorporateAction {
     val symbol: String
     val exDate: DateTime
@@ -44,7 +44,6 @@ object splits_dividends {
   def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
   def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = ???
 
-  type Timestamp = String
   type CorporateActionHistory = NavigableMap[Timestamp, CorporateAction]
 
   def loadCorporateActionHistory(symbol: String): CorporateActionHistory = {
@@ -68,12 +67,12 @@ object splits_dividends {
   }
 
   def findCorporateActionsFromHistory(history: CorporateActionHistory, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-    import scala.collection.JavaConversions.asScalaIterable
+//    import scala.collection.JavaConversions.asScalaIterable
     val startTimestamp = timestamp(startTime)
     val endTimestamp = timestamp(endTime)
     val subHistory = history.subMap(startTimestamp, true, endTimestamp, true)
     val corporateActions = subHistory.values()
-    corporateActions.toVector   // calls Iterable#toVector by implicit conversion
+    scala.collection.JavaConversions.asScalaIterable(corporateActions).toVector   // calls Iterable#toVector by implicit conversion
   }
 
   def findCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
@@ -217,9 +216,8 @@ object splits_dividends {
       val closingPrice = barClose(eodBar.get)
       val splitAdjustedSharePrice = adjustPriceForCorporateActions(closingPrice, symbol, eodBar.get.endTime, exDate)
       val fractionalShareCashValue = fractionalShareQty * splitAdjustedSharePrice
-      threadThrough(portfolio,
-                    setSharesOnHand(_, symbol, adjSharesOnHand),
-                    addCash(_, fractionalShareCashValue))
+      threadThrough(portfolio)(setSharesOnHand(_, symbol, adjSharesOnHand),
+                               addCash(_, fractionalShareCashValue))
     } else portfolio
   }
 
@@ -241,9 +239,8 @@ object splits_dividends {
       case limitOrder: LimitOrder =>
         val limitPrice = limitOrder.limitPrice
         val adjLimitPrice = limitPrice / splitRatio
-        threadThrough(limitOrder,
-                      setOrderQty(_, adjQty),
-                      o => setLimitPrice(o.asInstanceOf[LimitOrder], adjLimitPrice))
+        threadThrough(limitOrder)(setOrderQty(_, adjQty),
+                                  setLimitPrice(_, adjLimitPrice))
     }
   }
 

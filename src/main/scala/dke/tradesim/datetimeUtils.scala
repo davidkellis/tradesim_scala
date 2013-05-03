@@ -3,10 +3,12 @@ package dke.tradesim
 import org.joda.time._
 import util.Random
 
-object datetime {
+object datetimeUtils {
   val EasternTimeZone = findTimeZone("US/Eastern")
 //  val CentralTimeZone = findTimeZone("US/Central")
 //  val PacificTimeZone = findTimeZone("US/Pacific")
+
+  implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(isBefore(_, _))
 
   def datetime(year: Int): DateTime = datetime(year, 1, 1, 0, 0, 0)
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
@@ -14,26 +16,27 @@ object datetime {
   def datetime(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int): DateTime =
     new DateTime(year, month, day, hour, minute, second, EasternTimeZone)
 
-  def timestamp(datetime: ReadableDateTime): String = datetime.toString("yyyyMMddHHmmss")
-
-  def datestamp(datetime: ReadableDateTime): String = datetime.toString("yyyyMMdd")
+  type Timestamp = Long
+  def timestamp(datetime: ReadableDateTime): Timestamp = datetime.toString("yyyyMMddHHmmss").toLong
 
   def findTimeZone(timeZoneName: String): DateTimeZone = DateTimeZone.forID(timeZoneName)
 
-  def timestampToDateTime(timestamp: String): DateTime = {
-    val year = timestamp.substring(0, 4).toInt
-    val month = timestamp.substring(4, 6).toInt
-    val day = timestamp.substring(6, 8).toInt
-    val hour = timestamp.substring(8, 10).toInt
-    val minute = timestamp.substring(10, 12).toInt
-    val second = timestamp.substring(12, 14).toInt
+  def timestampToDateTime(timestamp: Long): DateTime = {
+    val ts = timestamp.toString
+    val year = ts.substring(0, 4).toInt
+    val month = ts.substring(4, 6).toInt
+    val day = ts.substring(6, 8).toInt
+    val hour = ts.substring(8, 10).toInt
+    val minute = ts.substring(10, 12).toInt
+    val second = ts.substring(12, 14).toInt
     datetime(year, month, day, hour, minute, second)
   }
 
   def midnight(datetime: DateTime): DateTime = datetime.toDateMidnight.toDateTime
 
+  def years(n: Int): Period = Years.years(n).toPeriod
+  def days(n: Int): Period = Days.days(n).toPeriod
   def hours(n: Int): Period = Hours.hours(n).toPeriod
-
   def millis(n: Long): Period = new Period(n)
 
   def periodBetween(t1: ReadableInstant, t2: ReadableInstant): Period = new Period(t1, t2)
@@ -49,7 +52,7 @@ object datetime {
   // t1 <= instant <= t2
   def isInstantBetweenInclusive(instant: DateTime, t1: DateTime, t2: DateTime): Boolean = !isBefore(instant, t1) && !isAfter(instant, t2)
 
-  // Returns a random datetime between t1 (inclusive) and t2 (exclusive)
+  // Returns a random datetimeUtils between t1 (inclusive) and t2 (exclusive)
   def randomDateTime(t1: DateTime, t2: DateTime): DateTime = {
     val r = new Random().nextDouble()
     val duration = durationBetween(t1, t2)
@@ -173,9 +176,9 @@ object datetime {
   /**
    * holidayFn is a function of an integer year that returns a LocalDate representing the date
    * that the holiday falls on in that year
-   * Example: isHoliday(datetime(2012, 1, 16), martinLutherKingJrDay) => true
+   * Example: isHoliday(datetimeUtils(2012, 1, 16), martinLutherKingJrDay) => true
    */
-  def isHoliday(date: DateTime, holidayFn: (Int) => DateTime): Boolean = date == holidayFn(date.getYear())
+  def isHoliday(date: LocalDate, holidayFn: (Int) => DateTime): Boolean = date == holidayFn(date.getYear())
 
   val HolidayLookupFunctions = Vector[(Int) => DateTime](
     newYears _,

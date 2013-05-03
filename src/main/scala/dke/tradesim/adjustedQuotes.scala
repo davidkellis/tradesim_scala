@@ -3,9 +3,9 @@ package dke.tradesim
 import org.joda.time.DateTime
 import dke.tradesim.core.Bar
 import dke.tradesim.quotes.{barClose, barOpen, barSimQuote, findEodBar, findEodBarPriorTo}
-import dke.tradesim.splits_dividends.{adjustPriceForCorporateActions}
+import dke.tradesim.splitsDividends.{adjustPriceForCorporateActions}
 
-object adjusted_quotes {
+object adjustedQuotes {
   def adjEodClose(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuote(time, symbol, barClose _)
 
   def adjEodOpen(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuote(time, symbol, barOpen _)

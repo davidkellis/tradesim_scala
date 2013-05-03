@@ -2,12 +2,12 @@ package dke.tradesim
 
 import org.joda.time.{Interval, DateTime, Period, ReadablePartial}
 import dke.tradesim.core._
-import dke.tradesim.datetime.{isAfterOrEqual, interspersedIntervals}
+import dke.tradesim.datetimeUtils.{isAfterOrEqual, interspersedIntervals}
 import dke.tradesim.schedule.{TradingSchedule, nextTradingDay}
 import dke.tradesim.ordering.{isOrderFillable, orderFillPrice, adjustPortfolioFromFilledOrder, cancelAllPendingOrders, closeAllOpenStockPositions}
 import dke.tradesim.quotes.{barSimQuote}
-import dke.tradesim.price_history.{commonTrialPeriodStartDates}
-import dke.tradesim.splits_dividends.{adjustPortfolioForCorporateActions, adjustPriceForCorporateActions, adjustOpenOrdersForCorporateActions}
+import dke.tradesim.priceHistory.{commonTrialPeriodStartDates}
+import dke.tradesim.splitsDividends.{adjustPortfolioForCorporateActions, adjustPriceForCorporateActions, adjustOpenOrdersForCorporateActions}
 
 object trial {
   def fixedTradingPeriodIsFinalState(strategy: Strategy, trial: Trial, state: State): Boolean = isAfterOrEqual(state.time, trial.endTime)
@@ -55,15 +55,17 @@ object trial {
    * The formula is:
    *   order-price + slippage-multiplier * ([high|low] - order-price)
    */
-  def tradingBloxFillPriceWithSlippage(priceBarFn: (DateTime, String) => Bar,
+  def tradingBloxFillPriceWithSlippage(priceBarFn: (DateTime, String) => Option[Bar],
                                        orderPriceFn: (Bar) => BigDecimal,
                                        priceBarExtremumFn: (Bar) => BigDecimal,
                                        slippage: BigDecimal): PriceQuoteFn = {
     (time: DateTime, symbol: String) => {
       val bar = priceBarFn(time, symbol)
-      val orderPrice = orderPriceFn(bar)
-      val fillPrice = orderPrice + slippage * (priceBarExtremumFn(bar) - orderPrice)
-      adjustPriceForCorporateActions(fillPrice, symbol, bar.endTime, time)
+      bar.map { bar =>
+        val orderPrice = orderPriceFn(bar)
+        val fillPrice = orderPrice + slippage * (priceBarExtremumFn(bar) - orderPrice)
+        adjustPriceForCorporateActions(fillPrice, symbol, bar.endTime, time)
+      }
     }
   }
 
@@ -90,7 +92,7 @@ object trial {
         val nextOrders = orders.tail
 
         if (isOrderFillable(order, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)) { // if the order is fillable, then fill it, and continue
-          val fillPrice = orderFillPrice(order, purchaseFillPriceFn, saleFillPriceFn)
+          val fillPrice = orderFillPrice(order, purchaseFillPriceFn, saleFillPriceFn).get     // isOrderFillable implies that this expression returns a BigDecimal
           val filledOrder = order.changeFillPrice(fillPrice)
           val nextPortfolio = adjustPortfolioFromFilledOrder(trial, portfolio, filledOrder)
           val nextTransactions = transactions :+ filledOrder
@@ -122,7 +124,7 @@ object trial {
   def incrementStateTime(nextTime: DateTime, currentState: State): State = currentState.copy(previousTime = currentState.time, time = nextTime)
 
   def closeAllOpenPositions(trial: Trial, currentState: State): State =
-    threadThrough(currentState, cancelAllPendingOrders, closeAllOpenStockPositions, executeOrders(trial, _))
+    threadThrough(currentState)(cancelAllPendingOrders, closeAllOpenStockPositions, executeOrders(trial, _))
 
   /*
    * This function runs a single trial.
@@ -162,19 +164,18 @@ object trial {
         val currentTime = currentState.time
         val nextTime = incrementTime(currentTime)
 
-        runTrial(threadThrough(currentState,
-                               buildNextStrategyState(strategy, trial, _),
-                               //TODO: should we increment state.time by 100 milliseconds here to represent the time between order entry and order execution?
-                               executeOrders(trial, _),
-                               incrementStateTime(nextTime, _),
-                               adjustStrategyStateForRecentSplitsAndDividends))
+        runTrial(threadThrough(currentState)(buildNextStrategyState(strategy, trial, _),
+                                             //TODO: should we increment state.time by 100 milliseconds here to represent the time between order entry and order execution?
+                                             executeOrders(trial, _),
+                                             incrementStateTime(nextTime, _),
+                                             adjustStrategyStateForRecentSplitsAndDividends))
       }
     }
 
     runTrial(buildInitStrategyState(strategy, trial))
   }
 
-  def buildAllTrialIntervals(symbolList: Seq[String], intervalLength: Period, separationLength: Period): Seq[Interval] = {
+  def buildAllTrialIntervals(symbolList: IndexedSeq[String], intervalLength: Period, separationLength: Period): Seq[Interval] = {
     val startDateRange = commonTrialPeriodStartDates(symbolList, intervalLength)
     startDateRange.map(startDateRange => interspersedIntervals(startDateRange.getStart, intervalLength, separationLength)).getOrElse(Vector[Interval]())
   }
@@ -198,9 +199,9 @@ object trial {
                                                                                       saleFillPriceFn)
 
   def buildTrials(strategy: Strategy,
-                  trialIntervalGeneratorFn: (IndexedSeq[String]) => IndexedSeq[Interval],
+                  trialIntervalGeneratorFn: (IndexedSeq[String]) => Seq[Interval],
                   trialGeneratorFn: TrialGenerator,
-                  symbolList: IndexedSeq[String]): IndexedSeq[Trial] = {
+                  symbolList: IndexedSeq[String]): Seq[Trial] = {
     val trialIntervals = trialIntervalGeneratorFn(symbolList)
     trialIntervals.map(interval => trialGeneratorFn(symbolList, interval.getStart, interval.getEnd))
   }

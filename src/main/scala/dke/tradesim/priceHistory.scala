@@ -1,10 +1,10 @@
 package dke.tradesim
 
 import org.joda.time.{Period, Interval, DateTime}
-import dke.tradesim.datetime.{intervalBetween, isAfter, isBefore, minDateTime, maxDateTime, offsetInterval}
+import dke.tradesim.datetimeUtils.{intervalBetween, isAfter, isBefore, minDateTime, maxDateTime, offsetInterval}
 import dke.tradesim.quotes.{findOldestEodBar, findMostRecentEodBar}
 
-object price_history {
+object priceHistory {
   // Returns the interval of time that spans the full price history of a particular symbol
   def priceHistoryInterval(symbol: String): Option[Interval] = {
     val startTime = findOldestEodBar(symbol).map(_.startTime)

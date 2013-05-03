@@ -48,7 +48,7 @@ object core {
     def changeFillPrice(newFillPrice: BigDecimal): LimitSell = this.copy(fillPrice = Option(newFillPrice))
   }
 
-  type PriceQuoteFn = (DateTime, String) => BigDecimal
+  type PriceQuoteFn = (DateTime, String) => Option[BigDecimal]
 
   case class State(previousTime: DateTime,
                    time: DateTime,
@@ -97,5 +97,5 @@ object core {
                                                                          Vector())
 
   // like the -> (thread) operator in clojure
-  def threadThrough[T](o: T, fns: (T => T)*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))
+  def threadThrough[T](o: T)(fns: Function[T, T]*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))
 }

@@ -1,17 +1,18 @@
 package dke.tradesim
 
 import org.joda.time.DateTime
-import dke.tradesim.datetime.isInstantBetweenInclusive
+import dke.tradesim.datetimeUtils.isInstantBetweenInclusive
 import dke.tradesim.core.{Bar, Portfolio}
 import dke.tradesim.quotes.{findEodBar}
-import dke.tradesim.splits_dividends.{adjustPriceForCorporateActions}
+import dke.tradesim.splitsDividends.{adjustPriceForCorporateActions}
 
 object portfolio {
   type BarQuoteFn = (Bar) => BigDecimal
 
   def portfolioValue(portfolio: Portfolio, time: DateTime, priorBarPriceFn: BarQuoteFn, currentBarPriceFn: BarQuoteFn): BigDecimal = {
-    val stockValues = for((symbol, qty) <- portfolio.stocks) yield stockValue(symbol, qty, time, priorBarPriceFn, currentBarPriceFn)
-    val totalValue = stockValues.flatten.reduce(_ + _)
+    val stockValues = for((symbol, qty) <- portfolio.stocks)
+                      yield stockValue(symbol, qty, time, priorBarPriceFn, currentBarPriceFn).getOrElse(BigDecimal(0))
+    val totalValue = stockValues.reduce(_ + _)
     portfolio.cash + totalValue
   }
 

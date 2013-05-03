@@ -1,7 +1,7 @@
 package dke.tradesim
 
 import org.joda.time.Interval
-import dke.tradesim.datetime.{compareDateTimes, intervalBetween}
+import dke.tradesim.datetimeUtils.{compareDateTimes, intervalBetween, dateTimeOrdering}
 
 object minterval {
   type MInterval = scala.collection.immutable.IndexedSeq[Interval]

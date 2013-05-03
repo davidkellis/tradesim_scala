@@ -3,7 +3,7 @@ package dke.tradesim
 import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
 import dke.tradesim.core.Bar
-import dke.tradesim.datetime.{timestamp, datetime, isInstantBetweenInclusive, millis}
+import dke.tradesim.datetimeUtils.{timestamp, datetime, isInstantBetweenInclusive, millis}
 import dke.tradesim.db.EodBars
 
 import scala.slick.driver.PostgresDriver.simple._
@@ -29,10 +29,10 @@ object quotes {
   def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = ???
 
 
-  type PriceHistory = NavigableMap[String, Bar]
+  type PriceHistory = NavigableMap[Long, Bar]   // a price history is a collection of (timestamp -> Bar) pairs
 
   def loadPriceHistoryFromBars(bars: Seq[Bar]): PriceHistory = {
-    val priceHistory: PriceHistory = new TreeMap[String, Bar]()
+    val priceHistory: PriceHistory = new TreeMap[Long, Bar]()
     for {bar <- bars} priceHistory.put(timestamp(bar.startTime), bar)
     priceHistory
   }
@@ -41,7 +41,7 @@ object quotes {
   def loadPriceHistory(symbol: String, earliestTime: DateTime, latestTime: DateTime): PriceHistory =
     loadPriceHistoryFromBars(queryEodBars(symbol, earliestTime, latestTime))
 
-  def mostRecentBar(priceHistory: PriceHistory, timestamp: String): Option[Bar] = {
+  def mostRecentBar(priceHistory: PriceHistory, timestamp: Long): Option[Bar] = {
     val mapEntry = priceHistory.floorEntry(timestamp)
     Option(mapEntry.getValue)
   }
