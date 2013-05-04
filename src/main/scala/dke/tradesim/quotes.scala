@@ -17,8 +17,6 @@ object quotes {
   def barClose(bar: Bar): BigDecimal = bar.close
   def barSimQuote(bar: Bar): BigDecimal = (bar.low + bar.high) / 2
 
-  def convertEodDbRecord(): Bar = ???
-
   /**
    * Returns the most recent EOD bar for <symbol> as of <date-time>.
    * If the given <date-time> falls within the interval of a particular bar, then that bar is returned;
@@ -58,7 +56,12 @@ object quotes {
    *   ],
    *   unique: true)
    */
-  def queryEodBarPriorTo(time: DateTime, symbol: String): Option[Bar] = ???
+  def queryEodBarPriorTo(time: DateTime, symbol: String): Option[Bar] = {
+    val bars = Query(EodBars).filter(_.symbol === symbol).filter(_.endTime < timestamp(time))
+    val sortedBars = bars.sortBy(_.startTime.desc)
+    val record = sortedBars.take(1).firstOption
+    convertEodBarRecord(record)
+  }
 
   def queryEodBars(symbol: String): Seq[Bar] = ???
   def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = ???

@@ -19,7 +19,6 @@ object Runner {
       .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LRU)
       .eternal(false)
     singletonManager.addCache(new Cache(corporateActionCacheConfiguration))
-
   }
 
   def cleanupCache() {
