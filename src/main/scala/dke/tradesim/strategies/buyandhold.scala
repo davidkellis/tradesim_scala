@@ -22,10 +22,10 @@ object buyandhold {
     val portfolio = state.portfolio
 
     time match {
-      case startTime =>
+      case _ if time == startTime =>
         val qty = floor(maxSharesPurchasable(trial, portfolio, time, symbol, adjEodSimQuote).getOrElse(0)).toLong
         buy(state, time, symbol, qty)
-      case endTime =>
+      case _ if time == endTime =>
         sell(state, time, symbol, sharesOnHand(portfolio, symbol))
       case _ => state
     }

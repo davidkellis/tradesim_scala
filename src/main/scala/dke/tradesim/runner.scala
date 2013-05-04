@@ -1,6 +1,6 @@
 package dke.tradesim
 
-import scala.slick.session.Database
+import scala.slick.session.{Database}
 import net.sf.ehcache.{Cache, CacheManager}
 import net.sf.ehcache.config.{CacheConfiguration}
 import net.sf.ehcache.store.MemoryStoreEvictionPolicy

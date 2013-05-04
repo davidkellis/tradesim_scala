@@ -2,11 +2,12 @@ package dke.tradesim
 
 import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
-import dke.tradesim.core.Bar
+import dke.tradesim.core.{Bar}
 import dke.tradesim.datetimeUtils.{timestamp, datetime, isInstantBetweenInclusive, millis}
-import dke.tradesim.db.EodBars
+import dke.tradesim.db.{EodBars, convertEodBarRecord}
 
 import scala.slick.driver.PostgresDriver.simple._
+import Database.threadLocalSession
 import net.sf.ehcache.{Element, CacheManager}
 
 object quotes {
@@ -18,11 +19,45 @@ object quotes {
 
   def convertEodDbRecord(): Bar = ???
 
+  /**
+   * Returns the most recent EOD bar for <symbol> as of <date-time>.
+   * If the given <date-time> falls within the interval of a particular bar, then that bar is returned;
+   * If the given <date-time> does not fall within the interval of a particular bar, then the most recent bar as of that time is returned.
+   * The bar returned is not adjusted for splits or dividend payments.
+   *
+   * Assumes that there is a mongodb collection named "eods" containing the fields:
+   *   s (ticker symbol),
+   *   ts (timestamp representing the start of the interval that the bar represents)
+   *   te (timestamp representing the end of the interval that the bar represents)
+   * and that there is an ascending index of the form:
+   *   index([
+   *     [:s, 1],
+   *     [:ts, 1]
+   *   ],
+   *   unique: true)
+   */
   def queryEodBar(time: DateTime, symbol: String): Option[Bar] = {
-    val bars = Query(EodBars).filter(_.symbol == symbol).filter(_.startTime <= timestamp(time)).sortBy(_.startTime).desc
-    ???
+    val bars = Query(EodBars).filter(_.symbol === symbol).filter(_.startTime <= timestamp(time))
+    val sortedBars = bars.sortBy(_.startTime.desc)
+    val record = sortedBars.take(1).firstOption
+    convertEodBarRecord(record)
   }
 
+  /**
+   * Returns the most recent EOD bar for <symbol> occurring entirely before <date-time>.
+   * Like query-eod-bar, except that it returns the most recent EOD bar that ended before the given <date-time>.
+   *
+   * Assumes that there is a mongodb collection named "eods" containing the fields:
+   *   s (ticker symbol),
+   *   ts (timestamp representing the start of the interval that the bar represents)
+   *   te (timestamp representing the end of the interval that the bar represents)
+   * and that there is an ascending index of the form:
+   *   index([
+   *     [:s, 1],
+   *     [:te, 1]
+   *   ],
+   *   unique: true)
+   */
   def queryEodBarPriorTo(time: DateTime, symbol: String): Option[Bar] = ???
 
   def queryEodBars(symbol: String): Seq[Bar] = ???

@@ -4,6 +4,8 @@ import org.joda.time._
 import util.Random
 
 object datetimeUtils {
+  type Timestamp = Long
+
   val EasternTimeZone = findTimeZone("US/Eastern")
 //  val CentralTimeZone = findTimeZone("US/Central")
 //  val PacificTimeZone = findTimeZone("US/Pacific")
@@ -11,17 +13,15 @@ object datetimeUtils {
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(isBefore(_, _))
 
   def datetime(year: Int): DateTime = datetime(year, 1, 1, 0, 0, 0)
+
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
+
   def datetime(year: Int, month: Int, day: Int): DateTime = datetime(year, month, day, 0, 0, 0)
+
   def datetime(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int): DateTime =
     new DateTime(year, month, day, hour, minute, second, EasternTimeZone)
 
-  type Timestamp = Long
-  def timestamp(datetime: ReadableDateTime): Timestamp = datetime.toString("yyyyMMddHHmmss").toLong
-
-  def findTimeZone(timeZoneName: String): DateTimeZone = DateTimeZone.forID(timeZoneName)
-
-  def timestampToDateTime(timestamp: Long): DateTime = {
+  def datetime(timestamp: Timestamp): DateTime = {
     val ts = timestamp.toString
     val year = ts.substring(0, 4).toInt
     val month = ts.substring(4, 6).toInt
@@ -31,6 +31,10 @@ object datetimeUtils {
     val second = ts.substring(12, 14).toInt
     datetime(year, month, day, hour, minute, second)
   }
+
+  def timestamp(datetime: ReadableDateTime): Timestamp = datetime.toString("yyyyMMddHHmmss").toLong
+
+  def findTimeZone(timeZoneName: String): DateTimeZone = DateTimeZone.forID(timeZoneName)
 
   def midnight(datetime: DateTime): DateTime = datetime.toDateMidnight.toDateTime
 

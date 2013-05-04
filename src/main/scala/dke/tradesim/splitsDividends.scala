@@ -149,7 +149,7 @@ object splitsDividends {
    */
   def computeCumulativeDividendAdjustmentFactor(dividend: CashDividend, priorEodBar: Bar, priorAdjustmentFactors: IndexedSeq[AdjustmentFactor]): BigDecimal = {
     val adjustmentFactorsInDescendingOrderOfExDate = priorAdjustmentFactors.reverse
-    val applicableAdjustmentFactors = adjustmentFactorsInDescendingOrderOfExDate.takeWhile(_.priorEodBar == priorEodBar)
+    val applicableAdjustmentFactors = adjustmentFactorsInDescendingOrderOfExDate.takeWhile(_.priorEodBar.get == priorEodBar)
     applicableAdjustmentFactors.map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
   }
 
@@ -235,12 +235,12 @@ object splitsDividends {
     val orderQty = openOrder.qty
     val adjQty = floor(orderQty * splitRatio).toLong
     openOrder match {
-      case marketOrder: MarketOrder => setOrderQty(marketOrder, adjQty)
       case limitOrder: LimitOrder =>
         val limitPrice = limitOrder.limitPrice
         val adjLimitPrice = limitPrice / splitRatio
         threadThrough(limitOrder)(setOrderQty(_, adjQty),
                                   setLimitPrice(_, adjLimitPrice))
+      case marketOrder: MarketOrder => setOrderQty(marketOrder, adjQty)
     }
   }
 
