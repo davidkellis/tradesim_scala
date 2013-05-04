@@ -58,7 +58,7 @@ object quotes {
    */
   def queryEodBarPriorTo(time: DateTime, symbol: String): Option[Bar] = {
     val bars = Query(EodBars).filter(_.symbol === symbol).filter(_.endTime < timestamp(time))
-    val sortedBars = bars.sortBy(_.startTime.desc)
+    val sortedBars = bars.sortBy(_.endTime.desc)
     val record = sortedBars.take(1).firstOption
     convertEodBarRecord(record)
   }

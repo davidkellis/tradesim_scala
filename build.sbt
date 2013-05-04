@@ -10,7 +10,7 @@ libraryDependencies ++= Seq(
   "joda-time" % "joda-time" % "2.2",
   "org.joda" % "joda-convert" % "1.2",
   "javax.transaction" % "jta" % "1.1",
-  "net.sf.ehcache" % "ehcache-core" % "2.6.5",
+  "net.sf.ehcache" % "ehcache" % "2.7.0",
   "com.typesafe.slick" %% "slick" % "1.0.0",
   "org.slf4j" % "slf4j-nop" % "1.6.4",
   "postgresql" % "postgresql" % "9.1-901.jdbc4",
