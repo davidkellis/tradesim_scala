@@ -5,6 +5,7 @@ import util.Random
 
 object datetimeUtils {
   type Timestamp = Long
+  type Datestamp = Int
 
   val EasternTimeZone = findTimeZone("US/Eastern")
 //  val CentralTimeZone = findTimeZone("US/Central")

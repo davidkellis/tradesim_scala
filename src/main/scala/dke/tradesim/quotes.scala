@@ -63,8 +63,19 @@ object quotes {
     convertEodBarRecord(record)
   }
 
-  def queryEodBars(symbol: String): Seq[Bar] = ???
-  def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = ???
+  def queryEodBars(symbol: String): Seq[Bar] = {
+    val bars = Query(EodBars).filter(_.symbol === symbol)
+    val sortedBars = bars.sortBy(_.startTime)
+    sortedBars.mapResult(convertEodBarRecord(_)).list
+  }
+
+  def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = {
+    val bars = Query(EodBars).filter(_.symbol === symbol)
+                             .filter(_.startTime >= timestamp(earliestTime))
+                             .filter(_.endTime <= timestamp(latestTime))
+    val sortedBars = bars.sortBy(_.startTime)
+    sortedBars.mapResult(convertEodBarRecord(_)).list
+  }
 
 
   type PriceHistory = NavigableMap[Long, Bar]   // a price history is a collection of (timestamp -> Bar) pairs
@@ -104,9 +115,19 @@ object quotes {
     }
   }
 
-  def findOldestEodBar(symbol: String): Option[Bar] = ???
+  def findOldestEodBar(symbol: String): Option[Bar] = {
+    val bars = Query(EodBars).filter(_.symbol === symbol)
+    val sortedBars = bars.sortBy(_.startTime)
+    val record = sortedBars.take(1).firstOption
+    convertEodBarRecord(record)
+  }
 
-  def findMostRecentEodBar(symbol: String): Option[Bar] = ???
+  def findMostRecentEodBar(symbol: String): Option[Bar] = {
+    val bars = Query(EodBars).filter(_.symbol === symbol)
+    val sortedBars = bars.sortBy(_.startTime.desc)
+    val record = sortedBars.take(1).firstOption
+    convertEodBarRecord(record)
+  }
 
 
   val priceHistoryCache = CacheManager.getInstance().getCache("priceHistoryCache")

@@ -1,14 +1,21 @@
 package dke.tradesim
 
-//import scala.collection.JavaConversions._
+import scala.collection.JavaConversions._
+import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
 import net.sf.ehcache.{Element, CacheManager}
-import java.util.{NavigableMap, TreeMap}
+
 import dke.tradesim.datetimeUtils._
 import dke.tradesim.core.{LimitOrder, MarketOrder, Order, Portfolio, Bar, threadThrough}
+import dke.tradesim.db.{CorporateActionRecord, convertCorporateActionRecord}
 import dke.tradesim.quotes.{findEodBarPriorTo, barClose}
 import dke.tradesim.math.{floor}
 import dke.tradesim.ordering.{sharesOnHand, setSharesOnHand, addCash, setOrderQty, setLimitPrice}
+
+import scala.slick.session.Database
+import Database.threadLocalSession
+import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+
 
 object splitsDividends {
   trait CorporateAction {
@@ -30,19 +37,31 @@ object splitsDividends {
 
   case class AdjustmentFactor(corporateAction: CorporateAction, priorEodBar: Option[Bar], adjustmentFactor: BigDecimal)
 
-  def convertDbSplitRatio(dbSplitRatio: String): BigDecimal = {
-    val numerator :: denominator :: _ = dbSplitRatio.split('/').map(BigDecimal(_)).toList
-    numerator / denominator
-  }
-
-  def convertSplitDbRecord = ???
-  def convertDividendDbRecord = ???
-  def createCorporateAction = ???
+  implicit val getCorporateActionRecord = GetResult(a => (a.nextInt, a.nextString, a.nextString, a.nextInt, a.nextInt, a.nextInt, a.nextInt, a.nextBigDecimal))
 
   def queryCorporateActions(symbol: String): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
-  def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = ???
+  def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = {
+    val sql =
+      s"""
+        |select * from corporate_actions
+        |where symbol in (${symbols.mkString("'", "','", "'")})
+        |order by ex_date
+      """.stripMargin
+    Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).to[Vector]
+  }
+
   def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
-  def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = ???
+  def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
+    val sql =
+      s"""
+        |select * from corporate_actions
+        |where symbol in (${symbols.mkString("'", "','", "'")})
+        |and ex_date >= ${timestamp(startTime)}
+        |and ex_date <= ${timestamp(endTime)}
+        |order by ex_date
+      """.stripMargin
+    Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).to[Vector]
+  }
 
   type CorporateActionHistory = NavigableMap[Timestamp, CorporateAction]
 
@@ -67,12 +86,11 @@ object splitsDividends {
   }
 
   def findCorporateActionsFromHistory(history: CorporateActionHistory, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-//    import scala.collection.JavaConversions.asScalaIterable
     val startTimestamp = timestamp(startTime)
     val endTimestamp = timestamp(endTime)
     val subHistory = history.subMap(startTimestamp, true, endTimestamp, true)
     val corporateActions = subHistory.values()
-    scala.collection.JavaConversions.asScalaIterable(corporateActions).toVector   // calls Iterable#toVector by implicit conversion
+    corporateActions.toVector   // calls #toVector by implicit conversion
   }
 
   def findCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
