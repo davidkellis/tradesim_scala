@@ -2,13 +2,13 @@ package dke.tradesim
 
 import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
+import net.sf.ehcache.{Element, CacheManager}
+
 import dke.tradesim.core.{Bar}
 import dke.tradesim.datetimeUtils.{timestamp, datetime, isInstantBetweenInclusive, millis}
-import dke.tradesim.db.{EodBars, convertEodBarRecord}
+import dke.tradesim.db.{Adapter}
 
-import scala.slick.driver.PostgresDriver.simple._
-import Database.threadLocalSession
-import net.sf.ehcache.{Element, CacheManager}
+import Adapter.threadLocalAdapter
 
 object quotes {
   def barOpen(bar: Bar): BigDecimal = bar.open
@@ -34,11 +34,8 @@ object quotes {
    *   ],
    *   unique: true)
    */
-  def queryEodBar(time: DateTime, symbol: String): Option[Bar] = {
-    val bars = Query(EodBars).filter(_.symbol === symbol).filter(_.startTime <= timestamp(time))
-    val sortedBars = bars.sortBy(_.startTime.desc)
-    val record = sortedBars.take(1).firstOption
-    convertEodBarRecord(record)
+  def queryEodBar(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    adapter.queryEodBar(time, symbol)
   }
 
   /**
@@ -56,25 +53,16 @@ object quotes {
    *   ],
    *   unique: true)
    */
-  def queryEodBarPriorTo(time: DateTime, symbol: String): Option[Bar] = {
-    val bars = Query(EodBars).filter(_.symbol === symbol).filter(_.endTime < timestamp(time))
-    val sortedBars = bars.sortBy(_.endTime.desc)
-    val record = sortedBars.take(1).firstOption
-    convertEodBarRecord(record)
+  def queryEodBarPriorTo(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    adapter.queryEodBarPriorTo(time, symbol)
   }
 
-  def queryEodBars(symbol: String): Seq[Bar] = {
-    val bars = Query(EodBars).filter(_.symbol === symbol)
-    val sortedBars = bars.sortBy(_.startTime)
-    sortedBars.mapResult(convertEodBarRecord(_)).list
+  def queryEodBars(symbol: String)(implicit adapter: Adapter): Seq[Bar] = {
+    adapter.queryEodBars(symbol)
   }
 
-  def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = {
-    val bars = Query(EodBars).filter(_.symbol === symbol)
-                             .filter(_.startTime >= timestamp(earliestTime))
-                             .filter(_.endTime <= timestamp(latestTime))
-    val sortedBars = bars.sortBy(_.startTime)
-    sortedBars.mapResult(convertEodBarRecord(_)).list
+  def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[Bar] = {
+    adapter.queryEodBars(symbol, earliestTime, latestTime)
   }
 
 
@@ -115,18 +103,12 @@ object quotes {
     }
   }
 
-  def findOldestEodBar(symbol: String): Option[Bar] = {
-    val bars = Query(EodBars).filter(_.symbol === symbol)
-    val sortedBars = bars.sortBy(_.startTime)
-    val record = sortedBars.take(1).firstOption
-    convertEodBarRecord(record)
+  def findOldestEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    adapter.findOldestEodBar(symbol)
   }
 
-  def findMostRecentEodBar(symbol: String): Option[Bar] = {
-    val bars = Query(EodBars).filter(_.symbol === symbol)
-    val sortedBars = bars.sortBy(_.startTime.desc)
-    val record = sortedBars.take(1).firstOption
-    convertEodBarRecord(record)
+  def findMostRecentEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    adapter.findMostRecentEodBar(symbol)
   }
 
 

@@ -1,10 +1,12 @@
 package dke.tradesim
 
 import scala.slick.session.{Database}
+import com.mongodb.casbah.Imports._
 import net.sf.ehcache.{Cache, CacheManager}
 import net.sf.ehcache.config.{CacheConfiguration}
 import net.sf.ehcache.store.MemoryStoreEvictionPolicy
 import dke.tradesim.strategies.buyandhold
+import dke.tradesim.db.{MongoAdapter, SlickAdapter}
 
 object Runner {
   def setupCaches() {
@@ -30,8 +32,9 @@ object Runner {
   def main(args: Array[String]) {
     setupCaches()
 
-    Database.forURL("jdbc:postgresql:tradesim", driver = "org.postgresql.Driver") withSession {
-      // The session is never named explicitly. It is bound to the current thread as the threadLocalSession that we imported
+    MongoAdapter.withAdapter("mongodb://localhost") {
+//    SlickAdapter.withAdapter("jdbc:postgresql:tradesim", "org.postgresql.Driver") {
+      // The adapter is never named explicitly. It is an implicit instance of Adapter
 
       val config = RuntimeConfig(0, false)
       val parser = new scopt.mutable.OptionParser("tradesim", "1.0") {

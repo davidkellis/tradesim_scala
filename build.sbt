@@ -14,6 +14,7 @@ libraryDependencies ++= Seq(
   "javax.transaction" % "jta" % "1.1",
   "net.sf.ehcache" % "ehcache" % "2.7.0",
   "com.typesafe.slick" %% "slick" % "1.0.0",
+  "org.mongodb" %% "casbah" % "2.6.0",
   "org.slf4j" % "slf4j-nop" % "1.6.4",
   "postgresql" % "postgresql" % "9.1-901.jdbc4",
   "com.github.scopt" %% "scopt" % "2.1.0"

@@ -7,15 +7,12 @@ import net.sf.ehcache.{Element, CacheManager}
 
 import dke.tradesim.datetimeUtils._
 import dke.tradesim.core.{LimitOrder, MarketOrder, Order, Portfolio, Bar, threadThrough}
-import dke.tradesim.db.{CorporateActionRecord, convertCorporateActionRecord}
+import dke.tradesim.db.{Adapter}
 import dke.tradesim.quotes.{findEodBarPriorTo, barClose}
 import dke.tradesim.math.{floor}
 import dke.tradesim.ordering.{sharesOnHand, setSharesOnHand, addCash, setOrderQty, setLimitPrice}
 
-import scala.slick.session.Database
-import Database.threadLocalSession
-import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-
+import Adapter.threadLocalAdapter
 
 object splitsDividends {
   trait CorporateAction {
@@ -37,30 +34,15 @@ object splitsDividends {
 
   case class AdjustmentFactor(corporateAction: CorporateAction, priorEodBar: Option[Bar], adjustmentFactor: BigDecimal)
 
-  implicit val getCorporateActionRecord = GetResult(a => (a.nextInt, a.nextString, a.nextString, a.nextInt, a.nextInt, a.nextInt, a.nextInt, a.nextBigDecimal))
 
-  def queryCorporateActions(symbol: String): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
-  def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = {
-    val sql =
-      s"""
-        |select * from corporate_actions
-        |where symbol in (${symbols.mkString("'", "','", "'")})
-        |order by ex_date
-      """.stripMargin
-    Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).to[Vector]
+  def queryCorporateActions(symbol: String)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
+  def queryCorporateActions(symbols: IndexedSeq[String])(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
+    adapter.queryCorporateActions(symbols)
   }
 
-  def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
-  def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-    val sql =
-      s"""
-        |select * from corporate_actions
-        |where symbol in (${symbols.mkString("'", "','", "'")})
-        |and ex_date >= ${timestamp(startTime)}
-        |and ex_date <= ${timestamp(endTime)}
-        |order by ex_date
-      """.stripMargin
-    Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).to[Vector]
+  def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
+  def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
+    adapter.queryCorporateActions(symbols, startTime, endTime)
   }
 
   type CorporateActionHistory = NavigableMap[Timestamp, CorporateAction]
