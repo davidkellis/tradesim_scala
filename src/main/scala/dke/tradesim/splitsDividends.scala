@@ -6,7 +6,7 @@ import org.joda.time.DateTime
 import net.sf.ehcache.{Element, CacheManager}
 
 import dke.tradesim.datetimeUtils._
-import dke.tradesim.core.{LimitOrder, MarketOrder, Order, Portfolio, Bar, threadThrough}
+import dke.tradesim.core.{LimitOrder, MarketOrder, Order, Portfolio, Bar, threadThrough, CorporateAction, Split, CashDividend}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.quotes.{findEodBarPriorTo, barClose}
 import dke.tradesim.math.{floor}
@@ -15,23 +15,6 @@ import dke.tradesim.ordering.{sharesOnHand, setSharesOnHand, addCash, setOrderQt
 import Adapter.threadLocalAdapter
 
 object splitsDividends {
-  trait CorporateAction {
-    val symbol: String
-    val exDate: DateTime
-  }
-  case class Split(symbol: String,
-                   exDate: DateTime,
-                   ratio: BigDecimal) extends CorporateAction
-
-  // See http://www.investopedia.com/articles/02/110802.asp#axzz24Wa9LgDj for the various dates associated with dividend payments
-  // See also http://www.sec.gov/answers/dividen.htm
-  case class CashDividend(symbol: String,
-                          declarationDate: DateTime,    // date at which the announcement to shareholders/market that company will pay a dividend is made
-                          exDate: DateTime,             // on or after this date, the security trades without the dividend
-                          recordDate: DateTime,         // date at which shareholders of record are identified as recipients of the dividend
-                          payableDate: DateTime,        // date at which company issues payment of dividend
-                          amount: BigDecimal) extends CorporateAction
-
   case class AdjustmentFactor(corporateAction: CorporateAction, priorEodBar: Option[Bar], adjustmentFactor: BigDecimal)
 
 

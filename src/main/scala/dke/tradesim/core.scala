@@ -70,6 +70,7 @@ object core {
                       buildNextState: (Strategy, Trial, State) => State,
                       isFinalState: (Strategy, Trial, State) => Boolean)
 
+
   abstract class Bar {
     val symbol: String
     val startTime: DateTime
@@ -89,6 +90,48 @@ object core {
                     low: BigDecimal,
                     close: BigDecimal,
                     volume: Long) extends Bar
+
+
+  trait CorporateAction {
+    val symbol: String
+    val exDate: DateTime
+  }
+  case class Split(symbol: String,
+                   exDate: DateTime,
+                   ratio: BigDecimal) extends CorporateAction
+
+  // See http://www.investopedia.com/articles/02/110802.asp#axzz24Wa9LgDj for the various dates associated with dividend payments
+  // See also http://www.sec.gov/answers/dividen.htm
+  case class CashDividend(symbol: String,
+                          declarationDate: DateTime,    // date at which the announcement to shareholders/market that company will pay a dividend is made
+                          exDate: DateTime,             // on or after this date, the security trades without the dividend
+                          recordDate: DateTime,         // date at which shareholders of record are identified as recipients of the dividend
+                          payableDate: DateTime,        // date at which company issues payment of dividend
+                          amount: BigDecimal) extends CorporateAction
+
+
+  case class Statement(stringAttributes: Map[String, String], numericAttributes: Map[String, BigDecimal]) {
+    def this() { this(Map[String, String](), Map[String, BigDecimal]()) }
+
+    def getString(key: String): Option[String] = stringAttributes.get(key)
+    def getNumber(key: String): Option[BigDecimal] = numericAttributes.get(key)
+
+    def set(key: String, value: String): Statement = copy(stringAttributes = stringAttributes + (key -> value))
+    def set(key: String, value: BigDecimal): Statement = copy(numericAttributes = numericAttributes + (key -> value))
+  }
+
+  type IncomeStatement = Statement
+  type BalanceSheet = Statement
+  type CashFlowStatement = Statement
+
+  trait FinancialReport
+  case class QuarterlyReport(symbol: String,
+                             startTime: DateTime,
+                             endTime: DateTime,
+                             publicationTime: DateTime,
+                             incomeStatement: IncomeStatement,
+                             balanceSheet: BalanceSheet,
+                             cashFlowStatement: CashFlowStatement) extends FinancialReport
 
   def defaultInitialState(time: DateTime, principal: BigDecimal) = State(time,
                                                                          time,

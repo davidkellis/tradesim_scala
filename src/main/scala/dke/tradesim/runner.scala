@@ -1,7 +1,6 @@
 package dke.tradesim
 
 import scala.slick.session.{Database}
-import com.mongodb.casbah.Imports._
 import net.sf.ehcache.{Cache, CacheManager}
 import net.sf.ehcache.config.{CacheConfiguration}
 import net.sf.ehcache.store.MemoryStoreEvictionPolicy
@@ -21,6 +20,11 @@ object Runner {
       .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LRU)
       .eternal(false)
     singletonManager.addCache(new Cache(corporateActionCacheConfiguration))
+
+    val quarterlyReportHistoryCacheConfiguration = new CacheConfiguration("quarterlyReportHistoryCache", 32)
+      .memoryStoreEvictionPolicy(MemoryStoreEvictionPolicy.LRU)
+      .eternal(false)
+    singletonManager.addCache(new Cache(quarterlyReportHistoryCacheConfiguration))
   }
 
   def cleanupCache() {
@@ -32,9 +36,8 @@ object Runner {
   def main(args: Array[String]) {
     setupCaches()
 
-    MongoAdapter.withAdapter("mongodb://localhost") {
-//    SlickAdapter.withAdapter("jdbc:postgresql:tradesim", "org.postgresql.Driver") {
-      // The adapter is never named explicitly. It is an implicit instance of Adapter
+//    MongoAdapter.withAdapter("mongodb://localhost") {
+    SlickAdapter.withAdapter("jdbc:postgresql:tradesim", "org.postgresql.Driver") {
 
       val config = RuntimeConfig(0, false)
       val parser = new scopt.mutable.OptionParser("tradesim", "1.0") {

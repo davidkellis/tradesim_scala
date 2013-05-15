@@ -7,9 +7,8 @@ import scala.slick.lifted.Query
 import scala.slick.session.Database
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
-import dke.tradesim.core.{Bar, EodBar}
+import dke.tradesim.core.{Bar, EodBar, CashDividend, Split, CorporateAction, QuarterlyReport}
 import dke.tradesim.datetimeUtils.{timestamp, datetime, Datestamp, Timestamp}
-import dke.tradesim.splitsDividends.{CashDividend, Split, CorporateAction}
 import org.joda.time.DateTime
 import scala.util.DynamicVariable
 
@@ -45,6 +44,11 @@ object db {
 
     def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction]
     def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction]
+
+    def queryQuarterlyReport(time: DateTime, symbol: String): Option[QuarterlyReport]
+    def queryQuarterlyReportPriorTo(time: DateTime, symbol: String): Option[QuarterlyReport]
+    def queryQuarterlyReports(symbol: String): Seq[QuarterlyReport]
+    def queryQuarterlyReports(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[QuarterlyReport]
   }
 
   object MongoAdapter {
@@ -96,6 +100,19 @@ object db {
       )
     }
 
+    def convertQuarterlyReportRecord(record: MongoDBObject): QuarterlyReport = {
+      QuarterlyReport(
+        record.as[String]("s"),
+        datetime(record.as[Long]("ts")),  // start time
+        datetime(record.as[Long]("te")),  // end time
+        datetime(record.as[Long]("tp")),  // publication time
+        record.as[BigDecimal]("o"),
+        record.as[BigDecimal]("h"),
+        record.as[BigDecimal]("l"),
+        record.as[BigDecimal]("c"),
+        record.as[Long]("v")
+      )
+    }
   }
 
   class MongoAdapter(val mongoClient: MongoClient) extends Adapter {
@@ -182,6 +199,27 @@ object db {
       val orderByClause = MongoDBObject.empty ++ ("ex" -> 1)
       val cursor = (eodBars.find(query) $orderby orderByClause)
       cursor.map(convertCorporateActionRecord(_)).to[Vector]
+    }
+
+    def queryQuarterlyReport(time: DateTime, symbol: String): Option[QuarterlyReport] = {
+      val quarterlyReports = mongoClient("tradesim")("quarterly_reports")
+      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol) ++ ("ts" $lte timestamp(time))
+      val orderByClause = MongoDBObject.empty ++ ("ts" -> -1)
+      val cursor = (quarterlyReports.find(query) $orderby orderByClause).limit(1)
+      val obj = Option(cursor.next)
+      obj.map(convertQuarterlyReportRecord(_))
+    }
+
+    def queryQuarterlyReportPriorTo(time: DateTime, symbol: String): Option[QuarterlyReport] = {
+
+    }
+
+    def queryQuarterlyReports(symbol: String): Seq[QuarterlyReport] = {
+
+    }
+
+    def queryQuarterlyReports(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[QuarterlyReport] = {
+
     }
   }
 
