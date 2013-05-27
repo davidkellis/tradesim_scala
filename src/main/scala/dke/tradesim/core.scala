@@ -110,16 +110,12 @@ object core {
                           amount: BigDecimal) extends CorporateAction
 
 
-  case class Statement(stringAttributes: Map[String, String], numericAttributes: Map[String, BigDecimal]) {
-    def this() { this(Map[String, String](), Map[String, BigDecimal]()) }
-
-    def getString(key: String): Option[String] = stringAttributes.get(key)
-    def getNumber(key: String): Option[BigDecimal] = numericAttributes.get(key)
-
-    def set(key: String, value: String): Statement = copy(stringAttributes = stringAttributes + (key -> value))
-    def set(key: String, value: BigDecimal): Statement = copy(numericAttributes = numericAttributes + (key -> value))
-  }
-
+  trait LineItem
+  case class HeaderLineItem(text: String) extends LineItem
+  case class StringLineItem(attribute: String, value: String) extends LineItem
+  case class NumericLineItem(attribute: String, value: BigDecimal) extends LineItem
+//  case class RatioLineItem(attribute: String, value: String) extends LineItem
+  type Statement = Seq[LineItem]
   type IncomeStatement = Statement
   type BalanceSheet = Statement
   type CashFlowStatement = Statement
@@ -132,6 +128,13 @@ object core {
                              incomeStatement: IncomeStatement,
                              balanceSheet: BalanceSheet,
                              cashFlowStatement: CashFlowStatement) extends FinancialReport
+  case class AnnualReport(symbol: String,
+                          startTime: DateTime,
+                          endTime: DateTime,
+                          publicationTime: DateTime,
+                          incomeStatement: IncomeStatement,
+                          balanceSheet: BalanceSheet,
+                          cashFlowStatement: CashFlowStatement) extends FinancialReport
 
   def defaultInitialState(time: DateTime, principal: BigDecimal) = State(time,
                                                                          time,

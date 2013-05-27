@@ -5,7 +5,7 @@ import net.sf.ehcache.{Cache, CacheManager}
 import net.sf.ehcache.config.{CacheConfiguration}
 import net.sf.ehcache.store.MemoryStoreEvictionPolicy
 import dke.tradesim.strategies.buyandhold
-import dke.tradesim.db.{MongoAdapter, SlickAdapter}
+import dke.tradesim.db.{SlickAdapter}
 
 object Runner {
   def setupCaches() {
