@@ -59,6 +59,11 @@ object db {
     def queryQuarterlyReportPriorTo(time: DateTime, symbol: String): Option[QuarterlyReport]
     def queryQuarterlyReports(symbol: String): Seq[QuarterlyReport]
     def queryQuarterlyReports(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[QuarterlyReport]
+
+    def queryAnnualReport(time: DateTime, symbol: String): Option[AnnualReport]
+    def queryAnnualReportPriorTo(time: DateTime, symbol: String): Option[AnnualReport]
+    def queryAnnualReports(symbol: String): Seq[AnnualReport]
+    def queryAnnualReports(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport]
   }
 
 //  object MongoAdapter {
@@ -303,7 +308,7 @@ object db {
     }
 
     type AnnualReportRecord = (Int, String, Timestamp, Timestamp, Timestamp, String, String, String)
-    object AnnualReports extends Table[QuarterlyReportRecord]("annual_reports") {
+    object AnnualReports extends Table[AnnualReportRecord]("annual_reports") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def symbol = column[String]("symbol")
       def startTime = column[Timestamp]("start_time")
@@ -368,9 +373,6 @@ object db {
             convertJsonToStatement(incomeStatement),
             convertJsonToStatement(balanceSheet),
             convertJsonToStatement(cashFlowStatement)
-//            convertJsonToStatement(parse(incomeStatement, useBigDecimalForDouble = true)),
-//            convertJsonToStatement(parse(balanceSheet, useBigDecimalForDouble = true)),
-//            convertJsonToStatement(parse(cashFlowStatement, useBigDecimalForDouble = true))
           )
       }
     }
@@ -432,6 +434,7 @@ object db {
       convertEodBarRecord(record)
     }
 
+
     implicit val getCorporateActionRecord = GetResult(a => (a.nextInt, a.nextString, a.nextString, a.nextInt, a.nextInt, a.nextInt, a.nextInt, a.nextBigDecimal))
 
     def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction]= {
@@ -455,6 +458,7 @@ object db {
       """.stripMargin
       Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).to[Vector]
     }
+
 
     def queryQuarterlyReport(time: DateTime, symbol: String): Option[QuarterlyReport] = {
       val reports = Query(QuarterlyReports).filter(_.symbol === symbol).filter(_.startTime <= timestamp(time))
@@ -482,6 +486,35 @@ object db {
                                            .filter(_.endTime <= timestamp(latestTime))
       val sortedReports = reports.sortBy(_.startTime)
       sortedReports.mapResult(convertQuarterlyReportRecord(_)).list
+    }
+
+
+    def queryAnnualReport(time: DateTime, symbol: String): Option[AnnualReport] = {
+      val reports = Query(AnnualReports).filter(_.symbol === symbol).filter(_.startTime <= timestamp(time))
+      val sortedReports = reports.sortBy(_.startTime.desc)
+      val record = sortedReports.take(1).firstOption
+      convertAnnualReportRecord(record)
+    }
+
+    def queryAnnualReportPriorTo(time: DateTime, symbol: String): Option[AnnualReport] = {
+      val reports = Query(AnnualReports).filter(_.symbol === symbol).filter(_.endTime < timestamp(time))
+      val sortedReports = reports.sortBy(_.endTime.desc)
+      val record = sortedReports.take(1).firstOption
+      convertAnnualReportRecord(record)
+    }
+
+    def queryAnnualReports(symbol: String): Seq[AnnualReport] = {
+      val reports = Query(AnnualReports).filter(_.symbol === symbol)
+      val sortedReports = reports.sortBy(_.startTime)
+      sortedReports.mapResult(convertAnnualReportRecord(_)).list
+    }
+
+    def queryAnnualReports(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport] = {
+      val reports = Query(AnnualReports).filter(_.symbol === symbol)
+                                        .filter(_.startTime >= timestamp(earliestTime))
+                                        .filter(_.endTime <= timestamp(latestTime))
+      val sortedReports = reports.sortBy(_.startTime)
+      sortedReports.mapResult(convertAnnualReportRecord(_)).list
     }
   }
 }
