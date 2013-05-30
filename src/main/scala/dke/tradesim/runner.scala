@@ -1,11 +1,13 @@
 package dke.tradesim
 
+import org.rogach.scallop._
 import scala.slick.session.{Database}
 import net.sf.ehcache.{Cache, CacheManager}
 import net.sf.ehcache.config.{CacheConfiguration}
 import net.sf.ehcache.store.MemoryStoreEvictionPolicy
 import dke.tradesim.strategies.buyandhold
-import dke.tradesim.db.{SlickAdapter}
+import dke.tradesim.db.{Adapter, SlickAdapter}
+import dke.tradesim.db.SlickAdapter.{AnnualReports, QuarterlyReports, CorporateActions, EodBars}
 
 object Runner {
   def setupCaches() {
@@ -31,7 +33,15 @@ object Runner {
     CacheManager.getInstance().shutdown()
   }
 
-  case class RuntimeConfig(var trialCount: Int, var setupDb: Boolean)
+  class RuntimeConfig(arguments: Seq[String]) extends ScallopConf(arguments) {
+    version("tradesim 1.0.0 (c) 2013 David K Ellis")
+    banner("""Usage: tradesim [--setup-db | --trial-count N]
+             |Options:
+             |""".stripMargin)
+
+    val setupDb = opt[Boolean](default = Some(false), descr = "Setup the DB tables", noshort = true)
+    val trialCount = opt[Int](descr = "Specify the number of trials to run", short = 'n')
+  }
 
   def main(args: Array[String]) {
     setupCaches()
@@ -39,33 +49,14 @@ object Runner {
 //    MongoAdapter.withAdapter("mongodb://localhost") {
     SlickAdapter.withAdapter("jdbc:postgresql:tradesim", "org.postgresql.Driver") {
 
-      val config = RuntimeConfig(0, false)
-      val parser = new scopt.mutable.OptionParser("tradesim", "1.0") {
-        intOpt("n", "trialCount", "trialCount is the number of trials to run per simulation", { v: Int => config.trialCount = v })
-
-//        opt("o", "output", "<file>", "output is a string property", { v: String => config.bar = v })
-
-        booleanOpt("setup-db", "Sets up the database", { v: Boolean => config.setupDb = v })
-
-//        keyValueOpt("l", "lib", "<libname>", "<filename>", "load library <libname>",
-//          {(key: String, value: String) => { config.libname = key; config.libfile = value } })
-//
-//        arg("<singlefile>", "<singlefile> is an argument", { v: String => config.whatnot = v })
-
-        // arglist("<file>...", "arglist allows variable number of arguments",
-        //   { v: String => config.files = (v :: config.files).reverse })
+      val config = new RuntimeConfig(args)
+      if (config.setupDb()) {
+        Adapter.threadLocalAdapter.createDb()
+      } else if (config.trialCount.isSupplied && config.trialCount() > 0) {
+        println(s"run ${config.trialCount()} trials")
+        buyandhold.runSingleTrial()
       }
-      if (parser.parse(args)) {
-        config match {
-          case RuntimeConfig(_, true) =>
-            println("setup db")
-          case RuntimeConfig(trialCount, _) =>
-            println(s"run $trialCount trials")
-          //      buyandhold.runSingleTrial()
-        }
-      } else {
-        // arguments are bad, usage message will have been displayed
-      }
+
     }
 
     cleanupCache()

@@ -17,7 +17,7 @@ libraryDependencies ++= Seq(
   "org.mongodb" %% "casbah" % "2.6.0",
   "org.slf4j" % "slf4j-nop" % "1.6.4",
   "postgresql" % "postgresql" % "9.1-901.jdbc4",
-  "com.github.scopt" %% "scopt" % "2.1.0",
+  "org.rogach" %% "scallop" % "0.9.2",
   "org.json4s" %% "json4s-jackson" % "3.2.2",
   "com.lambdaworks" % "jacks_2.10" % "2.2.0"
 )

@@ -45,6 +45,8 @@ object db {
   }
 
   trait Adapter {
+    def createDb(): Unit
+
     def queryEodBar(time: DateTime, symbol: String): Option[Bar]
     def queryEodBarPriorTo(time: DateTime, symbol: String): Option[Bar]
     def queryEodBars(symbol: String): Seq[Bar]
@@ -391,6 +393,11 @@ object db {
 
   class SlickAdapter(implicit val session: Session) extends Adapter {
     import SlickAdapter._
+
+    def createDb() {
+      val ddl: scala.slick.lifted.DDL = EodBars.ddl ++ CorporateActions.ddl ++ QuarterlyReports.ddl ++ AnnualReports.ddl
+      ddl.create
+    }
 
     def queryEodBar(time: DateTime, symbol: String): Option[Bar] = {
       val bars = Query(EodBars).filter(_.symbol === symbol).filter(_.startTime <= timestamp(time))
