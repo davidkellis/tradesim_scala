@@ -241,7 +241,7 @@ object db {
 //  }
 
   object SlickAdapter {
-    type EodBarRecord = (Int, String, Timestamp, Long, String, String, String, String, Long)
+    type EodBarRecord = (Int, String, Timestamp, Timestamp, String, String, String, String, Long)
     object EodBars extends Table[EodBarRecord]("eod_bars") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def symbol = column[String]("symbol")
@@ -267,16 +267,16 @@ object db {
     def convertEodBarRecord(record: Option[EodBarRecord]): Option[EodBar] = record.map(convertEodBarRecord(_))
 
 
-    type CorporateActionRecord = (Int, String, String, Datestamp, Datestamp, Datestamp, Datestamp, String)
+    type CorporateActionRecord = (Int, String, String, Option[Datestamp], Datestamp, Option[Datestamp], Option[Datestamp], String)
     object CorporateActions extends Table[CorporateActionRecord]("corporate_actions") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def kind = column[String]("type")                     // either Split or CashDividend
       def symbol = column[String]("symbol")
 
-      def declarationDate = column[Datestamp]("declaration_date")
+      def declarationDate = column[Option[Datestamp]]("declaration_date", O.Nullable)
       def exDate = column[Datestamp]("ex_date")
-      def recordDate = column[Datestamp]("record_date")
-      def payableDate = column[Datestamp]("payable_date")
+      def recordDate = column[Option[Datestamp]]("record_date", O.Nullable)
+      def payableDate = column[Option[Datestamp]]("payable_date", O.Nullable)
 
       def ratioOrAmount = column[String]("number")      // split ratio OR dividend amount
 
@@ -288,8 +288,9 @@ object db {
       record match {
         case (_, "Split", symbol, _, exDate, _, _, ratio) =>
           Split(symbol, datetime(exDate), BigDecimal(ratio))
-        case (_, "CashDividend", symbol, declarationDate, exDate, recordDate, payableDate, amount) =>
+        case (_, "CashDividend", symbol, Some(declarationDate), exDate, Some(recordDate), Some(payableDate), amount) =>
           CashDividend(symbol, datetime(declarationDate), datetime(exDate), datetime(recordDate), datetime(payableDate), BigDecimal(amount))
+        case (id, _, _, _, _, _, _, _) => throw new Exception(s"Malformed CorporateAction: id=$id")
       }
     }
 
@@ -301,9 +302,9 @@ object db {
       def startTime = column[Timestamp]("start_time")
       def endTime = column[Timestamp]("end_time")
       def publicationTime = column[Timestamp]("publication_time")
-      def incomeStatement = column[String]("income_statement")
-      def balanceSheet = column[String]("balance_sheet")
-      def cashFlowStatement = column[String]("cash_flow_statement")
+      def incomeStatement = column[String]("income_statement", O.DBType("text"))
+      def balanceSheet = column[String]("balance_sheet", O.DBType("text"))
+      def cashFlowStatement = column[String]("cash_flow_statement", O.DBType("text"))
 
       // Every table needs a * projection with the same type as the table's type parameter
       def * = id ~ symbol ~ startTime ~ endTime ~ publicationTime ~ incomeStatement ~ balanceSheet ~ cashFlowStatement
@@ -316,9 +317,9 @@ object db {
       def startTime = column[Timestamp]("start_time")
       def endTime = column[Timestamp]("end_time")
       def publicationTime = column[Timestamp]("publication_time")
-      def incomeStatement = column[String]("income_statement")
-      def balanceSheet = column[String]("balance_sheet")
-      def cashFlowStatement = column[String]("cash_flow_statement")
+      def incomeStatement = column[String]("income_statement", O.DBType("text"))
+      def balanceSheet = column[String]("balance_sheet", O.DBType("text"))
+      def cashFlowStatement = column[String]("cash_flow_statement", O.DBType("text"))
 
       // Every table needs a * projection with the same type as the table's type parameter
       def * = id ~ symbol ~ startTime ~ endTime ~ publicationTime ~ incomeStatement ~ balanceSheet ~ cashFlowStatement
