@@ -103,10 +103,10 @@ object core {
   // See http://www.investopedia.com/articles/02/110802.asp#axzz24Wa9LgDj for the various dates associated with dividend payments
   // See also http://www.sec.gov/answers/dividen.htm
   case class CashDividend(symbol: String,
-                          declarationDate: DateTime,    // date at which the announcement to shareholders/market that company will pay a dividend is made
-                          exDate: DateTime,             // on or after this date, the security trades without the dividend
-                          recordDate: DateTime,         // date at which shareholders of record are identified as recipients of the dividend
-                          payableDate: DateTime,        // date at which company issues payment of dividend
+                          declarationDate: Option[DateTime],    // date at which the announcement to shareholders/market that company will pay a dividend is made
+                          exDate: DateTime,                     // on or after this date, the security trades without the dividend
+                          recordDate: Option[DateTime],         // date at which shareholders of record are identified as recipients of the dividend
+                          payableDate: Option[DateTime],        // date at which company issues payment of dividend
                           amount: BigDecimal) extends CorporateAction
 
 

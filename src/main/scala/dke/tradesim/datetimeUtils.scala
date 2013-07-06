@@ -13,14 +13,20 @@ object datetimeUtils {
 
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(isBefore(_, _))
 
-  def datetime(year: Int): DateTime = datetime(year, 1, 1, 0, 0, 0)
-
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
 
   def datetime(year: Int, month: Int, day: Int): DateTime = datetime(year, month, day, 0, 0, 0)
 
   def datetime(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int): DateTime =
     new DateTime(year, month, day, hour, minute, second, EasternTimeZone)
+
+  def datetime(datestamp: Datestamp): DateTime = {
+    val ds = datestamp.toString
+    val year = ds.substring(0, 4).toInt
+    val month = ds.substring(4, 6).toInt
+    val day = ds.substring(6, 8).toInt
+    datetime(year, month, day)
+  }
 
   def datetime(timestamp: Timestamp): DateTime = {
     val ts = timestamp.toString

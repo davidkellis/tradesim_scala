@@ -45,7 +45,9 @@ object buyandhold {
     val trial = Trial(Vector("AAPL"), 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
     val finalState = runTrial(strategy, trial)
     val finalPortfolioValue = portfolioValue(finalState.portfolio, endTime, barClose _, barSimQuote _)
+    println("finalState")
     println(finalState)
+    println("finalPortfolioValue")
     println(finalPortfolioValue)
   }
 

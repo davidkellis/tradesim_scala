@@ -31,7 +31,9 @@ object splitsDividends {
   type CorporateActionHistory = NavigableMap[Timestamp, CorporateAction]
 
   def loadCorporateActionHistory(symbol: String): CorporateActionHistory = {
+    println(s"loadCorporateActionHistory($symbol)")
     val corporateActions = queryCorporateActions(symbol)
+//    println(s"in loadCorporateActionHistory: corporateActions = $corporateActions")
     val corporateActionHistory = new TreeMap[Timestamp, CorporateAction]()
     for {corporateAction <- corporateActions} corporateActionHistory.put(timestamp(corporateAction.exDate), corporateAction)
     corporateActionHistory
@@ -55,6 +57,7 @@ object splitsDividends {
     val endTimestamp = timestamp(endTime)
     val subHistory = history.subMap(startTimestamp, true, endTimestamp, true)
     val corporateActions = subHistory.values()
+    println(s"findCorporateActionsFromHistory(history, $startTime, $endTime) -> ${corporateActions.toVector}")
     corporateActions.toVector   // calls #toVector by implicit conversion
   }
 
@@ -156,7 +159,7 @@ object splitsDividends {
   def adjustPortfolioForCorporateActions(portfolio: Portfolio, earlierObservationTime: DateTime, laterObservationTime: DateTime): Portfolio = {
     val symbols = portfolio.stocks.keys.toVector
     val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
-    println("********* Corporate Actions (for portfolio): $corporateActions for $symbols ; #earlierObservationTime $laterObservationTime")
+    println(s"********* Corporate Actions (for portfolio): $corporateActions for $symbols ; $earlierObservationTime $laterObservationTime")
     corporateActions.foldLeft(portfolio)((memoPortfolio, corporateAction) => adjustPortfolio(corporateAction, memoPortfolio))
   }
 
@@ -168,7 +171,7 @@ object splitsDividends {
       val symbols = openOrders.map(_.symbol)
       val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
       val corporateActionsPerSymbol = corporateActions.groupBy(_.symbol)
-      println("********* Corporate Actions (for open orders): $corporateActions for $symbols ; #earlierObservationTime $laterObservationTime")
+      println(s"********* Corporate Actions (for open orders): $corporateActions for $symbols ; $earlierObservationTime $laterObservationTime")
       openOrders.map { (openOrder) =>
         val corporateActionsForSymbol = corporateActionsPerSymbol(openOrder.symbol)
         corporateActionsForSymbol.foldLeft(openOrder)((order, corporateAction) => adjustOpenOrder(corporateAction, order))

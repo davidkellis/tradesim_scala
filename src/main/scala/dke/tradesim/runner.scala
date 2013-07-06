@@ -53,7 +53,7 @@ object Runner {
       if (config.setupDb()) {
         Adapter.threadLocalAdapter.createDb()
       } else if (config.trialCount.isSupplied && config.trialCount() > 0) {
-        println(s"run ${config.trialCount()} trials")
+        println(s"run ${config.trialCount()} buy-and-hold trials")
         buyandhold.runSingleTrial()
       }
 

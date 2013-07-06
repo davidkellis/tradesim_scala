@@ -288,8 +288,8 @@ object db {
       record match {
         case (_, "Split", symbol, _, exDate, _, _, ratio) =>
           Split(symbol, datetime(exDate), BigDecimal(ratio))
-        case (_, "CashDividend", symbol, Some(declarationDate), exDate, Some(recordDate), Some(payableDate), amount) =>
-          CashDividend(symbol, datetime(declarationDate), datetime(exDate), datetime(recordDate), datetime(payableDate), BigDecimal(amount))
+        case (_, "CashDividend", symbol, declarationDate, exDate, recordDate, payableDate, amount) =>
+          CashDividend(symbol, declarationDate.map(datetime _), datetime(exDate), recordDate.map(datetime _), payableDate.map(datetime _), BigDecimal(amount))
         case (id, _, _, _, _, _, _, _) => throw new Exception(s"Malformed CorporateAction: id=$id")
       }
     }
@@ -445,7 +445,8 @@ object db {
 
     implicit val getCorporateActionRecord = GetResult(a => (a.nextInt, a.nextString, a.nextString, a.nextInt, a.nextInt, a.nextInt, a.nextInt, a.nextBigDecimal))
 
-    def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction]= {
+    def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = {
+      println(s"queryCorporateActions(${symbols.mkString(",")})")
       val sql =
       s"""
         |select * from corporate_actions
@@ -456,6 +457,7 @@ object db {
     }
 
     def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
+      println(s"queryCorporateActions(${symbols.mkString(",")}, $startTime, $endTime)")
       val sql =
         s"""
         |select * from corporate_actions
