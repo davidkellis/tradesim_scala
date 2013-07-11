@@ -2,16 +2,19 @@ package dke.tradesim
 
 import org.joda.time._
 import util.Random
+import org.joda.time.format.{PeriodFormatter, PeriodFormatterBuilder, ISOPeriodFormat}
 
 object datetimeUtils {
   type Timestamp = Long
   type Datestamp = Int
 
   val EasternTimeZone = findTimeZone("US/Eastern")
-//  val CentralTimeZone = findTimeZone("US/Central")
+  val CentralTimeZone = findTimeZone("US/Central")
 //  val PacificTimeZone = findTimeZone("US/Pacific")
 
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(isBefore(_, _))
+
+  def currentTime(timeZone: DateTimeZone = EasternTimeZone): DateTime = DateTime.now(timeZone)
 
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
 
@@ -56,6 +59,22 @@ object datetimeUtils {
   def durationBetween(t1: DateTime, t2: DateTime): Duration = new Duration(t1, t2)
 
   def intervalBetween(t1: DateTime, t2: DateTime): Interval = new Interval(t1, t2)
+
+  def prettyFormatPeriod(period: Period): String = {
+    val formatter = new PeriodFormatterBuilder()
+      .appendDays()
+      .appendSuffix("d")
+      .appendHours()
+      .appendSuffix("h")
+      .appendMinutes()
+      .appendSuffix("m")
+      .appendSeconds()
+      .appendSuffix("s")
+      .appendMillis()
+      .appendSuffix("ms")
+      .toFormatter();
+    formatter.print(period)
+  }
 
   // t1 <= instant < t2
   def isInstantBetween(instant: DateTime, t1: DateTime, t2: DateTime): Boolean = intervalBetween(t1, t2).contains(instant)
@@ -111,19 +130,32 @@ object datetimeUtils {
     intervalBetween(adjustedStart, adjustedEnd)
   }
 
+  // returns an infinite sequence
   def timeSeries(startTime: DateTime, nextTimeFn: (DateTime) => DateTime): Stream[DateTime] = Stream.iterate(startTime)(nextTimeFn)
+
+  // returns an infinite sequence
   def timeSeries(startDate: LocalDate, nextDateFn: (LocalDate) => LocalDate): Stream[LocalDate] = Stream.iterate(startDate)(nextDateFn)
 
+  // returns an infinite sequence
   def interspersedTimeSeries(startTime: DateTime, period: ReadablePeriod): Stream[DateTime] = timeSeries(startTime, (t: DateTime) => t.plus(period))
+
+  // returns an infinite sequence
   def interspersedTimeSeries(startDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] = timeSeries(startDate, (d: LocalDate) => d.plus(period))
 
   def interspersedTimeSeries(startTime: DateTime, endTime: DateTime, period: ReadablePeriod): Stream[DateTime] =
     interspersedTimeSeries(startTime, period).takeWhile(isBeforeOrEqual(_, endTime))
+
   def interspersedTimeSeries(startDate: LocalDate, endDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] =
     interspersedTimeSeries(startDate, period).takeWhile(isBeforeOrEqual(_, endDate))
 
+  // returns an infinite sequence
   def interspersedIntervals(startTime: DateTime, intervalLength: Period, separationLength: Period): Stream[Interval] = {
     val startTimes = interspersedTimeSeries(startTime, separationLength)
+    startTimes.map(t => intervalBetween(t, t.plus(intervalLength)))
+  }
+
+  def interspersedIntervals(startTimeInterval: Interval, intervalLength: Period, separationLength: Period): Stream[Interval] = {
+    val startTimes = interspersedTimeSeries(startTimeInterval.getStart, separationLength).takeWhile(isBeforeOrEqual(_, startTimeInterval.getEnd))
     startTimes.map(t => intervalBetween(t, t.plus(intervalLength)))
   }
 

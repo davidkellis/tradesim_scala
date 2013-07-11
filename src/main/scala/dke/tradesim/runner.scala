@@ -56,6 +56,9 @@ object Runner {
         config.scenario.get match {
           case Some("bah1") => buyandhold.scenarios.runSingleTrial1()
           case Some("bah2") => buyandhold.scenarios.runSingleTrial2()
+          case Some("bah3") => buyandhold.scenarios.runMultipleTrials1()
+          case Some("bah4") => buyandhold.scenarios.runMultipleTrials2()
+          case Some(name) => println(s"Unknown scenario: $name")
         }
       }
     }

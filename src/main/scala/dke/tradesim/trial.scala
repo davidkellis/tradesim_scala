@@ -170,13 +170,13 @@ object trial {
     val isFinalState = strategy.isFinalState
     val incrementTime = trial.incrementTime
 
-    println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-    println("strategy=" + strategy)
-    println("trial=" + trial)
+//    println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+//    println("strategy=" + strategy)
+//    println("trial=" + trial)
 
     def runTrial(currentState: State): State = {
-      println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-      println("currentState=" + currentState)
+//      println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+//      println("currentState=" + currentState)
 
       if (isFinalState(strategy, trial, currentState)) closeAllOpenPositions(trial, currentState)
       else {
@@ -196,7 +196,7 @@ object trial {
 
   def buildAllTrialIntervals(symbolList: IndexedSeq[String], intervalLength: Period, separationLength: Period): Seq[Interval] = {
     val startDateRange = commonTrialPeriodStartDates(symbolList, intervalLength)
-    startDateRange.map(startDateRange => interspersedIntervals(startDateRange.getStart, intervalLength, separationLength)).getOrElse(Vector[Interval]())
+    startDateRange.map(startDateRange => interspersedIntervals(startDateRange, intervalLength, separationLength)).getOrElse(Vector[Interval]())
   }
 
   type TrialGenerator = (IndexedSeq[String], DateTime, DateTime) => Trial
@@ -225,5 +225,6 @@ object trial {
     trialIntervals.map(interval => trialGeneratorFn(symbolList, interval.getStart, interval.getEnd))
   }
 
-  def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.par.map(runTrial(strategy, _)).seq
+  def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.map(runTrial(strategy, _))
+  def runTrialsInParallel(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.par.map(runTrial(strategy, _)).seq
 }
