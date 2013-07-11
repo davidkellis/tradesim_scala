@@ -446,7 +446,6 @@ object db {
     implicit val getCorporateActionRecord = GetResult(a => (a.nextInt, a.nextString, a.nextString, a.nextInt, a.nextInt, a.nextInt, a.nextInt, a.nextBigDecimal))
 
     def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = {
-      println(s"queryCorporateActions(${symbols.mkString(",")})")
       val sql =
       s"""
         |select * from corporate_actions
@@ -457,7 +456,6 @@ object db {
     }
 
     def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-      println(s"queryCorporateActions(${symbols.mkString(",")}, $startTime, $endTime)")
       val sql =
         s"""
         |select * from corporate_actions

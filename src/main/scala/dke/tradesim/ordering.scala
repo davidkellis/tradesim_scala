@@ -140,7 +140,7 @@ object ordering {
   def closeOpenStockPosition(currentState: State, symbol: String): State = {
     val qtyOnHand = sharesOnHand(currentState.portfolio, symbol)
     qtyOnHand match {
-      case qty if qty > 0 => sellImmediately(currentState, symbol, qtyOnHand)   // we own shares, so sell them
+      case qty if qty > 0 => sellImmediately(currentState, symbol, qtyOnHand)    // we own shares, so sell them
       case qty if qty < 0 => buyImmediately(currentState, symbol, -qtyOnHand)    // we owe a share debt, so buy those shares back (we negate qtyOnHand because it is negative, and we want to buy a positive quantity)
       case 0 => currentState
     }

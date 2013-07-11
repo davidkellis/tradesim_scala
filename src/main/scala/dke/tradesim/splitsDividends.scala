@@ -20,11 +20,13 @@ object splitsDividends {
 
   def queryCorporateActions(symbol: String)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
   def queryCorporateActions(symbols: IndexedSeq[String])(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
+    println(s"queryCorporateActions(${symbols.mkString(",")})")
     adapter.queryCorporateActions(symbols)
   }
 
   def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
   def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
+    println(s"queryCorporateActions(${symbols.mkString(",")}, $startTime, $endTime)")
     adapter.queryCorporateActions(symbols, startTime, endTime)
   }
 
@@ -33,7 +35,6 @@ object splitsDividends {
   def loadCorporateActionHistory(symbol: String): CorporateActionHistory = {
     println(s"loadCorporateActionHistory($symbol)")
     val corporateActions = queryCorporateActions(symbol)
-//    println(s"in loadCorporateActionHistory: corporateActions = $corporateActions")
     val corporateActionHistory = new TreeMap[Timestamp, CorporateAction]()
     for {corporateAction <- corporateActions} corporateActionHistory.put(timestamp(corporateAction.exDate), corporateAction)
     corporateActionHistory
@@ -159,7 +160,7 @@ object splitsDividends {
   def adjustPortfolioForCorporateActions(portfolio: Portfolio, earlierObservationTime: DateTime, laterObservationTime: DateTime): Portfolio = {
     val symbols = portfolio.stocks.keys.toVector
     val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
-    println(s"********* Corporate Actions (for portfolio): $corporateActions for $symbols ; $earlierObservationTime $laterObservationTime")
+    println(s"********* Corporate Actions (for portfolio): $corporateActions for $symbols ; between $earlierObservationTime and $laterObservationTime")
     corporateActions.foldLeft(portfolio)((memoPortfolio, corporateAction) => adjustPortfolio(corporateAction, memoPortfolio))
   }
 
@@ -171,7 +172,7 @@ object splitsDividends {
       val symbols = openOrders.map(_.symbol)
       val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
       val corporateActionsPerSymbol = corporateActions.groupBy(_.symbol)
-      println(s"********* Corporate Actions (for open orders): $corporateActions for $symbols ; $earlierObservationTime $laterObservationTime")
+      println(s"********* Corporate Actions (for open orders): $corporateActions for $symbols ; between $earlierObservationTime and $laterObservationTime")
       openOrders.map { (openOrder) =>
         val corporateActionsForSymbol = corporateActionsPerSymbol(openOrder.symbol)
         corporateActionsForSymbol.foldLeft(openOrder)((order, corporateAction) => adjustOpenOrder(corporateAction, order))

@@ -19,8 +19,25 @@ object trial {
    */
   def buildScheduledTimeIncrementer(timeComponent: ReadablePartial, periodIncrement: Period, tradingSchedule: TradingSchedule): (DateTime) => DateTime = {
     (time: DateTime) => {
-      val nextDay = nextTradingDay(time.toLocalDate, tradingSchedule).toDateTimeAtStartOfDay(time.getZone)
+      val nextDay = nextTradingDay(time.toLocalDate, periodIncrement, tradingSchedule).toDateTimeAtStartOfDay(time.getZone)
       timeComponent.toDateTime(nextDay)
+    }
+  }
+
+  /**
+   * Just like buildScheduledTimeIncrementer, except the initial time increment is <initialPeriodIncrement>
+   */
+  def buildInitialJumpTimeIncrementer(timeComponent: ReadablePartial, initialPeriodIncrement: Period, periodIncrement: Period, tradingSchedule: TradingSchedule): (DateTime) => DateTime = {
+    var currentState = 'bigjump
+    (time: DateTime) => {
+      if (currentState == 'bigjump) {
+        currentState = 'smalljump
+        val nextDay = nextTradingDay(time.toLocalDate, initialPeriodIncrement, tradingSchedule).toDateTimeAtStartOfDay(time.getZone)
+        timeComponent.toDateTime(nextDay)
+      } else {
+        val nextDay = nextTradingDay(time.toLocalDate, periodIncrement, tradingSchedule).toDateTimeAtStartOfDay(time.getZone)
+        timeComponent.toDateTime(nextDay)
+      }
     }
   }
 
@@ -153,10 +170,12 @@ object trial {
     val isFinalState = strategy.isFinalState
     val incrementTime = trial.incrementTime
 
+    println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+    println("strategy=" + strategy)
+    println("trial=" + trial)
+
     def runTrial(currentState: State): State = {
       println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-      println("strategy=" + strategy)
-      println("trial=" + trial)
       println("currentState=" + currentState)
 
       if (isFinalState(strategy, trial, currentState)) closeAllOpenPositions(trial, currentState)

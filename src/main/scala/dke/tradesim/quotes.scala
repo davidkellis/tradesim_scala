@@ -35,6 +35,7 @@ object quotes {
    *   unique: true)
    */
   def queryEodBar(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    println(s"queryEodBar($time, $symbol)")
     adapter.queryEodBar(time, symbol)
   }
 
@@ -54,14 +55,17 @@ object quotes {
    *   unique: true)
    */
   def queryEodBarPriorTo(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    println(s"queryEodBarPriorTo($time, $symbol)")
     adapter.queryEodBarPriorTo(time, symbol)
   }
 
   def queryEodBars(symbol: String)(implicit adapter: Adapter): Seq[Bar] = {
+    println(s"queryEodBars($symbol)")
     adapter.queryEodBars(symbol)
   }
 
   def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[Bar] = {
+    println(s"queryEodBars($symbol, $earliestTime, $latestTime)")
     adapter.queryEodBars(symbol, earliestTime, latestTime)
   }
 
@@ -104,10 +108,12 @@ object quotes {
   }
 
   def findOldestEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    println(s"findOldestEodBar($symbol)")
     adapter.findOldestEodBar(symbol)
   }
 
   def findMostRecentEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
+    println(s"findMostRecentEodBar($symbol)")
     adapter.findMostRecentEodBar(symbol)
   }
 

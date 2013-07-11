@@ -35,12 +35,12 @@ object Runner {
 
   class RuntimeConfig(arguments: Seq[String]) extends ScallopConf(arguments) {
     version("tradesim 1.0.0 (c) 2013 David K Ellis")
-    banner("""Usage: tradesim [--setup-db | --trial-count N]
+    banner("""Usage: tradesim [--setup-db | --scenario <scenarioName>]
              |Options:
              |""".stripMargin)
 
     val setupDb = opt[Boolean](default = Some(false), descr = "Setup the DB tables", noshort = true)
-    val trialCount = opt[Int](descr = "Specify the number of trials to run", short = 'n')
+    val scenario = opt[String](descr = "Identify the scenario to run.", short = 's')
   }
 
   def main(args: Array[String]) {
@@ -52,11 +52,12 @@ object Runner {
       val config = new RuntimeConfig(args)
       if (config.setupDb()) {
         Adapter.threadLocalAdapter.createDb()
-      } else if (config.trialCount.isSupplied && config.trialCount() > 0) {
-        println(s"run ${config.trialCount()} buy-and-hold trials")
-        buyandhold.runSingleTrial()
+      } else if (config.scenario.isSupplied) {
+        config.scenario.get match {
+          case Some("bah1") => buyandhold.scenarios.runSingleTrial1()
+          case Some("bah2") => buyandhold.scenarios.runSingleTrial2()
+        }
       }
-
     }
 
     cleanupCache()

@@ -52,8 +52,8 @@ object schedule {
   def tradingDays(startDate: LocalDate, endDate: LocalDate, tradingSchedule: TradingSchedule): Seq[LocalDate] =
     tradingDays(startDate, tradingSchedule).takeWhile(isBeforeOrEqual(_, endDate))
 
-  def nextTradingDay(date: LocalDate, tradingSchedule: TradingSchedule): LocalDate = {
-    val nextDay = date.plus(Days.days(1))
+  def nextTradingDay(date: LocalDate, timeIncrement: ReadablePeriod, tradingSchedule: TradingSchedule): LocalDate = {
+    val nextDay = date.plus(timeIncrement)
     tradingDays(nextDay, tradingSchedule).head
   }
 }
