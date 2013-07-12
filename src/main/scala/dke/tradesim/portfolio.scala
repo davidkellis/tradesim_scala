@@ -10,9 +10,10 @@ object portfolio {
   type BarQuoteFn = (Bar) => BigDecimal
 
   def portfolioValue(portfolio: Portfolio, time: DateTime, priorBarPriceFn: BarQuoteFn, currentBarPriceFn: BarQuoteFn): BigDecimal = {
-    val stockValues = for((symbol, qty) <- portfolio.stocks)
-                      yield stockValue(symbol, qty, time, priorBarPriceFn, currentBarPriceFn).getOrElse(BigDecimal(0))
-    val totalValue = stockValues.reduce(_ + _)
+//    val stockValues = for((symbol, qty) <- portfolio.stocks)
+//                      yield stockValue(symbol, qty, time, priorBarPriceFn, currentBarPriceFn).getOrElse(BigDecimal(0))
+    val stockValues = portfolio.stocks.map({ case (symbol, qty) => stockValue(symbol, qty, time, priorBarPriceFn, currentBarPriceFn).getOrElse(BigDecimal(0)) })
+    val totalValue = stockValues.foldLeft(BigDecimal(0))(_ + _)
     portfolio.cash + totalValue
   }
 

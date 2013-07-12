@@ -225,6 +225,6 @@ object trial {
     trialIntervals.map(interval => trialGeneratorFn(symbolList, interval.getStart, interval.getEnd))
   }
 
-  def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.map(runTrial(strategy, _))
+  def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.map(runTrial(strategy, _)).toVector
   def runTrialsInParallel(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.par.map(runTrial(strategy, _)).seq
 }

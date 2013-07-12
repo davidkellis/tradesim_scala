@@ -75,7 +75,7 @@ object quarterlyReports {
    */
   def mostRecentQuarterlyReport[ReportType](history: NavigableMap[Long, ReportType], timestamp: Long): Option[ReportType] = {
     val mapEntry = history.floorEntry(timestamp)
-    Option(mapEntry.getValue)
+    Option(mapEntry).map(_.getValue)
   }
 
   /**

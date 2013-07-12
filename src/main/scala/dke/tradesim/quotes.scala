@@ -84,7 +84,7 @@ object quotes {
 
   def mostRecentBar(priceHistory: PriceHistory, timestamp: Long): Option[Bar] = {
     val mapEntry = priceHistory.floorEntry(timestamp)
-    Option(mapEntry.getValue)
+    Option(mapEntry).map(_.getValue)
   }
 
   def mostRecentBarFromYear(time: DateTime, symbol: String, year: Int): Option[Bar] = {

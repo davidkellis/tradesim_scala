@@ -174,7 +174,7 @@ object splitsDividends {
       val corporateActionsPerSymbol = corporateActions.groupBy(_.symbol)
 //      println(s"********* Corporate Actions (for open orders): $corporateActions for $symbols ; between $earlierObservationTime and $laterObservationTime")
       openOrders.map { (openOrder) =>
-        val corporateActionsForSymbol = corporateActionsPerSymbol(openOrder.symbol)
+        val corporateActionsForSymbol = corporateActionsPerSymbol.getOrElse(openOrder.symbol, Vector[CorporateAction]())
         corporateActionsForSymbol.foldLeft(openOrder)((order, corporateAction) => adjustOpenOrder(corporateAction, order))
       }
     }
