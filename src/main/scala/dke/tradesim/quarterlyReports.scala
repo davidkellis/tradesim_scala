@@ -108,6 +108,7 @@ object quarterlyReports {
 
   val quarterlyReportHistoryCache = cache.buildLruCache(32, "quarterlyReportHistoryCache")
 
+  // loads up 2 years of price history
   def findQuarterlyReportHistory(year: Int, symbol: String): QuarterlyReportHistory = {
     val startYear = year - year % 2
     val quarterlyReportHistoryId = symbol ++ ":" ++ startYear.toString

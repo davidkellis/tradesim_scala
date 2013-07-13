@@ -125,13 +125,18 @@ object quotes {
 
   val priceHistoryCache = cache.buildLruCache(32, "priceHistoryCache")
 
+  // loads up 5 years of price history
   def findPriceHistory(year: Int, symbol: String): PriceHistory = {
-    val priceHistoryId = symbol ++ ":" ++ year.toString
+    val startYear = year - year % 5
+    val priceHistoryId = symbol ++ ":" ++ startYear.toString
     val cachedPriceHistory = Option(priceHistoryCache.get(priceHistoryId))
     cachedPriceHistory match {
       case Some(priceHistoryElement) => priceHistoryElement.getObjectValue.asInstanceOf[PriceHistory]
       case None =>
-        val newPriceHistory = loadPriceHistory(symbol, datetime(year, 1, 1), datetime(year, 12, 31, 23, 59, 59))    // load one calendar year of price history into a NavigableMap
+        val endYear = startYear + 4
+        val newPriceHistory = loadPriceHistory(symbol,
+                                               datetime(startYear, 1, 1),
+                                               datetime(endYear, 12, 31, 23, 59, 59))    // load 5 calendar years of price history into a NavigableMap
         priceHistoryCache.put(new Element(priceHistoryId, newPriceHistory))
         newPriceHistory
     }
