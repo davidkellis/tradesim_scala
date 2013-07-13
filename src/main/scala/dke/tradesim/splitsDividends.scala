@@ -8,6 +8,7 @@ import net.sf.ehcache.{Element, CacheManager}
 import dke.tradesim.datetimeUtils._
 import dke.tradesim.core.{LimitOrder, MarketOrder, Order, Portfolio, Bar, threadThrough, CorporateAction, Split, CashDividend}
 import dke.tradesim.db.{Adapter}
+import dke.tradesim.logger._
 import dke.tradesim.quotes.{findEodBarPriorTo, barClose}
 import dke.tradesim.math.{floor}
 import dke.tradesim.ordering.{sharesOnHand, setSharesOnHand, addCash, setOrderQty, setLimitPrice}
@@ -20,13 +21,13 @@ object splitsDividends {
 
   def queryCorporateActions(symbol: String)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
   def queryCorporateActions(symbols: IndexedSeq[String])(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
-//    println(s"queryCorporateActions(${symbols.mkString(",")})")
+    info(s"queryCorporateActions(${symbols.mkString(",")})")
     adapter.queryCorporateActions(symbols)
   }
 
   def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
   def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
-//    println(s"queryCorporateActions(${symbols.mkString(",")}, $startTime, $endTime)")
+    info(s"queryCorporateActions(${symbols.mkString(",")}, $startTime, $endTime)")
     adapter.queryCorporateActions(symbols, startTime, endTime)
   }
 
@@ -40,7 +41,8 @@ object splitsDividends {
     corporateActionHistory
   }
 
-  val corporateActionCache = CacheManager.getInstance().getCache("corporateActionCache")
+
+  val corporateActionCache = cache.buildLruCache(32, "corporateActionCache")
 
   def findCorporateActionHistory(symbol: String): CorporateActionHistory = {
     val corporateActionHistory = Option(corporateActionCache.get(symbol))

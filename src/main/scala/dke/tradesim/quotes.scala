@@ -2,11 +2,12 @@ package dke.tradesim
 
 import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
-import net.sf.ehcache.{Element, CacheManager}
+import net.sf.ehcache.{Element}
 
 import dke.tradesim.core.{Bar}
 import dke.tradesim.datetimeUtils.{timestamp, datetime, isInstantBetweenInclusive, millis}
 import dke.tradesim.db.{Adapter}
+import dke.tradesim.logger._
 
 import Adapter.threadLocalAdapter
 
@@ -35,7 +36,7 @@ object quotes {
    *   unique: true)
    */
   def queryEodBar(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-//    println(s"queryEodBar($time, $symbol)")
+    info(s"queryEodBar($time, $symbol)")
     adapter.queryEodBar(time, symbol)
   }
 
@@ -55,18 +56,22 @@ object quotes {
    *   unique: true)
    */
   def queryEodBarPriorTo(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-//    println(s"queryEodBarPriorTo($time, $symbol)")
+    info(s"queryEodBarPriorTo($time, $symbol)")
     adapter.queryEodBarPriorTo(time, symbol)
   }
 
   def queryEodBars(symbol: String)(implicit adapter: Adapter): Seq[Bar] = {
-//    println(s"queryEodBars($symbol)")
+    info(s"queryEodBars($symbol)")
     adapter.queryEodBars(symbol)
   }
 
   def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[Bar] = {
-//    println(s"queryEodBars($symbol, $earliestTime, $latestTime)")
-    adapter.queryEodBars(symbol, earliestTime, latestTime)
+    info(s"queryEodBars($symbol, $earliestTime, $latestTime)")
+    var t1 = datetimeUtils.currentTime()
+    val result = adapter.queryEodBars(symbol, earliestTime, latestTime)
+    var t2 = datetimeUtils.currentTime()
+    println(s"Time: ${datetimeUtils.prettyFormatPeriod(datetimeUtils.periodBetween(t1, t2))}")
+    result
   }
 
 
@@ -108,17 +113,17 @@ object quotes {
   }
 
   def findOldestEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-//    println(s"findOldestEodBar($symbol)")
+    info(s"findOldestEodBar($symbol)")
     adapter.findOldestEodBar(symbol)
   }
 
   def findMostRecentEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-//    println(s"findMostRecentEodBar($symbol)")
+    info(s"findMostRecentEodBar($symbol)")
     adapter.findMostRecentEodBar(symbol)
   }
 
 
-  val priceHistoryCache = CacheManager.getInstance().getCache("priceHistoryCache")
+  val priceHistoryCache = cache.buildLruCache(32, "priceHistoryCache")
 
   def findPriceHistory(year: Int, symbol: String): PriceHistory = {
     val priceHistoryId = symbol ++ ":" ++ year.toString

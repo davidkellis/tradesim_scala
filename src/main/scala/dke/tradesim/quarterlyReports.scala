@@ -2,11 +2,12 @@ package dke.tradesim
 
 import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
-import net.sf.ehcache.{Element, CacheManager}
+import net.sf.ehcache.{Element}
 
 import dke.tradesim.core.{Bar, FinancialReport, QuarterlyReport}
 import dke.tradesim.datetimeUtils.{datetime, timestamp}
 import dke.tradesim.db.{Adapter}
+import dke.tradesim.logger._
 
 import Adapter.threadLocalAdapter
 
@@ -32,6 +33,7 @@ object quarterlyReports {
    *   unique: true)
    */
   def queryQuarterlyReport(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[QuarterlyReport] = {
+    info(s"queryQuarterlyReport($time, $symbol)")
     adapter.queryQuarterlyReport(time, symbol)
   }
 
@@ -51,6 +53,7 @@ object quarterlyReports {
    *   unique: true)
    */
   def queryQuarterlyReportPriorTo(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[QuarterlyReport] = {
+    info(s"queryQuarterlyReportPriorTo($time, $symbol)")
     adapter.queryQuarterlyReportPriorTo(time, symbol)
   }
 
@@ -60,10 +63,12 @@ object quarterlyReports {
    *   (query-quarterly-reports "AAPL" (date-time 2001 1 1) (date-time 2001 12 31 23 59 59))
    */
   def queryQuarterlyReports(symbol: String)(implicit adapter: Adapter): Seq[QuarterlyReport] = {
+    info(s"queryQuarterlyReports($symbol)")
     adapter.queryQuarterlyReports(symbol)
   }
 
   def queryQuarterlyReports(symbol: String, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[QuarterlyReport] = {
+    info(s"queryQuarterlyReports($symbol, $earliestTime, $latestTime)")
     adapter.queryQuarterlyReports(symbol, earliestTime, latestTime)
   }
 
@@ -101,7 +106,7 @@ object quarterlyReports {
     loadQuarterlyReportHistoryFromReports(queryQuarterlyReports(symbol, earliestTime, latestTime))
 
 
-  val quarterlyReportHistoryCache = CacheManager.getInstance().getCache("quarterlyReportHistoryCache")
+  val quarterlyReportHistoryCache = cache.buildLruCache(32, "quarterlyReportHistoryCache")
 
   def findQuarterlyReportHistory(year: Int, symbol: String): QuarterlyReportHistory = {
     val startYear = year - year % 2
