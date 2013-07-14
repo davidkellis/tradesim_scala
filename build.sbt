@@ -6,7 +6,7 @@ scalaVersion := "2.10.1"
 
 scalacOptions ++= Seq(
   "-deprecation",
-  "-Xelide-below", "INFO"
+  "-Xelide-below", "FINER"
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"

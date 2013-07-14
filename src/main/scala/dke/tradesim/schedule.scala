@@ -1,7 +1,7 @@
 package dke.tradesim
 
 import org.joda.time._
-import dke.tradesim.datetimeUtils.{dayOfWeek, intervalBetween, isHoliday, HolidayLookupFunctions, interspersedTimeSeries, isBeforeOrEqual}
+import dke.tradesim.datetimeUtils.{dayOfWeek, intervalBetween, isHoliday, HolidayLookupFunctions, interspersedDateSeries, isBeforeOrEqual}
 import dke.tradesim.minterval.{MInterval, emptyMInterval, createMInterval, overlaps, subtractMInterval, isEmpty}
 
 object schedule {
@@ -46,8 +46,8 @@ object schedule {
   // returns true if the trading-schedule has any trading hours scheduled for that date; false otherwise.
   def isTradingDay(time: LocalDate, tradingSchedule: TradingSchedule): Boolean = !isEmpty(tradingSchedule(time))
 
-  def tradingDays(startTime: LocalDate, tradingSchedule: TradingSchedule): Seq[LocalDate] =
-    interspersedTimeSeries(startTime, Days.days(1)).filter(isTradingDay(_, tradingSchedule))
+  def tradingDays(startDate: LocalDate, tradingSchedule: TradingSchedule): Seq[LocalDate] =
+    interspersedDateSeries(startDate, Days.days(1)).filter(isTradingDay(_, tradingSchedule))
 
   def tradingDays(startDate: LocalDate, endDate: LocalDate, tradingSchedule: TradingSchedule): Seq[LocalDate] =
     tradingDays(startDate, tradingSchedule).takeWhile(isBeforeOrEqual(_, endDate))

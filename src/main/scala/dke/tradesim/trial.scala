@@ -8,6 +8,7 @@ import dke.tradesim.ordering.{isOrderFillable, orderFillPrice, adjustPortfolioFr
 import dke.tradesim.quotes.{barSimQuote}
 import dke.tradesim.priceHistory.{commonTrialPeriodStartDates}
 import dke.tradesim.splitsDividends.{adjustPortfolioForCorporateActions, adjustPriceForCorporateActions, adjustOpenOrdersForCorporateActions}
+import dke.tradesim.logger.verbose
 
 object trial {
   def fixedTradingPeriodIsFinalState(strategy: Strategy, trial: Trial, state: State): Boolean = isAfterOrEqual(state.time, trial.endTime)
@@ -191,7 +192,11 @@ object trial {
       }
     }
 
-    runTrial(buildInitStrategyState(strategy, trial))
+    var t1 = datetimeUtils.currentTime()
+    val result = runTrial(buildInitStrategyState(strategy, trial))
+    var t2 = datetimeUtils.currentTime()
+    verbose(s"Time: ${datetimeUtils.prettyFormatPeriod(datetimeUtils.periodBetween(t1, t2))}")
+    result
   }
 
   def buildAllTrialIntervals(symbolList: IndexedSeq[String], intervalLength: Period, separationLength: Period): Seq[Interval] = {

@@ -134,19 +134,19 @@ object datetimeUtils {
   def timeSeries(startTime: DateTime, nextTimeFn: (DateTime) => DateTime): Stream[DateTime] = Stream.iterate(startTime)(nextTimeFn)
 
   // returns an infinite sequence
-  def timeSeries(startDate: LocalDate, nextDateFn: (LocalDate) => LocalDate): Stream[LocalDate] = Stream.iterate(startDate)(nextDateFn)
+  def dateSeries(startDate: LocalDate, nextDateFn: (LocalDate) => LocalDate): Stream[LocalDate] = Stream.iterate(startDate)(nextDateFn)
 
   // returns an infinite sequence
   def interspersedTimeSeries(startTime: DateTime, period: ReadablePeriod): Stream[DateTime] = timeSeries(startTime, (t: DateTime) => t.plus(period))
 
   // returns an infinite sequence
-  def interspersedTimeSeries(startDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] = timeSeries(startDate, (d: LocalDate) => d.plus(period))
+  def interspersedDateSeries(startDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] = dateSeries(startDate, (d: LocalDate) => d.plus(period))
 
   def interspersedTimeSeries(startTime: DateTime, endTime: DateTime, period: ReadablePeriod): Stream[DateTime] =
     interspersedTimeSeries(startTime, period).takeWhile(isBeforeOrEqual(_, endTime))
 
-  def interspersedTimeSeries(startDate: LocalDate, endDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] =
-    interspersedTimeSeries(startDate, period).takeWhile(isBeforeOrEqual(_, endDate))
+  def interspersedDateSeries(startDate: LocalDate, endDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] =
+    interspersedDateSeries(startDate, period).takeWhile(isBeforeOrEqual(_, endDate))
 
   // returns an infinite sequence
   def interspersedIntervals(startTime: DateTime, intervalLength: Period, separationLength: Period): Stream[Interval] = {

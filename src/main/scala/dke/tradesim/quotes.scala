@@ -16,7 +16,7 @@ object quotes {
   def barHigh(bar: Bar): BigDecimal = bar.high
   def barLow(bar: Bar): BigDecimal = bar.low
   def barClose(bar: Bar): BigDecimal = bar.close
-  def barSimQuote(bar: Bar): BigDecimal = (bar.low + bar.high) / 2
+  def barSimQuote(bar: Bar): BigDecimal = (bar.low + bar.high) / BigDecimal(2)
 
   /**
    * Returns the most recent EOD bar for <symbol> as of <date-time>.
@@ -70,7 +70,7 @@ object quotes {
     var t1 = datetimeUtils.currentTime()
     val result = adapter.queryEodBars(symbol, earliestTime, latestTime)
     var t2 = datetimeUtils.currentTime()
-    println(s"Time: ${datetimeUtils.prettyFormatPeriod(datetimeUtils.periodBetween(t1, t2))}")
+    verbose(s"Time: ${datetimeUtils.prettyFormatPeriod(datetimeUtils.periodBetween(t1, t2))}")
     result
   }
 
