@@ -16,7 +16,20 @@ object quotes {
   def barHigh(bar: Bar): BigDecimal = bar.high
   def barLow(bar: Bar): BigDecimal = bar.low
   def barClose(bar: Bar): BigDecimal = bar.close
-  def barSimQuote(bar: Bar): BigDecimal = (bar.low + bar.high) / BigDecimal(2)
+
+  val barSimQuoteCache = cache.buildLruCache(200, "barSimQuote")    // this cache holds String/BigDecimal pairs
+  def barSimQuote(bar: Bar): BigDecimal = {
+    val barId = bar.symbol.concat(bar.startTime.toString("yyyyMMddHHmmss"))
+    val cachedQuote = Option(barSimQuoteCache.get(barId))
+    cachedQuote match {
+      case Some(priceQuoteElement) => priceQuoteElement.getObjectValue.asInstanceOf[BigDecimal]
+      case None =>
+        val newQuote = (bar.low + bar.high) / BigDecimal(2)
+        barSimQuoteCache.put(new Element(barId, newQuote))
+        newQuote
+    }
+  }
+//  def barSimQuote(bar: Bar): BigDecimal = (bar.low + bar.high) / BigDecimal(2)
 
   /**
    * Returns the most recent EOD bar for <symbol> as of <date-time>.
