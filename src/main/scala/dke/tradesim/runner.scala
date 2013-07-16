@@ -34,6 +34,7 @@ object Runner {
           case Some("bah3") => buyandhold.scenarios.runMultipleTrials1()
           case Some("bah4") => buyandhold.scenarios.runMultipleTrials2()
           case Some(name) => println(s"Unknown scenario: $name")
+          case _ => println("No scenario was specified.")
         }
       }
     }
