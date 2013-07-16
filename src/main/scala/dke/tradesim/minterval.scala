@@ -10,9 +10,10 @@ object minterval {
 
   def createMInterval(intervals: IndexedSeq[Interval]): MInterval = intervals.toVector.sortBy(_.getStart)
 
+  // represents the computation: minuend - subtrahend = difference
   def subtractMInterval(minuend: MInterval, subtrahend: MInterval): MInterval = {
-    val mIntervals = for(m <- minuend; s <- subtrahend) yield subtractInterval(m, s)
-    createMInterval(mIntervals.flatten)
+    val mintervals = for(m <- minuend; s <- subtrahend) yield subtractInterval(m, s)
+    createMInterval(mintervals.flatten)
   }
 
   /*

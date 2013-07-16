@@ -2,11 +2,11 @@ name := "tradesim"
 
 version := "1.0"
 
-scalaVersion := "2.10.1"
+scalaVersion := "2.10.2"
 
 scalacOptions ++= Seq(
   "-deprecation",
-  "-Xelide-below", "FINER"
+  "-Xelide-below", "INFO"
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
@@ -22,5 +22,6 @@ libraryDependencies ++= Seq(
   "postgresql" % "postgresql" % "9.1-901.jdbc4",
   "org.rogach" %% "scallop" % "0.9.2",
   "org.json4s" %% "json4s-jackson" % "3.2.2",
-  "com.lambdaworks" % "jacks_2.10" % "2.2.0"
+  "com.lambdaworks" % "jacks_2.10" % "2.2.0",
+  "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test"
 )

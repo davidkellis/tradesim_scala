@@ -13,13 +13,16 @@ object datetimeUtils {
 //  val PacificTimeZone = findTimeZone("US/Pacific")
 
   implicit def dateTimeOrdering: Ordering[DateTime] = Ordering.fromLessThan(isBefore(_, _))
+  implicit def localDateOrdering: Ordering[LocalDate] = Ordering.fromLessThan[LocalDate](_.isBefore(_))
 
   def currentTime(timeZone: DateTimeZone = EasternTimeZone): DateTime = DateTime.now(timeZone)
 
+  def date(year: Int): LocalDate = new LocalDate(year, 1, 1)
+  def date(year: Int, month: Int): LocalDate = new LocalDate(year, month, 1)
+  def date(year: Int, month: Int, day: Int): LocalDate = new LocalDate(year, month, day)
+
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
-
   def datetime(year: Int, month: Int, day: Int): DateTime = datetime(year, month, day, 0, 0, 0)
-
   def datetime(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int): DateTime =
     new DateTime(year, month, day, hour, minute, second, EasternTimeZone)
 
@@ -194,8 +197,8 @@ object datetimeUtils {
    *   nthWeekday(3, DateTimeConstants.MONDAY, 2, 2012)   ; returns the 3rd monday in February 2012.
    *   => #<LocalDate 2012-02-20>
    */
-  def nthWeekday(n: Int, desiredWeekday: Int, month: Int, year: Int): DateTime = {
-    val firstDayOfTheMonth = datetime(year, month)
+  def nthWeekday(n: Int, desiredWeekday: Int, month: Int, year: Int): LocalDate = {
+    val firstDayOfTheMonth = date(year, month)
     val firstDesiredWeekdayOfTheMonth = firstDayOfTheMonth.plus(Days.days(offsetOfFirstWeekdayInMonth(desiredWeekday, month, year)))
     val weekOffsetInDays = Days.days(7 * (n - 1))
     firstDesiredWeekdayOfTheMonth.plus(weekOffsetInDays)
@@ -210,20 +213,22 @@ object datetimeUtils {
    *   lastWeekday(1, 2, 2012)     ; last monday in february 2012
    *   > #<DateTime 2012-02-27>
    */
-  def lastWeekday(desiredWeekday: Int, month: Int, year: Int): DateTime = {
+  def lastWeekday(desiredWeekday: Int, month: Int, year: Int): LocalDate = {
     val days = daysInMonth(month, year)
     val dayOfMonth = days - (dayOfWeek(datetime(year, month, days)) - desiredWeekday + 7) % 7
-    datetime(year, month, dayOfMonth)
+    date(year, month, dayOfMonth)
   }
+
+  def isAnyHoliday(date: LocalDate): Boolean = HolidayLookupFunctions.exists(holidayLookupFn => isHoliday(date, holidayLookupFn))
 
   /**
    * holidayFn is a function of an integer year that returns a LocalDate representing the date
    * that the holiday falls on in that year
    * Example: isHoliday(datetimeUtils(2012, 1, 16), martinLutherKingJrDay) => true
    */
-  def isHoliday(date: LocalDate, holidayFn: (Int) => DateTime): Boolean = date == holidayFn(date.getYear())
+  def isHoliday(date: LocalDate, holidayFn: (Int) => LocalDate): Boolean = date == holidayFn(date.getYear())
 
-  val HolidayLookupFunctions = Vector[(Int) => DateTime](
+  val HolidayLookupFunctions = Vector[(Int) => LocalDate](
     newYears _,
     martinLutherKingJrDay _,
     presidentsDay _,
@@ -235,13 +240,13 @@ object datetimeUtils {
     christmas _
   )
 
-  def newYears(year: Int): DateTime = datetime(year, 1, 1)
+  def newYears(year: Int): LocalDate = date(year, 1, 1)
 
   // third monday in January in the given year
-  def martinLutherKingJrDay(year: Int): DateTime = nthWeekday(3, DateTimeConstants.MONDAY, 1, year)
+  def martinLutherKingJrDay(year: Int): LocalDate = nthWeekday(3, DateTimeConstants.MONDAY, 1, year)
 
   // third monday in February in the given year
-  def presidentsDay(year: Int): DateTime = nthWeekday(3, DateTimeConstants.MONDAY, 2, year)
+  def presidentsDay(year: Int): LocalDate = nthWeekday(3, DateTimeConstants.MONDAY, 2, year)
 
   /**
    * This is a non-trivial calculation. See http://en.wikipedia.org/wiki/Computus
@@ -266,7 +271,7 @@ object datetimeUtils {
    *   return n + 7 - ((d+n)%7)  // Following Sunday
    *   }
    */
-  def easter(year: Int): DateTime = {
+  def easter(year: Int): LocalDate = {
     val g = year % 19 + 1
     val c = year / 100 + 1
     val x = (3 * c / 4) - 12
@@ -292,23 +297,23 @@ object datetimeUtils {
     val n2 = (n1 + 7) - ((d + n1) % 7)
     val day = if (n2 > 31) n2 - 31 else n2
     val month = if (n2 > 31) 4 else 3
-    datetime(year, month, day)
+    date(year, month, day)
   }
 
   // the Friday before Easter Sunday
-  def goodFriday(year: Int): DateTime = easter(year).minus(Days.days(2))
+  def goodFriday(year: Int): LocalDate = easter(year).minus(Days.days(2))
 
   // last Monday in May
-  def memorialDay(year: Int): DateTime = lastWeekday(1, 5, year)
+  def memorialDay(year: Int): LocalDate = lastWeekday(1, 5, year)
 
   // July 4th
-  def independenceDay(year: Int): DateTime = datetime(year, 7, 4)
+  def independenceDay(year: Int): LocalDate = date(year, 7, 4)
 
   // first Monday in September
-  def laborDay(year: Int): DateTime = nthWeekday(1, DateTimeConstants.MONDAY, 9, year)
+  def laborDay(year: Int): LocalDate = nthWeekday(1, DateTimeConstants.MONDAY, 9, year)
 
   // fourth Thursday in November
-  def thanksgiving(year: Int): DateTime = nthWeekday(4, DateTimeConstants.THURSDAY, 11, year)
+  def thanksgiving(year: Int): LocalDate = nthWeekday(4, DateTimeConstants.THURSDAY, 11, year)
 
-  def christmas(year: Int): DateTime = datetime(year, 12, 25)
+  def christmas(year: Int): LocalDate = date(year, 12, 25)
 }
