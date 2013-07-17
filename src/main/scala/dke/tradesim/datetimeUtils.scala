@@ -145,6 +145,7 @@ object datetimeUtils {
   // returns an infinite sequence
   def interspersedDateSeries(startDate: LocalDate, period: ReadablePeriod): Stream[LocalDate] = dateSeries(startDate, (d: LocalDate) => d.plus(period))
 
+  // returns a sequence of DateTimes, [t1, t2, ..., tN], that are separated by a given Period, s.t. startTime = t1 and tN <= endTime
   def interspersedTimeSeries(startTime: DateTime, endTime: DateTime, period: ReadablePeriod): Stream[DateTime] =
     interspersedTimeSeries(startTime, period).takeWhile(isBeforeOrEqual(_, endTime))
 
@@ -152,6 +153,8 @@ object datetimeUtils {
     interspersedDateSeries(startDate, period).takeWhile(isBeforeOrEqual(_, endDate))
 
   // returns an infinite sequence
+  // returns a sequence of Intervals, [i1, i2, ..., iN], s.t. the start time of subsequent intervals is separated
+  // by a given Period, <separationLength> and each interval spans an amount of time given by <intervalLength>
   def interspersedIntervals(startTime: DateTime, intervalLength: Period, separationLength: Period): Stream[Interval] = {
     val startTimes = interspersedTimeSeries(startTime, separationLength)
     startTimes.map(t => intervalBetween(t, t.plus(intervalLength)))
