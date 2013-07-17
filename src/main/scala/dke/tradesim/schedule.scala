@@ -61,7 +61,6 @@ object schedule {
     cachedTradingDaysSet match {
       case Some(cachedTradingDaysSetElement) => cachedTradingDaysSetElement.getObjectValue.asInstanceOf[TreeSet[LocalDate]]
       case None =>
-//        val newTradingDaysSet: TreeSet[LocalDate] = TreeSet.empty(datetimeUtils.localDateOrdering) ++ tradingDays(firstTradingDay, lastTradingDay, tradingSchedule)
         val newTradingDaysSet: TreeSet[LocalDate] = new TreeSet[LocalDate](datetimeUtils.localDateOrdering)
         tradingDays(firstTradingDay, lastTradingDay, tradingSchedule).foreach(tradingDay => newTradingDaysSet.add(tradingDay))
         allTradingDaysCache.put(new Element(tradingSchedule, newTradingDaysSet))
@@ -83,9 +82,4 @@ object schedule {
       Option(tradingDaysSortedSet.higher(nextDay)).getOrElse(tradingDays(nextDay, tradingSchedule).head)
     }
   }
-
-//  def nextTradingDay(date: LocalDate, timeIncrement: ReadablePeriod, tradingSchedule: TradingSchedule): LocalDate = {
-//    val nextDay = date.plus(timeIncrement)
-//    tradingDays(nextDay, tradingSchedule).head
-//  }
 }

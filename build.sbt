@@ -1,3 +1,9 @@
+import AssemblyKeys._ // put this at the top of the file
+
+assemblySettings
+
+mainClass in assembly := Some("dke.tradesim.Runner")
+
 name := "tradesim"
 
 version := "1.0"
