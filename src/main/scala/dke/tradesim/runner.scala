@@ -10,24 +10,25 @@ import dke.tradesim.db.SlickAdapter.{AnnualReports, QuarterlyReports, CorporateA
 object Runner {
   class RuntimeConfig(arguments: Seq[String]) extends ScallopConf(arguments) {
     version("tradesim 1.0.0 (c) 2013 David K Ellis")
-    banner("""Usage: tradesim [--setup-db | --scenario <scenarioName>]
+    banner("""Usage: tradesim [--jdbc jdbc:postgresql://localhost[:port]/tradesim] [--setup-db | --scenario <scenarioName>]
              |Options:
              |""".stripMargin)
 
     val setupDb = opt[Boolean](default = Some(false), descr = "Setup the DB tables", noshort = true)
     val scenario = opt[String](descr = "Identify the scenario to run.", short = 's')
+    val jdbc = opt[String](descr = "Identify the scenario to run.", short = 'j')
   }
 
   def main(args: Array[String]) {
-    readLine("Press any key to start")
+    val config = new RuntimeConfig(args)
+    val jdbcConnectionString = config.jdbc.get.getOrElse("jdbc:postgresql:tradesim")
 
 //    MongoAdapter.withAdapter("mongodb://localhost") {
-    SlickAdapter.withAdapter("jdbc:postgresql:tradesim", "org.postgresql.Driver") {
-
-      val config = new RuntimeConfig(args)
+    SlickAdapter.withAdapter(jdbcConnectionString, "org.postgresql.Driver") {
       if (config.setupDb()) {
         Adapter.threadLocalAdapter.createDb()
       } else if (config.scenario.isSupplied) {
+        readLine("Press any key to start")
         config.scenario.get match {
           case Some("bah1") => buyandhold.scenarios.runSingleTrial1()
           case Some("bah2") => buyandhold.scenarios.runSingleTrial2()
