@@ -31,7 +31,7 @@ object db {
      * The session is stored in a thread-local variable which can be accessed with the implicit
      * function in Database.Implicit.
      */
-    def withAdapter[T](adapter: Adapter, f: => T): T = dyn.withValue(adapter)(f)
+    def withAdapter[T](adapter: Adapter)(f: => T): T = dyn.withValue(adapter)(f)
 
     /**
      * An implicit function that returns the thread-local adapter in a withAdapater block
@@ -384,10 +384,10 @@ object db {
       record.map(convertAnnualReportRecord(_))
 
 
-    def withAdapter[T](jdbcConnectionString: String, driver: String)(f: => T): T = {
-      Database.forURL(jdbcConnectionString, driver = driver) withSession { session =>
+    def withAdapter[T](jdbcConnectionString: String, driver: String, username: String = null, password: String = null)(f: => T): T = {
+      Database.forURL(jdbcConnectionString, username, password, driver = driver) withSession { session =>
         val adapter = new SlickAdapter()(session)
-        Adapter.withAdapter(adapter, f)
+        Adapter.withAdapter(adapter)(f)
       }
     }
   }
