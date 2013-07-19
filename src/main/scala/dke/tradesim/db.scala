@@ -329,14 +329,14 @@ object db {
     // where the json structure is no more than 1 level deep (i.e. there are no sub-sections)
     def convertJsonToStatement(jsonString: String): Statement = {
       for {
-        JArray(lineItems) <- parse(jsonString, useBigDecimalForDouble = true)
-        lineItem <- lineItems
-      } yield lineItem match {
-        case JString(text) => HeaderLineItem(text)
-        case JArray(pairValues) => pairValues(1) match {
-          case JString(value) => StringLineItem(getString(pairValues(0)).getOrElse(""), value)
-          case JDecimal(value) => NumericLineItem(getString(pairValues(0)).getOrElse(""), value)
-          case _ => throw new Exception(s"Unable to parse statement. It is malformed: $jsonString")
+        JObject(attributes) <- parse(jsonString, useBigDecimalForDouble = true)
+        keyValuePair <- attributes
+      } yield keyValuePair match {
+        case (attributeName, JNull) => HeaderLineItem(attributeName)
+        case (attributeName, attributeValue) => attributeValue match {
+          case JString(value) => StringLineItem(attributeName, value)
+          case JDecimal(value) => NumericLineItem(attributeName, value)
+          case _ => throw new Exception(s"Unable to parse key/value pair: $attributeName/$attributeValue. The statement is malformed: $jsonString")
         }
         case _ => throw new Exception(s"Unable to parse statement. It is malformed: $jsonString")
       }
