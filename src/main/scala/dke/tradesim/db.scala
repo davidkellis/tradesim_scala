@@ -328,18 +328,19 @@ object db {
     // assumes json is of the form: [ "header", [attribute, value], [attribute, value], "header", [attr, val], ... ]
     // where the json structure is no more than 1 level deep (i.e. there are no sub-sections)
     def convertJsonToStatement(jsonString: String): Statement = {
-      for {
+      val pairs = for {
         JObject(attributes) <- parse(jsonString, useBigDecimalForDouble = true)
         keyValuePair <- attributes
       } yield keyValuePair match {
-        case (attributeName, JNull) => HeaderLineItem(attributeName)
+        case (attributeName, JNull) => (attributeName -> HeaderAttribute(attributeName))
         case (attributeName, attributeValue) => attributeValue match {
-          case JString(value) => StringLineItem(attributeName, value)
-          case JDecimal(value) => NumericLineItem(attributeName, value)
+          case JString(value) => (attributeName -> StringAttribute(value))
+          case JDecimal(value) => (attributeName -> NumericAttribute(value))
           case _ => throw new Exception(s"Unable to parse key/value pair: $attributeName/$attributeValue. The statement is malformed: $jsonString")
         }
         case _ => throw new Exception(s"Unable to parse statement. It is malformed: $jsonString")
       }
+      pairs.toMap
     }
 
     def getString(jValue: JValue): Option[String] = jValue match {

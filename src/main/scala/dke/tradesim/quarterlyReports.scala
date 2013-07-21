@@ -4,7 +4,7 @@ import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
 import net.sf.ehcache.{Element}
 
-import dke.tradesim.core.{Bar, FinancialReport, QuarterlyReport}
+import dke.tradesim.core.{StatementAttribute, StatementType, Bar, FinancialReport, QuarterlyReport}
 import dke.tradesim.datetimeUtils.{datetime, timestamp}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.logger._
@@ -84,7 +84,7 @@ object quarterlyReports {
   }
 
   /**
-   * returns a util.NavigableMap holding the reports, sorted by the start-time of the report
+   * returns a util.NavigableMap holding the reports, sorted by the publication-time of the report
    * A NavigableMap doesn't need to be synchronized for concurrent reads - it is thread-safe for concurrent reads.
    * From the API docs:
    *   If multiple threads access a map concurrently, and at least one of the threads modifies the map structurally,
@@ -93,7 +93,7 @@ object quarterlyReports {
    */
   def loadQuarterlyReportHistoryFromReports(reports: Seq[QuarterlyReport]): QuarterlyReportHistory = {
     val quarterlyReportHistory: QuarterlyReportHistory = new TreeMap[Long, QuarterlyReport]()
-    for {report <- reports} quarterlyReportHistory.put(timestamp(report.startTime), report)
+    for {report <- reports} quarterlyReportHistory.put(timestamp(report.publicationTime), report)
     quarterlyReportHistory
   }
 
@@ -108,7 +108,7 @@ object quarterlyReports {
 
   val quarterlyReportHistoryCache = cache.buildLruCache(32, "quarterlyReportHistoryCache")
 
-  // loads up 2 years of price history
+  // loads up 2 years of quarterly reports
   def findQuarterlyReportHistory(year: Int, symbol: String): QuarterlyReportHistory = {
     val startYear = year - year % 2
     val quarterlyReportHistoryId = symbol ++ ":" ++ startYear.toString
@@ -130,10 +130,22 @@ object quarterlyReports {
     mostRecentQuarterlyReport(quarterlyReportHistory, timestamp(time))
   }
 
+  // returns the most recent quarterly report for <symbol> as of <time>
   def findQuarterlyReport(time: DateTime, symbol: String): Option[QuarterlyReport] = {
     val year = time.getYear
     val quarterlyReport = mostRecentQuarterlyReportFromYear(time, symbol, year)               // search the 2-year period that <year> falls within
                           .orElse(mostRecentQuarterlyReportFromYear(time, symbol, year - 2))  // search the prior 2-year period immediately before the 2-year period that <year> falls within
     quarterlyReport.orElse(queryQuarterlyReport(time, symbol))
+  }
+
+  def quarterlyReportAttribute(time: DateTime, symbol: String, reportType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
+    val quarterlyReport = findQuarterlyReport(time, symbol)
+    quarterlyReport.flatMap { quarterlyReport =>
+      reportType match {
+        case StatementType.BalanceSheet => quarterlyReport.balanceSheet.get(attribute)
+        case StatementType.IncomeStatement => quarterlyReport.incomeStatement.get(attribute)
+        case StatementType.CashFlowStatement => quarterlyReport.cashFlowStatement.get(attribute)
+      }
+    }
   }
 }

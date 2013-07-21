@@ -17,6 +17,7 @@ import Adapter.threadLocalAdapter
 
 object splitsDividends {
   case class AdjustmentFactor(corporateAction: CorporateAction, priorEodBar: Option[Bar], adjustmentFactor: BigDecimal)
+  case class QtyAdjustmentFactor(corporateAction: CorporateAction, adjustmentFactor: BigDecimal)
 
 
   def queryCorporateActions(symbol: String)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
@@ -74,7 +75,7 @@ object splitsDividends {
   def findEodBarPriorToCorporateAction(corporateAction: CorporateAction): Option[Bar] =
     findEodBarPriorTo(corporateAction.exDate, corporateAction.symbol)
 
-  // computes a cumulative adjustment factor
+  // computes a cumulative price adjustment factor
   def cumulativePriceAdjustmentFactor(symbol: String, startTime: DateTime, endTime: DateTime): BigDecimal =
     priceAdjustmentFactors(symbol, startTime, endTime).map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
 
@@ -144,11 +145,14 @@ object splitsDividends {
 
   /**
    * Given a price, <price>, of <symbol> that was observed at <price-observation-time>,
-   * returns an adjusted price that (using <price> as a base price) has been adjusted for corporate actions that take effect between <price-observation-time> and <adjustment-time>.
-   * Assumes <price-observation-time> occurred strictly before <adjustment-time> (i.e. <price-observation-time> is strictly older than <adjustment-time>).
+   * returns an adjusted price that (using <price> as a base price) has been adjusted for corporate actions that take effect between
+   * <price-observation-time> and <adjustment-time>.
+   * Assumes <price-observation-time> occurred strictly before <adjustment-time> (i.e. <price-observation-time> is strictly
+   * older than <adjustment-time>).
    * This function can be interpreted as:
    * "Adjust the price, <price>, of <symbol>, that was observed at <price-observation-time> for corporate actions that took effect between
-   * <price-observation-time> and <adjustment-time>. The adjusted price is the price that one would expect for <symbol> to trade at as of <adjustment-time>"
+   * <price-observation-time> and <adjustment-time>. The adjusted price is the price that one would expect for <symbol> to trade at as of
+   * <adjustment-time>"
    * NOTE:
    *   See http://www.investopedia.com/ask/answers/06/adjustedclosingprice.asp#axzz24Wa9LgDj for instructions on how to adjust a price for splits.
    *   See http://www.quantshare.com/sa-112-stock-split-dividend
@@ -242,4 +246,44 @@ object splitsDividends {
     val qty = sharesOnHand(portfolio, symbol)
     qty * dividendAmount
   }
+
+  // returns a split adjusted share quantity, given an unadjusted share quantity
+  def adjustShareQtyForCorporateActions(unadjustedQty: BigDecimal, symbol: String, earlierObservationTime: DateTime, laterObservationTime: DateTime): BigDecimal = {
+    unadjustedQty / cumulativeShareQtyAdjustmentFactor(symbol, earlierObservationTime, laterObservationTime)
+  }
+
+  // computes a cumulative share quantity adjustment factor
+  def cumulativeShareQtyAdjustmentFactor(symbol: String, earlierObservationTime: DateTime, laterObservationTime: DateTime): BigDecimal =
+    shareQtyAdjustmentFactors(symbol, earlierObservationTime, laterObservationTime).map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
+
+  /**
+   * Returns a sequence of AdjustmentFactors ordered in ascending (i.e. oldest to most recent) order of the corporate action's ex-date.
+   * The first element of the tuple, <corporate-action> is the corporate action from which the <adjustment-factor> is computed.
+   * The last element of the tuple, <adjustment-factor> is the adjustment factor for the given <corporate-action>.
+   * NOTE:
+   *   A given unadjusted historical share count can be divided by the <adjustment-factor> to compute the associated
+   *   corporate-action-adjusted historical share count (e.g. to produce an adjusted share volume or an adjusted "shares outstanding"
+   *   measurement).
+   *   Each adjustment-factor is not cumulative, it is specifically tied to a particular corporate-action.
+   *   The definition of the adjustment-factor is taken from http://www.crsp.com/documentation/product/stkind/definitions/factor_to_adjust_price_in_period.html:
+   *   "Factor from a base date used to adjust prices after distributions so that equivalent comparisons can be made between prices
+   *   before and after the distribution."
+   */
+  def shareQtyAdjustmentFactors(symbol: String, earlierObservationTime: DateTime, laterObservationTime: DateTime): IndexedSeq[QtyAdjustmentFactor] = {
+    if (isBefore(earlierObservationTime, laterObservationTime)) {
+      val corporateActions = findCorporateActions(symbol, earlierObservationTime, laterObservationTime)
+      corporateActions.foldLeft(Vector[QtyAdjustmentFactor]()) { (qtyAdjustmentFactors, corporateAction) =>
+        qtyAdjustmentFactors :+ QtyAdjustmentFactor(corporateAction, computeShareQtyAdjustmentFactor(corporateAction))
+      }
+    } else Vector[QtyAdjustmentFactor]()
+  }
+
+  def computeShareQtyAdjustmentFactor(corporateAction: CorporateAction): BigDecimal = {
+    corporateAction match {
+      case Split(_, _, ratio) => computeSplitAdjustmentFactor(ratio)
+      case _ => BigDecimal(1)
+    }
+  }
+
+
 }

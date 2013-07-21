@@ -110,15 +110,19 @@ object core {
                           amount: BigDecimal) extends CorporateAction
 
 
-  trait LineItem
-  case class HeaderLineItem(text: String) extends LineItem
-  case class StringLineItem(attribute: String, value: String) extends LineItem
-  case class NumericLineItem(attribute: String, value: BigDecimal) extends LineItem
+  trait StatementAttribute
+  case class HeaderAttribute(text: String) extends StatementAttribute
+  case class StringAttribute(value: String) extends StatementAttribute
+  case class NumericAttribute(value: BigDecimal) extends StatementAttribute
 //  case class RatioLineItem(attribute: String, value: String) extends LineItem
-  type Statement = Seq[LineItem]
+  type Statement = Map[String, StatementAttribute]
   type IncomeStatement = Statement
   type BalanceSheet = Statement
   type CashFlowStatement = Statement
+
+  object StatementType extends Enumeration {
+    val IncomeStatement, BalanceSheet, CashFlowStatement = Value
+  }
 
   trait FinancialReport
   case class QuarterlyReport(symbol: String,
