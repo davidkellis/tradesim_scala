@@ -10,16 +10,12 @@ import dke.tradesim.core.{NumericAttribute, StatementType}
 
 object fundamentals {
   object BalanceSheetAttributes {
+    val NetIncome = "total net income"
     val SharesOutstanding = "total common shares out"
   }
 
-  def unadjustedSharesOutstanding(time: DateTime, symbol: String): Option[BigDecimal] = {
-    val sharesOut = quarterlyReportAttribute(time, symbol, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
-    sharesOut match {
-      case Some(NumericAttribute(shareCount)) => Option(shareCount)
-      case _ => None
-    }
-  }
+  def unadjustedSharesOutstanding(time: DateTime, symbol: String): Option[BigDecimal] =
+    numericQuarterlyReportAttribute(time, symbol, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
 
   def sharesOutstanding(time: DateTime, symbol: String): Option[BigDecimal] = {
     val quarterlyReport = findQuarterlyReport(time, symbol)
@@ -33,10 +29,17 @@ object fundamentals {
     }
   }
 
+  def netIncome(time: DateTime, symbol: String): Option[BigDecimal] =
+    numericQuarterlyReportAttribute(time, symbol, StatementType.BalanceSheet, BalanceSheetAttributes.NetIncome)
 
-//  def earningsPerShare(time: DateTime, symbol: String): Option[BigDecimal] = {
-//    val quarterlyReport = findQuarterlyReport(time, symbol)
-//  }
+  // See http://www.investopedia.com/terms/e/eps.asp
+  // EPS = (Net Income - Dividends on Preferred Stock) / Average Outstanding Shares
+  // This implementation is: EPS = Net Income / Outstanding Shares
+  def earningsPerShare(time: DateTime, symbol: String): Option[BigDecimal] = {
+    netIncome(time, symbol).flatMap { netIncome =>
+      sharesOutstanding(time, symbol).map(sharesOutstanding => netIncome / sharesOutstanding)
+    }
+  }
 //
 //  def priceToEarnings(time: DateTime, symbol: String): Option[BigDecimal] = {
 //    val quarterlyReport = findQuarterlyReport(time, symbol)

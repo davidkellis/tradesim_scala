@@ -4,7 +4,7 @@ import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
 import net.sf.ehcache.{Element}
 
-import dke.tradesim.core.{StatementAttribute, StatementType, Bar, FinancialReport, QuarterlyReport}
+import dke.tradesim.core.{NumericAttribute, StatementAttribute, StatementType, Bar, FinancialReport, QuarterlyReport}
 import dke.tradesim.datetimeUtils.{datetime, timestamp}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.logger._
@@ -148,4 +148,13 @@ object quarterlyReports {
       }
     }
   }
+
+  def numericQuarterlyReportAttribute(time: DateTime, symbol: String, report: StatementType.Value, attribute: String): Option[BigDecimal] = {
+    val sharesOut = quarterlyReportAttribute(time, symbol, report, attribute)
+    sharesOut match {
+      case Some(NumericAttribute(shareCount)) => Option(shareCount)
+      case _ => None
+    }
+  }
+
 }
