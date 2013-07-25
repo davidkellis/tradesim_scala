@@ -54,6 +54,7 @@ object datetimeUtils {
   def years(n: Int): Period = Years.years(n).toPeriod
   def days(n: Int): Period = Days.days(n).toPeriod
   def hours(n: Int): Period = Hours.hours(n).toPeriod
+  def seconds(n: Int): Period = Seconds.seconds(n).toPeriod
   def millis(n: Long): Period = new Period(n)
 
   def periodBetween(t1: ReadableInstant, t2: ReadableInstant): Period = new Period(t1, t2)

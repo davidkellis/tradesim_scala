@@ -5,7 +5,7 @@ import org.joda.time.DateTime
 import net.sf.ehcache.{Element}
 
 import dke.tradesim.core.{NumericAttribute, StatementAttribute, StatementType, Bar, FinancialReport, QuarterlyReport}
-import dke.tradesim.datetimeUtils.{datetime, timestamp}
+import dke.tradesim.datetimeUtils.{datetime, timestamp, seconds}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.logger._
 
@@ -138,10 +138,34 @@ object quarterlyReports {
     quarterlyReport.orElse(queryQuarterlyReport(time, symbol))
   }
 
-  def quarterlyReportAttribute(time: DateTime, symbol: String, reportType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
+  // returns the most recent quarterly reports for <symbol> as of <time>, sorted in order of most recent (newest) to least recent (oldest) publication time
+  def findQuarterlyReports(time: DateTime, symbol: String): Stream[QuarterlyReport] = {
+    val mostRecentQuarterlyReport = findQuarterlyReport(time, symbol)
+    mostRecentQuarterlyReport match {
+      case Some(quarterlyReport) => quarterlyReport #:: findQuarterlyReports(quarterlyReport.publicationTime.minus(seconds(1)), symbol)
+      case None => Stream.empty[QuarterlyReport]
+    }
+  }
+
+  // returns a Some(Stream[QuarterlyReport] of length <qty>) or None
+  def findQuarterlyReports(time: DateTime, symbol: String, qty: Int): Option[Stream[QuarterlyReport]] = {
+    val reports = findQuarterlyReports(time: DateTime, symbol: String).take(qty)
+    if (reports.length == qty) Some(reports)
+    else None
+  }
+
+  def quarterlyReportAttribute(quarterlyReport: QuarterlyReport, statementType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
+    statementType match {
+      case StatementType.BalanceSheet => quarterlyReport.balanceSheet.get(attribute)
+      case StatementType.IncomeStatement => quarterlyReport.incomeStatement.get(attribute)
+      case StatementType.CashFlowStatement => quarterlyReport.cashFlowStatement.get(attribute)
+    }
+  }
+
+  def quarterlyReportAttribute(time: DateTime, symbol: String, statementType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
     val quarterlyReport = findQuarterlyReport(time, symbol)
     quarterlyReport.flatMap { quarterlyReport =>
-      reportType match {
+      statementType match {
         case StatementType.BalanceSheet => quarterlyReport.balanceSheet.get(attribute)
         case StatementType.IncomeStatement => quarterlyReport.incomeStatement.get(attribute)
         case StatementType.CashFlowStatement => quarterlyReport.cashFlowStatement.get(attribute)
@@ -149,9 +173,17 @@ object quarterlyReports {
     }
   }
 
-  def numericQuarterlyReportAttribute(time: DateTime, symbol: String, report: StatementType.Value, attribute: String): Option[BigDecimal] = {
-    val sharesOut = quarterlyReportAttribute(time, symbol, report, attribute)
-    sharesOut match {
+  def numericQuarterlyReportAttribute(quarterlyReport: QuarterlyReport, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
+    val attr = quarterlyReportAttribute(quarterlyReport, statementType, attribute)
+    attr match {
+      case Some(NumericAttribute(shareCount)) => Option(shareCount)
+      case _ => None
+    }
+  }
+
+  def numericQuarterlyReportAttribute(time: DateTime, symbol: String, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
+    val attr = quarterlyReportAttribute(time, symbol, statementType, attribute)
+    attr match {
       case Some(NumericAttribute(shareCount)) => Option(shareCount)
       case _ => None
     }
