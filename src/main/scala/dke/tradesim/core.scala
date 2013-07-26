@@ -8,7 +8,11 @@ object core {
   case class Portfolio(cash: BigDecimal,
                        stocks: StockHoldings)
 
-  sealed trait Order {
+  sealed trait Transaction
+
+  type TransactionLog = IndexedSeq[Transaction]
+
+  sealed trait Order extends Transaction {
     val time: DateTime
     val symbol: String
     val qty: Long
@@ -54,7 +58,7 @@ object core {
                    time: DateTime,
                    portfolio: Portfolio,
                    orders: IndexedSeq[Order],
-                   transactions: IndexedSeq[Order])
+                   transactions: TransactionLog)
 
   case class Trial(symbols: IndexedSeq[String],
                    principal: BigDecimal,
@@ -100,6 +104,13 @@ object core {
                    exDate: DateTime,
                    ratio: BigDecimal) extends CorporateAction
 
+  case class SplitAdjustment(symbol: String,
+                             exDate: DateTime,
+                             ratio: BigDecimal,
+                             adjustmentTime: DateTime,
+                             shareQtyDelta: Long,
+                             cashPayout: BigDecimal) extends Transaction
+
   // See http://www.investopedia.com/articles/02/110802.asp#axzz24Wa9LgDj for the various dates associated with dividend payments
   // See also http://www.sec.gov/answers/dividen.htm
   case class CashDividend(symbol: String,
@@ -109,6 +120,13 @@ object core {
                           payableDate: Option[DateTime],        // date at which company issues payment of dividend
                           amount: BigDecimal) extends CorporateAction
 
+  case class CashDividendPayment(symbol: String,
+                                 exDate: DateTime,                     // on or after this date, the security trades without the dividend
+                                 payableDate: Option[DateTime],        // date at which company issues payment of dividend
+                                 amountPerShare: BigDecimal,           // amount of the dividend, per share
+                                 adjustmentTime: DateTime,             // time at which the adjustment took place
+                                 shareQty: Long,                       // number of shares on hand of <symbol>
+                                 total: BigDecimal) extends Transaction
 
   trait StatementAttribute
   case class HeaderAttribute(text: String) extends StatementAttribute

@@ -100,7 +100,7 @@ object trial {
     val purchaseFillPriceFn = trial.purchaseFillPrice
     val saleFillPriceFn = trial.saleFillPrice
 
-    def executeOrders(portfolio: Portfolio, orders: IndexedSeq[Order], unfilledOrders: IndexedSeq[Order], transactions: IndexedSeq[Order]): State = {
+    def executeOrders(portfolio: Portfolio, orders: IndexedSeq[Order], unfilledOrders: IndexedSeq[Order], transactions: TransactionLog): State = {
       if (orders.isEmpty)                                                                     // if there aren't any open orders...
         currentState.copy(portfolio = portfolio,                                              // return the new/next current state
                           orders = unfilledOrders,
@@ -130,13 +130,12 @@ object trial {
    * interval [current-state.previous-time, current-state.time].
    */
   def adjustStrategyStateForRecentSplitsAndDividends(currentState: State): State = {
-    val portfolio = currentState.portfolio
     val openOrders = currentState.orders
     val previousTime = currentState.previousTime
     val currentTime = currentState.time
-    val adjustedPortfolio = adjustPortfolioForCorporateActions(portfolio, previousTime, currentTime)
+    val currentStateWithAdjustedPortfolio = adjustPortfolioForCorporateActions(currentState, previousTime, currentTime)
     val adjustedOpenOrders = adjustOpenOrdersForCorporateActions(openOrders, previousTime, currentTime)
-    currentState.copy(portfolio = adjustedPortfolio, orders = adjustedOpenOrders)
+    currentStateWithAdjustedPortfolio.copy(orders = adjustedOpenOrders)
   }
 
   def incrementStateTime(nextTime: DateTime, currentState: State): State = currentState.copy(previousTime = currentState.time, time = nextTime)
