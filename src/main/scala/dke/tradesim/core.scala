@@ -54,11 +54,14 @@ object core {
 
   type PriceQuoteFn = (DateTime, String) => Option[BigDecimal]
 
+  case class PortfolioValue(time: DateTime, value: BigDecimal)
+
   case class State(previousTime: DateTime,
                    time: DateTime,
                    portfolio: Portfolio,
                    orders: IndexedSeq[Order],
-                   transactions: TransactionLog)
+                   transactions: TransactionLog,
+                   portfolioValueHistory: Seq[PortfolioValue])
 
   case class Trial(symbols: IndexedSeq[String],
                    principal: BigDecimal,
@@ -162,7 +165,8 @@ object core {
                                                                          time,
                                                                          Portfolio(principal, Map[String, Long]()),
                                                                          Vector(),
-                                                                         Vector())
+                                                                         Vector(),
+                                                                         List())
 
   // like the -> (thread) operator in clojure
   def threadThrough[T](o: T)(fns: Function[T, T]*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))

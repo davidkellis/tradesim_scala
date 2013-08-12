@@ -5,7 +5,8 @@ import dke.tradesim.core._
 import dke.tradesim.datetimeUtils.{isAfterOrEqual, interspersedIntervals}
 import dke.tradesim.schedule.{TradingSchedule, nextTradingDay}
 import dke.tradesim.ordering.{isOrderFillable, orderFillPrice, adjustPortfolioFromFilledOrder, cancelAllPendingOrders, closeAllOpenStockPositions}
-import dke.tradesim.quotes.{barSimQuote}
+import dke.tradesim.quotes.{barClose, barSimQuote}
+import dke.tradesim.portfolio.{portfolioValue}
 import dke.tradesim.priceHistory.{commonTrialPeriodStartDates}
 import dke.tradesim.splitsDividends.{adjustPortfolioForCorporateActions, adjustPriceForCorporateActions, adjustOpenOrdersForCorporateActions}
 import dke.tradesim.logger.verbose
@@ -140,8 +141,20 @@ object trial {
 
   def incrementStateTime(nextTime: DateTime, currentState: State): State = currentState.copy(previousTime = currentState.time, time = nextTime)
 
-  def closeAllOpenPositions(trial: Trial, currentState: State): State =
-    threadThrough(currentState)(cancelAllPendingOrders, closeAllOpenStockPositions, executeOrders(trial, _))
+  def logCurrentPortfolioValue(currentState: State): State = {
+    val currentPortfolioValue = portfolioValue(currentState.portfolio, currentState.time, barClose _, barSimQuote _)
+    val newHistory = currentState.portfolioValueHistory :+ PortfolioValue(currentState.time, currentPortfolioValue)
+    currentState.copy(portfolioValueHistory = newHistory)
+  }
+
+  def closeAllOpenPositions(trial: Trial, currentState: State): State = {
+    threadThrough(currentState)(
+      cancelAllPendingOrders,
+      closeAllOpenStockPositions,
+      executeOrders(trial, _),
+      logCurrentPortfolioValue
+    )
+  }
 
   /*
    * This function runs a single trial.
@@ -183,11 +196,15 @@ object trial {
         val currentTime = currentState.time
         val nextTime = incrementTime(currentTime)
 
-        runTrial(threadThrough(currentState)(buildNextStrategyState(strategy, trial, _),
-                                             //TODO: should we increment state.time by 100 milliseconds here to represent the time between order entry and order execution?
-                                             executeOrders(trial, _),
-                                             incrementStateTime(nextTime, _),
-                                             adjustStrategyStateForRecentSplitsAndDividends))
+        val nextState = threadThrough(currentState)(
+          logCurrentPortfolioValue,
+          buildNextStrategyState(strategy, trial, _),
+          //TODO: should we increment state.time by 100 milliseconds here to represent the time between order entry and order execution?
+          executeOrders(trial, _),   // for now, simulate immediate order fulfillment
+          incrementStateTime(nextTime, _),
+          adjustStrategyStateForRecentSplitsAndDividends
+        )
+        runTrial(nextState)
       }
     }
 
