@@ -32,7 +32,7 @@ object buyandhold {
     }
   }
 
-  def buildStrategy(): Strategy = Strategy(initialState, nextState, fixedTradingPeriodIsFinalState)
+  def buildStrategy(): Strategy = Strategy("Buy And Hold", initialState, nextState, fixedTradingPeriodIsFinalState)
 
   object scenarios {
     def runSingleTrial1() {

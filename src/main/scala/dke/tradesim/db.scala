@@ -72,6 +72,8 @@ object db {
     def queryAnnualReportPriorTo(time: DateTime, symbol: String): Option[AnnualReport]
     def queryAnnualReports(symbol: String): Seq[AnnualReport]
     def queryAnnualReports(symbol: String, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport]
+
+    def insertTrials(strategyName: String, trialStatePairs: Seq[(Trial, State)]): Seq[Int]
   }
 
 //  object MongoAdapter {
@@ -555,22 +557,20 @@ object db {
 
     // Trial stuff
 
-    case class TrialStatePair(trial: Trial, state: State)
-
-    def insertTrials(strategyName: String, trialStatePairs: Seq[TrialStatePair]): Seq[Int] = {
-      val records = trialStatePairs.map(convertTrialStatePairToInsertionTuple(strategyName, _))
+    def insertTrials(strategyName: String, trialStatePairs: Seq[(Trial, State)]): Seq[Int] = {
+      val records = trialStatePairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2))
       Trials.forInsert.insertAll(records:_*)
     }
 
-    def convertTrialStatePairToInsertionTuple(strategyName: String, trialStatePair: TrialStatePair): NewTrialRecord = {
-      val symbolList = serializeThriftObject(convertSymbolListToThrift(trialStatePair.trial.symbols))
-      val principal = trialStatePair.trial.principal.toString
-      val commissionPerTrade = trialStatePair.trial.commissionPerTrade.toString
-      val commissionPerShare = trialStatePair.trial.commissionPerShare.toString
-      val startTime = timestamp(trialStatePair.trial.startTime)
-      val endTime = timestamp(trialStatePair.trial.endTime)
-      val transactionLog = serializeThriftObject(convertTransactionLogToThrift(trialStatePair.state.transactions))
-      val portfolioValueLog = serializeThriftObject(convertPortfolioValueLogToThrift(trialStatePair.state.portfolioValueHistory))
+    def buildInsertionTuple(strategyName: String, trial: Trial, state: State): NewTrialRecord = {
+      val symbolList = serializeThriftObject(convertSymbolListToThrift(trial.symbols))
+      val principal = trial.principal.toString
+      val commissionPerTrade = trial.commissionPerTrade.toString
+      val commissionPerShare = trial.commissionPerShare.toString
+      val startTime = timestamp(trial.startTime)
+      val endTime = timestamp(trial.endTime)
+      val transactionLog = serializeThriftObject(convertTransactionLogToThrift(state.transactions))
+      val portfolioValueLog = serializeThriftObject(convertPortfolioValueLogToThrift(state.portfolioValueHistory))
 
       (strategyName, symbolList, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
     }

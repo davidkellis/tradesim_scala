@@ -3,6 +3,7 @@ package dke.tradesim
 import org.joda.time.{Interval, DateTime, Period, ReadablePartial}
 import dke.tradesim.core._
 import dke.tradesim.datetimeUtils.{isAfterOrEqual, interspersedIntervals}
+import dke.tradesim.db.{Adapter}
 import dke.tradesim.schedule.{TradingSchedule, nextTradingDay}
 import dke.tradesim.ordering.{isOrderFillable, orderFillPrice, adjustPortfolioFromFilledOrder, cancelAllPendingOrders, closeAllOpenStockPositions}
 import dke.tradesim.quotes.{barClose, barSimQuote}
@@ -248,4 +249,7 @@ object trial {
 
   def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.map(runTrial(strategy, _)).toVector
   def runTrialsInParallel(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.par.map(runTrial(strategy, _)).seq
+
+  def logTrials(strategy: Strategy, trials: Seq[Trial], finalStates: Seq[State])(implicit adapter: Adapter): Unit =
+    adapter.insertTrials(strategy.name, trials.zip(finalStates))
 }

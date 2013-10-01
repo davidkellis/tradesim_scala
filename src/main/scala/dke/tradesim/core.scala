@@ -73,7 +73,8 @@ object core {
                    purchaseFillPrice: PriceQuoteFn,
                    saleFillPrice: PriceQuoteFn)
 
-  case class Strategy(buildInitState: (Strategy, Trial) => State,
+  case class Strategy(name: String,
+                      buildInitState: (Strategy, Trial) => State,
                       buildNextState: (Strategy, Trial, State) => State,
                       isFinalState: (Strategy, Trial, State) => Boolean)
 
