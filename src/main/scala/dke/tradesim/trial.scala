@@ -2,7 +2,7 @@ package dke.tradesim
 
 import org.joda.time.{Interval, DateTime, Period, ReadablePartial}
 import dke.tradesim.core._
-import dke.tradesim.datetimeUtils.{isAfterOrEqual, interspersedIntervals}
+import dke.tradesim.datetimeUtils.{periodBetween, prettyFormatPeriod, currentTime, isAfterOrEqual, interspersedIntervals}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.schedule.{TradingSchedule, nextTradingDay}
 import dke.tradesim.ordering.{isOrderFillable, orderFillPrice, adjustPortfolioFromFilledOrder, cancelAllPendingOrders, closeAllOpenStockPositions}
@@ -152,8 +152,7 @@ object trial {
     threadThrough(currentState)(
       cancelAllPendingOrders,
       closeAllOpenStockPositions,
-      executeOrders(trial, _),
-      logCurrentPortfolioValue
+      executeOrders(trial, _)
     )
   }
 
@@ -192,8 +191,12 @@ object trial {
 //      println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 //      println("currentState=" + currentState)
 
-      if (isFinalState(strategy, trial, currentState)) closeAllOpenPositions(trial, currentState)
-      else {
+      if (isFinalState(strategy, trial, currentState)) {
+        threadThrough(currentState)(
+          closeAllOpenPositions(trial, _),
+          logCurrentPortfolioValue
+        )
+      } else {
         val currentTime = currentState.time
         val nextTime = incrementTime(currentTime)
 
@@ -252,4 +255,28 @@ object trial {
 
   def logTrials(strategy: Strategy, trials: Seq[Trial], finalStates: Seq[State])(implicit adapter: Adapter): Unit =
     adapter.insertTrials(strategy.name, trials.zip(finalStates))
+
+  def runAndLogTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = {
+    val t1 = currentTime()
+    val finalStates = runTrials(strategy, trials)
+    val t2 = currentTime()
+    verbose(s"Time to run trials: ${prettyFormatPeriod(periodBetween(t1, t2))}")
+    val t3 = currentTime()
+    logTrials(strategy, trials, finalStates)
+    val t4 = currentTime()
+    verbose(s"Time to log trials: ${prettyFormatPeriod(periodBetween(t3, t4))}")
+    finalStates
+  }
+
+  def runAndLogTrialsInParallel(strategy: Strategy, trials: Seq[Trial]): Seq[State] = {
+    val t1 = currentTime()
+    val finalStates = runTrialsInParallel(strategy, trials)
+    val t2 = currentTime()
+    verbose(s"Time to run trials: ${prettyFormatPeriod(periodBetween(t1, t2))}")
+    val t3 = currentTime()
+    logTrials(strategy, trials, finalStates)
+    val t4 = currentTime()
+    verbose(s"Time to log trials: ${prettyFormatPeriod(periodBetween(t3, t4))}")
+    finalStates
+  }
 }

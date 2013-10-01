@@ -558,7 +558,7 @@ object db {
     // Trial stuff
 
     def insertTrials(strategyName: String, trialStatePairs: Seq[(Trial, State)]): Seq[Int] = {
-      val records = trialStatePairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2))
+      val records = trialStatePairs.par.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).seq
       Trials.forInsert.insertAll(records:_*)
     }
 

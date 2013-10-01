@@ -10,7 +10,7 @@ import dke.tradesim.ordering.{maxSharesPurchasable, sharesOnHand, buy, sell}
 import dke.tradesim.portfolio.{portfolioValue}
 import dke.tradesim.quotes.{barHigh, barLow, barClose, barSimQuote, findEodBar}
 import dke.tradesim.schedule.{buildTradingSchedule, defaultTradingSchedule, defaultHolidaySchedule}
-import dke.tradesim.trial.{buildScheduledTimeIncrementer, buildInitialJumpTimeIncrementer, tradingBloxFillPriceWithSlippage, runTrial, buildTrialGenerator, buildAllTrialIntervals, buildTrials, runTrials, runTrialsInParallel, fixedTradingPeriodIsFinalState}
+import dke.tradesim.trial.{buildScheduledTimeIncrementer, buildInitialJumpTimeIncrementer, tradingBloxFillPriceWithSlippage, runTrial, logTrials, buildTrialGenerator, buildAllTrialIntervals, buildTrials, runTrials, runTrialsInParallel, fixedTradingPeriodIsFinalState, runAndLogTrials, runAndLogTrialsInParallel}
 
 object buyandhold {
   def initialState(strategy: Strategy, trial: Trial): State = defaultInitialState(trial.startTime, trial.principal)
@@ -86,15 +86,7 @@ object buyandhold {
       info("Building trials")
       val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, symbolsToTrade)
       info(s"${trials.length} trials")
-      val t1 = currentTime()
-      val finalTrialStates = runTrials(strategy, trials)
-      val t2 = currentTime()
-      verbose(s"Time: ${prettyFormatPeriod(periodBetween(t1, t2))}")
-      val finalPortfolioValues = finalTrialStates.zip(trials).map { pair =>
-        val (state, trial) = pair
-        portfolioValue(state.portfolio, trial.endTime, barClose _, barSimQuote _)
-      }
-      println(finalPortfolioValues)
+      runAndLogTrialsInParallel(strategy, trials)
     }
 
     def runMultipleTrials2() {
@@ -109,15 +101,7 @@ object buyandhold {
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[String], years(1), days(1))
       val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, symbolsToTrade)
       info(s"${trials.length} trials")
-      val t1 = currentTime()
-      val finalTrialStates = runTrialsInParallel(strategy, trials)
-      val t2 = currentTime()
-      verbose(s"Time: ${prettyFormatPeriod(periodBetween(t1, t2))}")
-      val finalPortfolioValues = finalTrialStates.zip(trials).map { pair =>
-        val (state, trial) = pair
-        portfolioValue(state.portfolio, trial.endTime, barClose _, barSimQuote _)
-      }
-      println(finalPortfolioValues)
+      runAndLogTrialsInParallel(strategy, trials)
     }
 
   }
