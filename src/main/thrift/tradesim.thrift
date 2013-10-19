@@ -8,21 +8,21 @@ enum TransactionType {
 
 struct MarketBuyOrder {
   1: i64 time,
-  2: string symbol,
+  2: i32 securityId,
   3: i64 qty,
   4: optional string fillPrice
 }
 
 struct MarketSellOrder {
   1: i64 time,
-  2: string symbol,
+  2: i32 securityId,
   3: i64 qty,
   4: optional string fillPrice
 }
 
 struct LimitBuyOrder {
   1: i64 time,
-  2: string symbol,
+  2: i32 securityId,
   3: i64 qty,
   4: string limitPrice
   5: optional string fillPrice
@@ -30,14 +30,14 @@ struct LimitBuyOrder {
 
 struct LimitSellOrder {
   1: i64 time,
-  2: string symbol,
+  2: i32 securityId,
   3: i64 qty,
   4: string limitPrice
   5: optional string fillPrice
 }
 
 struct SplitAdjustment {
-  1: string symbol,
+  1: i32 securityId,
   2: i64 exDate,
   3: string ratio,
   4: i64 adjustmentTime,
@@ -46,7 +46,7 @@ struct SplitAdjustment {
 }
 
 struct CashDividendPayment {
-  1: string symbol,
+  1: i32 securityId,
   2: i64 exDate,
   3: optional i64 payableDate
   4: string amountPerShare,
@@ -78,6 +78,6 @@ struct PortfolioValueHistory {
   1: list<PortfolioValue> portfolioValues
 }
 
-struct SymbolList {
-  1: list<string> symbols
+struct SecurityIds {
+  1: list<i32> securityIds
 }

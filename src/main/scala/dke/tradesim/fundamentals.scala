@@ -6,7 +6,7 @@ import quotes._
 import adjustedQuotes._
 import splitsDividends._
 import org.joda.time.DateTime
-import dke.tradesim.core.{QuarterlyReport, NumericAttribute, StatementType}
+import dke.tradesim.core.{SecurityId, QuarterlyReport, NumericAttribute, StatementType}
 
 object fundamentals {
   object BalanceSheetAttributes {
@@ -23,20 +23,20 @@ object fundamentals {
   def sharesOutstanding(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
     numericQuarterlyReportAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
 
-  def sharesOutstanding(time: DateTime, symbol: String): Option[BigDecimal] =
-    numericQuarterlyReportAttribute(time, symbol, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
+  def sharesOutstanding(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
+    numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
 
   def basicWeightedSharesOutstanding(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
     numericQuarterlyReportAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.BasicWeightedShares)
 
-  def basicWeightedSharesOutstanding(time: DateTime, symbol: String): Option[BigDecimal] =
-    numericQuarterlyReportAttribute(time, symbol, StatementType.BalanceSheet, BalanceSheetAttributes.BasicWeightedShares)
+  def basicWeightedSharesOutstanding(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
+    numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.BasicWeightedShares)
 
   def dilutedWeightedSharesOutstanding(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
     numericQuarterlyReportAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.DilutedWeightedShares)
 
-  def dilutedWeightedSharesOutstanding(time: DateTime, symbol: String): Option[BigDecimal] =
-    numericQuarterlyReportAttribute(time, symbol, StatementType.BalanceSheet, BalanceSheetAttributes.DilutedWeightedShares)
+  def dilutedWeightedSharesOutstanding(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
+    numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.DilutedWeightedShares)
 
 //  def sharesOutstanding(time: DateTime, quarterlyReport: QuarterlyReport): Option[BigDecimal] = {
 //    val sharesOutAttribute = quarterlyReport.balanceSheet.get(BalanceSheetAttributes.SharesOutstanding)
@@ -47,7 +47,7 @@ object fundamentals {
 //    qty.map(qty => adjustShareQtyForCorporateActions(qty, quarterlyReport.symbol, quarterlyReport.publicationTime, time))
 //  }
 //
-//  def sharesOutstanding(time: DateTime, symbol: String): Option[BigDecimal] = {
+//  def sharesOutstanding(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
 //    val quarterlyReport = findQuarterlyReport(time, symbol)
 //    quarterlyReport.flatMap { quarterlyReport =>
 //      val sharesOutAttribute = quarterlyReport.balanceSheet.get(BalanceSheetAttributes.SharesOutstanding)
@@ -62,8 +62,8 @@ object fundamentals {
   def netIncome(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
     numericQuarterlyReportAttribute(quarterlyReport, StatementType.IncomeStatement, IncomeStatementAttributes.NetIncome)
 
-  def netIncome(time: DateTime, symbol: String): Option[BigDecimal] =
-    numericQuarterlyReportAttribute(time, symbol, StatementType.IncomeStatement, IncomeStatementAttributes.NetIncome)
+  def netIncome(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
+    numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.NetIncome)
 
   // See http://www.investopedia.com/terms/e/eps.asp and http://www.investopedia.com/terms/b/basic-earnings-per-share.asp
   // Basic EPS = (Net Income - Dividends on Preferred Stock) / Average Outstanding Shares
@@ -75,11 +75,11 @@ object fundamentals {
     } yield (netIncome - preferredDividends) / averageSharesOutstanding
   }
 
-  def basicEarningsPerShareMRQ(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def basicEarningsPerShareMRQ(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      netIncome <- netIncome(time, symbol)
-      preferredDividends <- numericQuarterlyReportAttribute(time, symbol, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
-      averageSharesOutstanding <- basicWeightedSharesOutstanding(time, symbol)
+      netIncome <- netIncome(time, securityId)
+      preferredDividends <- numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+      averageSharesOutstanding <- basicWeightedSharesOutstanding(time, securityId)
     } yield (netIncome - preferredDividends) / averageSharesOutstanding
   }
 
@@ -91,68 +91,68 @@ object fundamentals {
     } yield (netIncome - preferredDividends) / averageSharesOutstanding
   }
 
-  def dilutedEarningsPerShareMRQ(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def dilutedEarningsPerShareMRQ(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      netIncome <- netIncome(time, symbol)
-      preferredDividends <- numericQuarterlyReportAttribute(time, symbol, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
-      averageSharesOutstanding <- dilutedWeightedSharesOutstanding(time, symbol)
+      netIncome <- netIncome(time, securityId)
+      preferredDividends <- numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+      averageSharesOutstanding <- dilutedWeightedSharesOutstanding(time, securityId)
     } yield (netIncome - preferredDividends) / averageSharesOutstanding
   }
 
-  def basicEarningsPerShareTTM(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def basicEarningsPerShareTTM(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      lastFourQuarterlyReports <- findQuarterlyReports(time, symbol, 4)
+      lastFourQuarterlyReports <- findQuarterlyReports(time, securityId, 4)
       lastFourQuarterlyNetIncomeNumbers = lastFourQuarterlyReports.map(report => netIncome(report))
       if lastFourQuarterlyNetIncomeNumbers.length == 4
       netIncome = lastFourQuarterlyNetIncomeNumbers.flatten.reduceLeft(_ + _)
-      preferredDividends <- numericQuarterlyReportAttribute(time, symbol, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
-      averageSharesOutstanding <- basicWeightedSharesOutstanding(time, symbol)
+      preferredDividends <- numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+      averageSharesOutstanding <- basicWeightedSharesOutstanding(time, securityId)
     } yield (netIncome - preferredDividends) / averageSharesOutstanding
   }
 
-  def dilutedEarningsPerShareTTM(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def dilutedEarningsPerShareTTM(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      lastFourQuarterlyReports <- findQuarterlyReports(time, symbol, 4)
+      lastFourQuarterlyReports <- findQuarterlyReports(time, securityId, 4)
       lastFourQuarterlyNetIncomeNumbers = lastFourQuarterlyReports.map(report => netIncome(report))
       if lastFourQuarterlyNetIncomeNumbers.length == 4
       netIncome = lastFourQuarterlyNetIncomeNumbers.flatten.reduceLeft(_ + _)
-      preferredDividends <- numericQuarterlyReportAttribute(time, symbol, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
-      averageSharesOutstanding <- dilutedWeightedSharesOutstanding(time, symbol)
+      preferredDividends <- numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+      averageSharesOutstanding <- dilutedWeightedSharesOutstanding(time, securityId)
     } yield (netIncome - preferredDividends) / averageSharesOutstanding
   }
 
   // see http://www.investopedia.com/terms/p/price-earningsratio.asp
-  def basicPriceToEarnings(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def basicPriceToEarnings(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      price <- adjEodClose(time, symbol)
-      lastFourQuarterlyReports <- findQuarterlyReports(time, symbol, 4)
+      price <- adjEodClose(time, securityId)
+      lastFourQuarterlyReports <- findQuarterlyReports(time, securityId, 4)
       lastFourQuarterlyEpsNumbers = lastFourQuarterlyReports.map(report => basicEarningsPerShareMRQ(report))
       if lastFourQuarterlyEpsNumbers.length == 4
       eps = lastFourQuarterlyEpsNumbers.flatten.reduceLeft(_ + _)
     } yield price / eps
   }
 
-  def dilutedPriceToEarnings(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def dilutedPriceToEarnings(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      price <- adjEodClose(time, symbol)
-      lastFourQuarterlyReports <- findQuarterlyReports(time, symbol, 4)
+      price <- adjEodClose(time, securityId)
+      lastFourQuarterlyReports <- findQuarterlyReports(time, securityId, 4)
       lastFourQuarterlyEpsNumbers = lastFourQuarterlyReports.map(report => dilutedEarningsPerShareMRQ(report))
       if lastFourQuarterlyEpsNumbers.length == 4
       eps = lastFourQuarterlyEpsNumbers.flatten.reduceLeft(_ + _)
     } yield price / eps
   }
 
-  def basicMarketCapitalization(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def basicMarketCapitalization(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      price <- adjEodClose(time, symbol)
-      averageSharesOutstanding <- basicWeightedSharesOutstanding(time, symbol)
+      price <- adjEodClose(time, securityId)
+      averageSharesOutstanding <- basicWeightedSharesOutstanding(time, securityId)
     } yield price * averageSharesOutstanding
   }
 
-  def dilutedMarketCapitalization(time: DateTime, symbol: String): Option[BigDecimal] = {
+  def dilutedMarketCapitalization(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
     for {
-      price <- adjEodClose(time, symbol)
-      averageSharesOutstanding <- dilutedWeightedSharesOutstanding(time, symbol)
+      price <- adjEodClose(time, securityId)
+      averageSharesOutstanding <- dilutedWeightedSharesOutstanding(time, securityId)
     } yield price * averageSharesOutstanding
   }
 }

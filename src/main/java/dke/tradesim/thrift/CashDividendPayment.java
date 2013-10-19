@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class CashDividendPayment implements org.apache.thrift.TBase<CashDividendPayment, CashDividendPayment._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("CashDividendPayment");
 
-  private static final org.apache.thrift.protocol.TField SYMBOL_FIELD_DESC = new org.apache.thrift.protocol.TField("symbol", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField SECURITY_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("securityId", org.apache.thrift.protocol.TType.I32, (short)1);
   private static final org.apache.thrift.protocol.TField EX_DATE_FIELD_DESC = new org.apache.thrift.protocol.TField("exDate", org.apache.thrift.protocol.TType.I64, (short)2);
   private static final org.apache.thrift.protocol.TField PAYABLE_DATE_FIELD_DESC = new org.apache.thrift.protocol.TField("payableDate", org.apache.thrift.protocol.TType.I64, (short)3);
   private static final org.apache.thrift.protocol.TField AMOUNT_PER_SHARE_FIELD_DESC = new org.apache.thrift.protocol.TField("amountPerShare", org.apache.thrift.protocol.TType.STRING, (short)4);
@@ -47,7 +47,7 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     schemes.put(TupleScheme.class, new CashDividendPaymentTupleSchemeFactory());
   }
 
-  public String symbol; // required
+  public int securityId; // required
   public long exDate; // required
   public long payableDate; // optional
   public String amountPerShare; // required
@@ -57,7 +57,7 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    SYMBOL((short)1, "symbol"),
+    SECURITY_ID((short)1, "securityId"),
     EX_DATE((short)2, "exDate"),
     PAYABLE_DATE((short)3, "payableDate"),
     AMOUNT_PER_SHARE((short)4, "amountPerShare"),
@@ -78,8 +78,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // SYMBOL
-          return SYMBOL;
+        case 1: // SECURITY_ID
+          return SECURITY_ID;
         case 2: // EX_DATE
           return EX_DATE;
         case 3: // PAYABLE_DATE
@@ -132,17 +132,18 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
   }
 
   // isset id assignments
-  private static final int __EXDATE_ISSET_ID = 0;
-  private static final int __PAYABLEDATE_ISSET_ID = 1;
-  private static final int __ADJUSTMENTTIME_ISSET_ID = 2;
-  private static final int __SHAREQTY_ISSET_ID = 3;
+  private static final int __SECURITYID_ISSET_ID = 0;
+  private static final int __EXDATE_ISSET_ID = 1;
+  private static final int __PAYABLEDATE_ISSET_ID = 2;
+  private static final int __ADJUSTMENTTIME_ISSET_ID = 3;
+  private static final int __SHAREQTY_ISSET_ID = 4;
   private byte __isset_bitfield = 0;
   private _Fields optionals[] = {_Fields.PAYABLE_DATE};
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.SYMBOL, new org.apache.thrift.meta_data.FieldMetaData("symbol", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.SECURITY_ID, new org.apache.thrift.meta_data.FieldMetaData("securityId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.EX_DATE, new org.apache.thrift.meta_data.FieldMetaData("exDate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.PAYABLE_DATE, new org.apache.thrift.meta_data.FieldMetaData("payableDate", org.apache.thrift.TFieldRequirementType.OPTIONAL, 
@@ -163,7 +164,7 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
   }
 
   public CashDividendPayment(
-    String symbol,
+    int securityId,
     long exDate,
     String amountPerShare,
     long adjustmentTime,
@@ -171,7 +172,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     String total)
   {
     this();
-    this.symbol = symbol;
+    this.securityId = securityId;
+    setSecurityIdIsSet(true);
     this.exDate = exDate;
     setExDateIsSet(true);
     this.amountPerShare = amountPerShare;
@@ -187,9 +189,7 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
    */
   public CashDividendPayment(CashDividendPayment other) {
     __isset_bitfield = other.__isset_bitfield;
-    if (other.isSetSymbol()) {
-      this.symbol = other.symbol;
-    }
+    this.securityId = other.securityId;
     this.exDate = other.exDate;
     this.payableDate = other.payableDate;
     if (other.isSetAmountPerShare()) {
@@ -208,7 +208,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
 
   @Override
   public void clear() {
-    this.symbol = null;
+    setSecurityIdIsSet(false);
+    this.securityId = 0;
     setExDateIsSet(false);
     this.exDate = 0;
     setPayableDateIsSet(false);
@@ -221,28 +222,27 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     this.total = null;
   }
 
-  public String getSymbol() {
-    return this.symbol;
+  public int getSecurityId() {
+    return this.securityId;
   }
 
-  public CashDividendPayment setSymbol(String symbol) {
-    this.symbol = symbol;
+  public CashDividendPayment setSecurityId(int securityId) {
+    this.securityId = securityId;
+    setSecurityIdIsSet(true);
     return this;
   }
 
-  public void unsetSymbol() {
-    this.symbol = null;
+  public void unsetSecurityId() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SECURITYID_ISSET_ID);
   }
 
-  /** Returns true if field symbol is set (has been assigned a value) and false otherwise */
-  public boolean isSetSymbol() {
-    return this.symbol != null;
+  /** Returns true if field securityId is set (has been assigned a value) and false otherwise */
+  public boolean isSetSecurityId() {
+    return EncodingUtils.testBit(__isset_bitfield, __SECURITYID_ISSET_ID);
   }
 
-  public void setSymbolIsSet(boolean value) {
-    if (!value) {
-      this.symbol = null;
-    }
+  public void setSecurityIdIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SECURITYID_ISSET_ID, value);
   }
 
   public long getExDate() {
@@ -387,11 +387,11 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case SYMBOL:
+    case SECURITY_ID:
       if (value == null) {
-        unsetSymbol();
+        unsetSecurityId();
       } else {
-        setSymbol((String)value);
+        setSecurityId((Integer)value);
       }
       break;
 
@@ -448,8 +448,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case SYMBOL:
-      return getSymbol();
+    case SECURITY_ID:
+      return Integer.valueOf(getSecurityId());
 
     case EX_DATE:
       return Long.valueOf(getExDate());
@@ -480,8 +480,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     }
 
     switch (field) {
-    case SYMBOL:
-      return isSetSymbol();
+    case SECURITY_ID:
+      return isSetSecurityId();
     case EX_DATE:
       return isSetExDate();
     case PAYABLE_DATE:
@@ -511,12 +511,12 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     if (that == null)
       return false;
 
-    boolean this_present_symbol = true && this.isSetSymbol();
-    boolean that_present_symbol = true && that.isSetSymbol();
-    if (this_present_symbol || that_present_symbol) {
-      if (!(this_present_symbol && that_present_symbol))
+    boolean this_present_securityId = true;
+    boolean that_present_securityId = true;
+    if (this_present_securityId || that_present_securityId) {
+      if (!(this_present_securityId && that_present_securityId))
         return false;
-      if (!this.symbol.equals(that.symbol))
+      if (this.securityId != that.securityId)
         return false;
     }
 
@@ -590,12 +590,12 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     int lastComparison = 0;
     CashDividendPayment typedOther = (CashDividendPayment)other;
 
-    lastComparison = Boolean.valueOf(isSetSymbol()).compareTo(typedOther.isSetSymbol());
+    lastComparison = Boolean.valueOf(isSetSecurityId()).compareTo(typedOther.isSetSecurityId());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetSymbol()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.symbol, typedOther.symbol);
+    if (isSetSecurityId()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.securityId, typedOther.securityId);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -680,12 +680,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     StringBuilder sb = new StringBuilder("CashDividendPayment(");
     boolean first = true;
 
-    sb.append("symbol:");
-    if (this.symbol == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.symbol);
-    }
+    sb.append("securityId:");
+    sb.append(this.securityId);
     first = false;
     if (!first) sb.append(", ");
     sb.append("exDate:");
@@ -766,10 +762,10 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
           break;
         }
         switch (schemeField.id) {
-          case 1: // SYMBOL
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.symbol = iprot.readString();
-              struct.setSymbolIsSet(true);
+          case 1: // SECURITY_ID
+            if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+              struct.securityId = iprot.readI32();
+              struct.setSecurityIdIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -837,11 +833,9 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.symbol != null) {
-        oprot.writeFieldBegin(SYMBOL_FIELD_DESC);
-        oprot.writeString(struct.symbol);
-        oprot.writeFieldEnd();
-      }
+      oprot.writeFieldBegin(SECURITY_ID_FIELD_DESC);
+      oprot.writeI32(struct.securityId);
+      oprot.writeFieldEnd();
       oprot.writeFieldBegin(EX_DATE_FIELD_DESC);
       oprot.writeI64(struct.exDate);
       oprot.writeFieldEnd();
@@ -884,7 +878,7 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
     public void write(org.apache.thrift.protocol.TProtocol prot, CashDividendPayment struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetSymbol()) {
+      if (struct.isSetSecurityId()) {
         optionals.set(0);
       }
       if (struct.isSetExDate()) {
@@ -906,8 +900,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
         optionals.set(6);
       }
       oprot.writeBitSet(optionals, 7);
-      if (struct.isSetSymbol()) {
-        oprot.writeString(struct.symbol);
+      if (struct.isSetSecurityId()) {
+        oprot.writeI32(struct.securityId);
       }
       if (struct.isSetExDate()) {
         oprot.writeI64(struct.exDate);
@@ -934,8 +928,8 @@ public class CashDividendPayment implements org.apache.thrift.TBase<CashDividend
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(7);
       if (incoming.get(0)) {
-        struct.symbol = iprot.readString();
-        struct.setSymbolIsSet(true);
+        struct.securityId = iprot.readI32();
+        struct.setSecurityIdIsSet(true);
       }
       if (incoming.get(1)) {
         struct.exDate = iprot.readI64();

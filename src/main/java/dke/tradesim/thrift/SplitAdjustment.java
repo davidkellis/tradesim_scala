@@ -33,7 +33,7 @@ import org.slf4j.LoggerFactory;
 public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment, SplitAdjustment._Fields>, java.io.Serializable, Cloneable {
   private static final org.apache.thrift.protocol.TStruct STRUCT_DESC = new org.apache.thrift.protocol.TStruct("SplitAdjustment");
 
-  private static final org.apache.thrift.protocol.TField SYMBOL_FIELD_DESC = new org.apache.thrift.protocol.TField("symbol", org.apache.thrift.protocol.TType.STRING, (short)1);
+  private static final org.apache.thrift.protocol.TField SECURITY_ID_FIELD_DESC = new org.apache.thrift.protocol.TField("securityId", org.apache.thrift.protocol.TType.I32, (short)1);
   private static final org.apache.thrift.protocol.TField EX_DATE_FIELD_DESC = new org.apache.thrift.protocol.TField("exDate", org.apache.thrift.protocol.TType.I64, (short)2);
   private static final org.apache.thrift.protocol.TField RATIO_FIELD_DESC = new org.apache.thrift.protocol.TField("ratio", org.apache.thrift.protocol.TType.STRING, (short)3);
   private static final org.apache.thrift.protocol.TField ADJUSTMENT_TIME_FIELD_DESC = new org.apache.thrift.protocol.TField("adjustmentTime", org.apache.thrift.protocol.TType.I64, (short)4);
@@ -46,7 +46,7 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     schemes.put(TupleScheme.class, new SplitAdjustmentTupleSchemeFactory());
   }
 
-  public String symbol; // required
+  public int securityId; // required
   public long exDate; // required
   public String ratio; // required
   public long adjustmentTime; // required
@@ -55,7 +55,7 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
 
   /** The set of fields this struct contains, along with convenience methods for finding and manipulating them. */
   public enum _Fields implements org.apache.thrift.TFieldIdEnum {
-    SYMBOL((short)1, "symbol"),
+    SECURITY_ID((short)1, "securityId"),
     EX_DATE((short)2, "exDate"),
     RATIO((short)3, "ratio"),
     ADJUSTMENT_TIME((short)4, "adjustmentTime"),
@@ -75,8 +75,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
      */
     public static _Fields findByThriftId(int fieldId) {
       switch(fieldId) {
-        case 1: // SYMBOL
-          return SYMBOL;
+        case 1: // SECURITY_ID
+          return SECURITY_ID;
         case 2: // EX_DATE
           return EX_DATE;
         case 3: // RATIO
@@ -127,15 +127,16 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
   }
 
   // isset id assignments
-  private static final int __EXDATE_ISSET_ID = 0;
-  private static final int __ADJUSTMENTTIME_ISSET_ID = 1;
-  private static final int __SHAREQTYDELTA_ISSET_ID = 2;
+  private static final int __SECURITYID_ISSET_ID = 0;
+  private static final int __EXDATE_ISSET_ID = 1;
+  private static final int __ADJUSTMENTTIME_ISSET_ID = 2;
+  private static final int __SHAREQTYDELTA_ISSET_ID = 3;
   private byte __isset_bitfield = 0;
   public static final Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> metaDataMap;
   static {
     Map<_Fields, org.apache.thrift.meta_data.FieldMetaData> tmpMap = new EnumMap<_Fields, org.apache.thrift.meta_data.FieldMetaData>(_Fields.class);
-    tmpMap.put(_Fields.SYMBOL, new org.apache.thrift.meta_data.FieldMetaData("symbol", org.apache.thrift.TFieldRequirementType.DEFAULT, 
-        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.STRING)));
+    tmpMap.put(_Fields.SECURITY_ID, new org.apache.thrift.meta_data.FieldMetaData("securityId", org.apache.thrift.TFieldRequirementType.DEFAULT, 
+        new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I32)));
     tmpMap.put(_Fields.EX_DATE, new org.apache.thrift.meta_data.FieldMetaData("exDate", org.apache.thrift.TFieldRequirementType.DEFAULT, 
         new org.apache.thrift.meta_data.FieldValueMetaData(org.apache.thrift.protocol.TType.I64)));
     tmpMap.put(_Fields.RATIO, new org.apache.thrift.meta_data.FieldMetaData("ratio", org.apache.thrift.TFieldRequirementType.DEFAULT, 
@@ -154,7 +155,7 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
   }
 
   public SplitAdjustment(
-    String symbol,
+    int securityId,
     long exDate,
     String ratio,
     long adjustmentTime,
@@ -162,7 +163,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     String cashPayout)
   {
     this();
-    this.symbol = symbol;
+    this.securityId = securityId;
+    setSecurityIdIsSet(true);
     this.exDate = exDate;
     setExDateIsSet(true);
     this.ratio = ratio;
@@ -178,9 +180,7 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
    */
   public SplitAdjustment(SplitAdjustment other) {
     __isset_bitfield = other.__isset_bitfield;
-    if (other.isSetSymbol()) {
-      this.symbol = other.symbol;
-    }
+    this.securityId = other.securityId;
     this.exDate = other.exDate;
     if (other.isSetRatio()) {
       this.ratio = other.ratio;
@@ -198,7 +198,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
 
   @Override
   public void clear() {
-    this.symbol = null;
+    setSecurityIdIsSet(false);
+    this.securityId = 0;
     setExDateIsSet(false);
     this.exDate = 0;
     this.ratio = null;
@@ -209,28 +210,27 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     this.cashPayout = null;
   }
 
-  public String getSymbol() {
-    return this.symbol;
+  public int getSecurityId() {
+    return this.securityId;
   }
 
-  public SplitAdjustment setSymbol(String symbol) {
-    this.symbol = symbol;
+  public SplitAdjustment setSecurityId(int securityId) {
+    this.securityId = securityId;
+    setSecurityIdIsSet(true);
     return this;
   }
 
-  public void unsetSymbol() {
-    this.symbol = null;
+  public void unsetSecurityId() {
+    __isset_bitfield = EncodingUtils.clearBit(__isset_bitfield, __SECURITYID_ISSET_ID);
   }
 
-  /** Returns true if field symbol is set (has been assigned a value) and false otherwise */
-  public boolean isSetSymbol() {
-    return this.symbol != null;
+  /** Returns true if field securityId is set (has been assigned a value) and false otherwise */
+  public boolean isSetSecurityId() {
+    return EncodingUtils.testBit(__isset_bitfield, __SECURITYID_ISSET_ID);
   }
 
-  public void setSymbolIsSet(boolean value) {
-    if (!value) {
-      this.symbol = null;
-    }
+  public void setSecurityIdIsSet(boolean value) {
+    __isset_bitfield = EncodingUtils.setBit(__isset_bitfield, __SECURITYID_ISSET_ID, value);
   }
 
   public long getExDate() {
@@ -352,11 +352,11 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
 
   public void setFieldValue(_Fields field, Object value) {
     switch (field) {
-    case SYMBOL:
+    case SECURITY_ID:
       if (value == null) {
-        unsetSymbol();
+        unsetSecurityId();
       } else {
-        setSymbol((String)value);
+        setSecurityId((Integer)value);
       }
       break;
 
@@ -405,8 +405,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
 
   public Object getFieldValue(_Fields field) {
     switch (field) {
-    case SYMBOL:
-      return getSymbol();
+    case SECURITY_ID:
+      return Integer.valueOf(getSecurityId());
 
     case EX_DATE:
       return Long.valueOf(getExDate());
@@ -434,8 +434,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     }
 
     switch (field) {
-    case SYMBOL:
-      return isSetSymbol();
+    case SECURITY_ID:
+      return isSetSecurityId();
     case EX_DATE:
       return isSetExDate();
     case RATIO:
@@ -463,12 +463,12 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     if (that == null)
       return false;
 
-    boolean this_present_symbol = true && this.isSetSymbol();
-    boolean that_present_symbol = true && that.isSetSymbol();
-    if (this_present_symbol || that_present_symbol) {
-      if (!(this_present_symbol && that_present_symbol))
+    boolean this_present_securityId = true;
+    boolean that_present_securityId = true;
+    if (this_present_securityId || that_present_securityId) {
+      if (!(this_present_securityId && that_present_securityId))
         return false;
-      if (!this.symbol.equals(that.symbol))
+      if (this.securityId != that.securityId)
         return false;
     }
 
@@ -533,12 +533,12 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     int lastComparison = 0;
     SplitAdjustment typedOther = (SplitAdjustment)other;
 
-    lastComparison = Boolean.valueOf(isSetSymbol()).compareTo(typedOther.isSetSymbol());
+    lastComparison = Boolean.valueOf(isSetSecurityId()).compareTo(typedOther.isSetSecurityId());
     if (lastComparison != 0) {
       return lastComparison;
     }
-    if (isSetSymbol()) {
-      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.symbol, typedOther.symbol);
+    if (isSetSecurityId()) {
+      lastComparison = org.apache.thrift.TBaseHelper.compareTo(this.securityId, typedOther.securityId);
       if (lastComparison != 0) {
         return lastComparison;
       }
@@ -613,12 +613,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     StringBuilder sb = new StringBuilder("SplitAdjustment(");
     boolean first = true;
 
-    sb.append("symbol:");
-    if (this.symbol == null) {
-      sb.append("null");
-    } else {
-      sb.append(this.symbol);
-    }
+    sb.append("securityId:");
+    sb.append(this.securityId);
     first = false;
     if (!first) sb.append(", ");
     sb.append("exDate:");
@@ -693,10 +689,10 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
           break;
         }
         switch (schemeField.id) {
-          case 1: // SYMBOL
-            if (schemeField.type == org.apache.thrift.protocol.TType.STRING) {
-              struct.symbol = iprot.readString();
-              struct.setSymbolIsSet(true);
+          case 1: // SECURITY_ID
+            if (schemeField.type == org.apache.thrift.protocol.TType.I32) {
+              struct.securityId = iprot.readI32();
+              struct.setSecurityIdIsSet(true);
             } else { 
               org.apache.thrift.protocol.TProtocolUtil.skip(iprot, schemeField.type);
             }
@@ -756,11 +752,9 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
       struct.validate();
 
       oprot.writeStructBegin(STRUCT_DESC);
-      if (struct.symbol != null) {
-        oprot.writeFieldBegin(SYMBOL_FIELD_DESC);
-        oprot.writeString(struct.symbol);
-        oprot.writeFieldEnd();
-      }
+      oprot.writeFieldBegin(SECURITY_ID_FIELD_DESC);
+      oprot.writeI32(struct.securityId);
+      oprot.writeFieldEnd();
       oprot.writeFieldBegin(EX_DATE_FIELD_DESC);
       oprot.writeI64(struct.exDate);
       oprot.writeFieldEnd();
@@ -798,7 +792,7 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
     public void write(org.apache.thrift.protocol.TProtocol prot, SplitAdjustment struct) throws org.apache.thrift.TException {
       TTupleProtocol oprot = (TTupleProtocol) prot;
       BitSet optionals = new BitSet();
-      if (struct.isSetSymbol()) {
+      if (struct.isSetSecurityId()) {
         optionals.set(0);
       }
       if (struct.isSetExDate()) {
@@ -817,8 +811,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
         optionals.set(5);
       }
       oprot.writeBitSet(optionals, 6);
-      if (struct.isSetSymbol()) {
-        oprot.writeString(struct.symbol);
+      if (struct.isSetSecurityId()) {
+        oprot.writeI32(struct.securityId);
       }
       if (struct.isSetExDate()) {
         oprot.writeI64(struct.exDate);
@@ -842,8 +836,8 @@ public class SplitAdjustment implements org.apache.thrift.TBase<SplitAdjustment,
       TTupleProtocol iprot = (TTupleProtocol) prot;
       BitSet incoming = iprot.readBitSet(6);
       if (incoming.get(0)) {
-        struct.symbol = iprot.readString();
-        struct.setSymbolIsSet(true);
+        struct.securityId = iprot.readI32();
+        struct.setSecurityIdIsSet(true);
       }
       if (incoming.get(1)) {
         struct.exDate = iprot.readI64();

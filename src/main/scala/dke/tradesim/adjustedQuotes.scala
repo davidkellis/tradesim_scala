@@ -1,39 +1,39 @@
 package dke.tradesim
 
 import org.joda.time.DateTime
-import dke.tradesim.core.Bar
+import dke.tradesim.core.{SecurityId, Bar}
 import dke.tradesim.quotes.{barClose, barOpen, barSimQuote, findEodBar, findEodBarPriorTo}
 import dke.tradesim.splitsDividends.{adjustPriceForCorporateActions}
 
 object adjustedQuotes {
-  def adjEodClose(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuote(time, symbol, barClose _)
+  def adjEodClose(time: DateTime, securityId: SecurityId): Option[BigDecimal] = adjEodQuote(time, securityId, barClose _)
 
-  def adjEodOpen(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuote(time, symbol, barOpen _)
+  def adjEodOpen(time: DateTime, securityId: SecurityId): Option[BigDecimal] = adjEodQuote(time, securityId, barOpen _)
 
-  def adjEodSimQuote(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuote(time, symbol, barSimQuote _)
+  def adjEodSimQuote(time: DateTime, securityId: SecurityId): Option[BigDecimal] = adjEodQuote(time, securityId, barSimQuote _)
 
-  def adjEodQuote(time: DateTime, symbol: String, priceFn: Bar => BigDecimal): Option[BigDecimal] = {
-    val bar = findEodBar(time, symbol)
+  def adjEodQuote(time: DateTime, securityId: SecurityId, priceFn: Bar => BigDecimal): Option[BigDecimal] = {
+    val bar = findEodBar(time, securityId)
     bar.map { bar =>
       val price = priceFn(bar)
       val priceObservationTime = bar.endTime
-      adjustPriceForCorporateActions(price, symbol, priceObservationTime, time)
+      adjustPriceForCorporateActions(price, securityId, priceObservationTime, time)
     }
   }
 
 
-  def adjEodClosePriorTo(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuotePriorTo(time, symbol, barClose _)
+  def adjEodClosePriorTo(time: DateTime, securityId: SecurityId): Option[BigDecimal] = adjEodQuotePriorTo(time, securityId, barClose _)
 
-  def adjEodOpenPriorTo(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuotePriorTo(time, symbol, barOpen _)
+  def adjEodOpenPriorTo(time: DateTime, securityId: SecurityId): Option[BigDecimal] = adjEodQuotePriorTo(time, securityId, barOpen _)
 
-  def adjEodSimQuotePriorTo(time: DateTime, symbol: String): Option[BigDecimal] = adjEodQuotePriorTo(time, symbol, barSimQuote _)
+  def adjEodSimQuotePriorTo(time: DateTime, securityId: SecurityId): Option[BigDecimal] = adjEodQuotePriorTo(time, securityId, barSimQuote _)
 
-  def adjEodQuotePriorTo(time: DateTime, symbol: String, priceFn: Bar => BigDecimal): Option[BigDecimal] = {
-    val bar = findEodBarPriorTo(time, symbol)
+  def adjEodQuotePriorTo(time: DateTime, securityId: SecurityId, priceFn: Bar => BigDecimal): Option[BigDecimal] = {
+    val bar = findEodBarPriorTo(time, securityId)
     bar.map { bar =>
       val price = priceFn(bar)
       val priceObservationTime = bar.endTime
-      adjustPriceForCorporateActions(price, symbol, priceObservationTime, time)
+      adjustPriceForCorporateActions(price, securityId, priceObservationTime, time)
     }
   }
 }

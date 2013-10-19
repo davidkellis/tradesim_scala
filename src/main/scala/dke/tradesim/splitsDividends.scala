@@ -20,23 +20,24 @@ object splitsDividends {
   case class QtyAdjustmentFactor(corporateAction: CorporateAction, adjustmentFactor: BigDecimal)
 
 
-  def queryCorporateActions(symbol: String)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol))
-  def queryCorporateActions(symbols: IndexedSeq[String])(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
-    info(s"queryCorporateActions(${symbols.mkString(",")})")
-    adapter.queryCorporateActions(symbols)
+  def queryCorporateActions(securityId: SecurityId)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(securityId))
+  def queryCorporateActions(securityIds: IndexedSeq[Int])(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
+    info(s"queryCorporateActions(${securityIds.mkString(",")})")
+    adapter.queryCorporateActions(securityIds)
   }
 
-  def queryCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(symbol), startTime, endTime)
-  def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
-    info(s"queryCorporateActions(${symbols.mkString(",")}, $startTime, $endTime)")
-    adapter.queryCorporateActions(symbols, startTime, endTime)
+  def queryCorporateActions(securityId: SecurityId, startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] =
+    queryCorporateActions(Vector(securityId), startTime, endTime)
+  def queryCorporateActions(securityIds: IndexedSeq[Int], startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
+    info(s"queryCorporateActions(${securityIds.mkString(",")}, $startTime, $endTime)")
+    adapter.queryCorporateActions(securityIds, startTime, endTime)
   }
 
   type CorporateActionHistory = NavigableMap[Timestamp, CorporateAction]
 
-  def loadCorporateActionHistory(symbol: String): CorporateActionHistory = {
+  def loadCorporateActionHistory(securityId: SecurityId): CorporateActionHistory = {
 //    println(s"loadCorporateActionHistory($symbol)")
-    val corporateActions = queryCorporateActions(symbol)
+    val corporateActions = queryCorporateActions(securityId)
     val corporateActionHistory = new TreeMap[Timestamp, CorporateAction]()
     for {corporateAction <- corporateActions} corporateActionHistory.put(timestamp(corporateAction.exDate), corporateAction)
     corporateActionHistory
@@ -45,13 +46,13 @@ object splitsDividends {
 
   val corporateActionCache = cache.buildLruCache(32, "corporateActionCache")
 
-  def findCorporateActionHistory(symbol: String): CorporateActionHistory = {
-    val corporateActionHistory = Option(corporateActionCache.get(symbol))
+  def findCorporateActionHistory(securityId: SecurityId): CorporateActionHistory = {
+    val corporateActionHistory = Option(corporateActionCache.get(securityId))
     corporateActionHistory match {
       case Some(corporateActionHistoryElement) => corporateActionHistoryElement.getObjectValue.asInstanceOf[CorporateActionHistory]
       case None =>
-        val newCorporateActionHistory = loadCorporateActionHistory(symbol)
-        corporateActionCache.put(new Element(symbol, newCorporateActionHistory))
+        val newCorporateActionHistory = loadCorporateActionHistory(securityId)
+        corporateActionCache.put(new Element(securityId, newCorporateActionHistory))
         newCorporateActionHistory
     }
   }
@@ -65,19 +66,19 @@ object splitsDividends {
     corporateActions.toVector   // calls #toVector by implicit conversion
   }
 
-  def findCorporateActions(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-    val history = findCorporateActionHistory(symbol)
+  def findCorporateActions(securityId: SecurityId, startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
+    val history = findCorporateActionHistory(securityId)
     findCorporateActionsFromHistory(history, startTime, endTime)
   }
-  def findCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] =
-    symbols.flatMap(findCorporateActions(_, startTime, endTime))
+  def findCorporateActions(securityIds: IndexedSeq[Int], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] =
+    securityIds.flatMap(findCorporateActions(_, startTime, endTime))
 
   def findEodBarPriorToCorporateAction(corporateAction: CorporateAction): Option[Bar] =
-    findEodBarPriorTo(corporateAction.exDate, corporateAction.symbol)
+    findEodBarPriorTo(corporateAction.exDate, corporateAction.securityId)
 
   // computes a cumulative price adjustment factor
-  def cumulativePriceAdjustmentFactor(symbol: String, startTime: DateTime, endTime: DateTime): BigDecimal =
-    priceAdjustmentFactors(symbol, startTime, endTime).map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
+  def cumulativePriceAdjustmentFactor(securityId: SecurityId, startTime: DateTime, endTime: DateTime): BigDecimal =
+    priceAdjustmentFactors(securityId, startTime, endTime).map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
 
   /**
    * Returns a sequence of [corporate-action, prior-eod-bar, adjustment-factor] tuples ordered in ascending (i.e. oldest to most recent) order of the corporate action's ex-date.
@@ -93,9 +94,9 @@ object splitsDividends {
    *   The definition of the adjustment-factor is taken from http://www.crsp.com/documentation/product/stkind/definitions/factor_to_adjust_price_in_period.html:
    *   "Factor from a base date used to adjust prices after distributions so that equivalent comparisons can be made between prices before and after the distribution."
    */
-  def priceAdjustmentFactors(symbol: String, startTime: DateTime, endTime: DateTime): IndexedSeq[AdjustmentFactor] = {
+  def priceAdjustmentFactors(securityId: SecurityId, startTime: DateTime, endTime: DateTime): IndexedSeq[AdjustmentFactor] = {
     if (isBefore(startTime, endTime)) {
-      val corporateActions = findCorporateActions(symbol, startTime, endTime)
+      val corporateActions = findCorporateActions(securityId, startTime, endTime)
       val corporateActionEodBarPairs = corporateActions.map(corporateAction => (corporateAction, findEodBarPriorToCorporateAction(corporateAction)) )
       corporateActionEodBarPairs.foldLeft(Vector[AdjustmentFactor]()) { (adjustmentFactors, actionBarPair) =>
         val (corporateAction, priorEodBar) = actionBarPair
@@ -160,13 +161,13 @@ object splitsDividends {
    *   http://help.yahoo.com/kb/index?locale=en_US&page=content&y=PROD_FIN&id=SLN2311&impressions=true
    *   for instructions on how to adjust a price for cash dividends.
    */
-  def adjustPriceForCorporateActions(price: BigDecimal, symbol: String, priceObservationTime: DateTime, adjustmentTime: DateTime): BigDecimal =
-    price * cumulativePriceAdjustmentFactor(symbol, priceObservationTime, adjustmentTime)
+  def adjustPriceForCorporateActions(price: BigDecimal, securityId: SecurityId, priceObservationTime: DateTime, adjustmentTime: DateTime): BigDecimal =
+    price * cumulativePriceAdjustmentFactor(securityId, priceObservationTime, adjustmentTime)
 
   def adjustPortfolioForCorporateActions(currentState: State, earlierObservationTime: DateTime, laterObservationTime: DateTime): State = {
     val portfolio = currentState.portfolio
-    val symbols = portfolio.stocks.keys.toVector
-    val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
+    val securityIds = portfolio.stocks.keys.toVector
+    val corporateActions = findCorporateActions(securityIds, earlierObservationTime, laterObservationTime)
 //    println(s"********* Corporate Actions (for portfolio): $corporateActions for $symbols ; between $earlierObservationTime and $laterObservationTime")
     corporateActions.foldLeft(currentState)((updatedState, corporateAction) => adjustPortfolio(corporateAction, updatedState))
   }
@@ -176,12 +177,12 @@ object splitsDividends {
                                           laterObservationTime: DateTime): IndexedSeq[Order] = {
     if (openOrders.isEmpty) Vector[Order]()
     else {
-      val symbols = openOrders.map(_.symbol)
-      val corporateActions = findCorporateActions(symbols, earlierObservationTime, laterObservationTime)
-      val corporateActionsPerSymbol = corporateActions.groupBy(_.symbol)
+      val securityIds = openOrders.map(_.securityId)
+      val corporateActions = findCorporateActions(securityIds, earlierObservationTime, laterObservationTime)
+      val corporateActionsPerSymbol = corporateActions.groupBy(_.securityId)
 //      println(s"********* Corporate Actions (for open orders): $corporateActions for $symbols ; between $earlierObservationTime and $laterObservationTime")
       openOrders.map { (openOrder) =>
-        val corporateActionsForSymbol = corporateActionsPerSymbol.getOrElse(openOrder.symbol, Vector[CorporateAction]())
+        val corporateActionsForSymbol = corporateActionsPerSymbol.getOrElse(openOrder.securityId, Vector[CorporateAction]())
         corporateActionsForSymbol.foldLeft(openOrder)((order, corporateAction) => adjustOpenOrder(corporateAction, order))
       }
     }
@@ -199,21 +200,21 @@ object splitsDividends {
    */
   def adjustPortfolio(split: Split, currentState: State): State = {
     val portfolio = currentState.portfolio
-    val symbol = split.symbol
+    val securityId = split.securityId
     val exDate = split.exDate
     val splitRatio = split.ratio
-    val qty = sharesOnHand(portfolio, symbol)
+    val qty = sharesOnHand(portfolio, securityId)
     val adjQty = qty * splitRatio
     val adjSharesOnHand = floor(adjQty).toLong
     val fractionalShareQty = adjQty - adjSharesOnHand
-    val eodBar = findEodBarPriorTo(midnight(exDate), symbol)
+    val eodBar = findEodBarPriorTo(midnight(exDate), securityId)
     eodBar.map { eodBar =>
       val closingPrice = barClose(eodBar)
-      val splitAdjustedSharePrice = adjustPriceForCorporateActions(closingPrice, symbol, eodBar.endTime, exDate)
+      val splitAdjustedSharePrice = adjustPriceForCorporateActions(closingPrice, securityId, eodBar.endTime, exDate)
       val fractionalShareCashValue = fractionalShareQty * splitAdjustedSharePrice
-      val adjustedPortfolio = threadThrough(portfolio)(setSharesOnHand(_, symbol, adjSharesOnHand),
+      val adjustedPortfolio = threadThrough(portfolio)(setSharesOnHand(_, securityId, adjSharesOnHand),
                                                        addCash(_, fractionalShareCashValue))
-      val updatedTransactionLog = currentState.transactions :+ SplitAdjustment(split.symbol,
+      val updatedTransactionLog = currentState.transactions :+ SplitAdjustment(split.securityId,
                                                                                split.exDate,
                                                                                split.ratio,
                                                                                currentState.time,
@@ -225,10 +226,10 @@ object splitsDividends {
 
   def adjustPortfolio(dividend: CashDividend, currentState: State): State = {
     val portfolio = currentState.portfolio
-    val qty = sharesOnHand(portfolio, dividend.symbol)
+    val qty = sharesOnHand(portfolio, dividend.securityId)
     val dividendPaymentAmount = computeDividendPaymentAmount(portfolio, dividend, qty)
     val adjustedPortfolio = addCash(portfolio, dividendPaymentAmount)
-    val updatedTransactionLog = currentState.transactions :+ CashDividendPayment(dividend.symbol,
+    val updatedTransactionLog = currentState.transactions :+ CashDividendPayment(dividend.securityId,
                                                                                  dividend.exDate,
                                                                                  dividend.payableDate,
                                                                                  dividend.amount,
@@ -265,13 +266,13 @@ object splitsDividends {
   }
 
   // returns a split adjusted share quantity, given an unadjusted share quantity
-  def adjustShareQtyForCorporateActions(unadjustedQty: BigDecimal, symbol: String, earlierObservationTime: DateTime, laterObservationTime: DateTime): BigDecimal = {
-    unadjustedQty / cumulativeShareQtyAdjustmentFactor(symbol, earlierObservationTime, laterObservationTime)
+  def adjustShareQtyForCorporateActions(unadjustedQty: BigDecimal, securityId: SecurityId, earlierObservationTime: DateTime, laterObservationTime: DateTime): BigDecimal = {
+    unadjustedQty / cumulativeShareQtyAdjustmentFactor(securityId, earlierObservationTime, laterObservationTime)
   }
 
   // computes a cumulative share quantity adjustment factor
-  def cumulativeShareQtyAdjustmentFactor(symbol: String, earlierObservationTime: DateTime, laterObservationTime: DateTime): BigDecimal =
-    shareQtyAdjustmentFactors(symbol, earlierObservationTime, laterObservationTime).map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
+  def cumulativeShareQtyAdjustmentFactor(securityId: SecurityId, earlierObservationTime: DateTime, laterObservationTime: DateTime): BigDecimal =
+    shareQtyAdjustmentFactors(securityId, earlierObservationTime, laterObservationTime).map(_.adjustmentFactor).foldLeft(BigDecimal(1))(_ * _)
 
   /**
    * Returns a sequence of AdjustmentFactors ordered in ascending (i.e. oldest to most recent) order of the corporate action's ex-date.
@@ -286,9 +287,9 @@ object splitsDividends {
    *   "Factor from a base date used to adjust prices after distributions so that equivalent comparisons can be made between prices
    *   before and after the distribution."
    */
-  def shareQtyAdjustmentFactors(symbol: String, earlierObservationTime: DateTime, laterObservationTime: DateTime): IndexedSeq[QtyAdjustmentFactor] = {
+  def shareQtyAdjustmentFactors(securityId: SecurityId, earlierObservationTime: DateTime, laterObservationTime: DateTime): IndexedSeq[QtyAdjustmentFactor] = {
     if (isBefore(earlierObservationTime, laterObservationTime)) {
-      val corporateActions = findCorporateActions(symbol, earlierObservationTime, laterObservationTime)
+      val corporateActions = findCorporateActions(securityId, earlierObservationTime, laterObservationTime)
       corporateActions.foldLeft(Vector[QtyAdjustmentFactor]()) { (qtyAdjustmentFactors, corporateAction) =>
         qtyAdjustmentFactors :+ QtyAdjustmentFactor(corporateAction, computeShareQtyAdjustmentFactor(corporateAction))
       }

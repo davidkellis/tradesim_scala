@@ -19,7 +19,7 @@ object quotes {
 
   val barSimQuoteCache = cache.buildLruCache(200, "barSimQuote")    // this cache holds String/BigDecimal pairs
   def barSimQuote(bar: Bar): BigDecimal = {
-    val barId = bar.symbol.concat(bar.startTime.toString("yyyyMMddHHmmss"))
+    val barId = bar.securityId.toString.concat(bar.startTime.toString("yyyyMMddHHmmss"))
     val cachedQuote = Option(barSimQuoteCache.get(barId))
     cachedQuote match {
       case Some(priceQuoteElement) => priceQuoteElement.getObjectValue.asInstanceOf[BigDecimal]
@@ -48,9 +48,9 @@ object quotes {
    *   ],
    *   unique: true)
    */
-  def queryEodBar(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-    info(s"queryEodBar($time, $symbol)")
-    adapter.queryEodBar(time, symbol)
+  def queryEodBar(time: DateTime, securityId: SecurityId)(implicit adapter: Adapter): Option[Bar] = {
+    info(s"queryEodBar($time, $securityId)")
+    adapter.queryEodBar(time, securityId)
   }
 
   /**
@@ -68,20 +68,20 @@ object quotes {
    *   ],
    *   unique: true)
    */
-  def queryEodBarPriorTo(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-    info(s"queryEodBarPriorTo($time, $symbol)")
-    adapter.queryEodBarPriorTo(time, symbol)
+  def queryEodBarPriorTo(time: DateTime, securityId: SecurityId)(implicit adapter: Adapter): Option[Bar] = {
+    info(s"queryEodBarPriorTo($time, $securityId)")
+    adapter.queryEodBarPriorTo(time, securityId)
   }
 
-  def queryEodBars(symbol: String)(implicit adapter: Adapter): Seq[Bar] = {
-    info(s"queryEodBars($symbol)")
-    adapter.queryEodBars(symbol)
+  def queryEodBars(securityId: SecurityId)(implicit adapter: Adapter): Seq[Bar] = {
+    info(s"queryEodBars($securityId)")
+    adapter.queryEodBars(securityId)
   }
 
-  def queryEodBars(symbol: String, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[Bar] = {
-    info(s"queryEodBars($symbol, $earliestTime, $latestTime)")
+  def queryEodBars(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[Bar] = {
+    info(s"queryEodBars($securityId, $earliestTime, $latestTime)")
     var t1 = datetimeUtils.currentTime()
-    val result = adapter.queryEodBars(symbol, earliestTime, latestTime)
+    val result = adapter.queryEodBars(securityId, earliestTime, latestTime)
     var t2 = datetimeUtils.currentTime()
     verbose(s"Time: ${datetimeUtils.prettyFormatPeriod(datetimeUtils.periodBetween(t1, t2))}")
     result
@@ -96,58 +96,58 @@ object quotes {
     priceHistory
   }
 
-  def loadPriceHistory(symbol: String): PriceHistory = loadPriceHistoryFromBars(queryEodBars(symbol))
-  def loadPriceHistory(symbol: String, earliestTime: DateTime, latestTime: DateTime): PriceHistory =
-    loadPriceHistoryFromBars(queryEodBars(symbol, earliestTime, latestTime))
+  def loadPriceHistory(securityId: SecurityId): PriceHistory = loadPriceHistoryFromBars(queryEodBars(securityId))
+  def loadPriceHistory(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): PriceHistory =
+    loadPriceHistoryFromBars(queryEodBars(securityId, earliestTime, latestTime))
 
   def mostRecentBar(priceHistory: PriceHistory, timestamp: Long): Option[Bar] = {
     val mapEntry = priceHistory.floorEntry(timestamp)
     Option(mapEntry).map(_.getValue)
   }
 
-  def mostRecentBarFromYear(time: DateTime, symbol: String, year: Int): Option[Bar] = {
-    val priceHistory = findPriceHistory(year, symbol)
+  def mostRecentBarFromYear(time: DateTime, securityId: SecurityId, year: Int): Option[Bar] = {
+    val priceHistory = findPriceHistory(year, securityId)
     mostRecentBar(priceHistory, timestamp(time))
   }
 
-  def findEodBar(time: DateTime, symbol: String): Option[Bar] = {
+  def findEodBar(time: DateTime, securityId: SecurityId): Option[Bar] = {
     val year = time.getYear
-    val bar: Option[Bar] = mostRecentBarFromYear(time, symbol, year).orElse(mostRecentBarFromYear(time, symbol, year - 1))
-    bar.orElse(queryEodBar(time, symbol))
+    val bar: Option[Bar] = mostRecentBarFromYear(time, securityId, year).orElse(mostRecentBarFromYear(time, securityId, year - 1))
+    bar.orElse(queryEodBar(time, securityId))
   }
 
-  def findEodBarPriorTo(time: DateTime, symbol: String): Option[Bar] = {
-    val eodBar = findEodBar(time, symbol)
+  def findEodBarPriorTo(time: DateTime, securityId: SecurityId): Option[Bar] = {
+    val eodBar = findEodBar(time, securityId)
     eodBar.flatMap { bar =>
       if (isInstantBetweenInclusive(time, bar.startTime, bar.endTime))
-        findEodBar(bar.startTime.minus(millis(1)), symbol)
+        findEodBar(bar.startTime.minus(millis(1)), securityId)
       else Option(bar)
     }
   }
 
-  def findOldestEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-    info(s"findOldestEodBar($symbol)")
-    adapter.findOldestEodBar(symbol)
+  def findOldestEodBar(securityId: SecurityId)(implicit adapter: Adapter): Option[Bar] = {
+    info(s"findOldestEodBar($securityId)")
+    adapter.findOldestEodBar(securityId)
   }
 
-  def findMostRecentEodBar(symbol: String)(implicit adapter: Adapter): Option[Bar] = {
-    info(s"findMostRecentEodBar($symbol)")
-    adapter.findMostRecentEodBar(symbol)
+  def findMostRecentEodBar(securityId: SecurityId)(implicit adapter: Adapter): Option[Bar] = {
+    info(s"findMostRecentEodBar($securityId)")
+    adapter.findMostRecentEodBar(securityId)
   }
 
 
   val priceHistoryCache = cache.buildLruCache(32, "priceHistoryCache")
 
   // loads up 5 years of price history
-  def findPriceHistory(year: Int, symbol: String): PriceHistory = {
+  def findPriceHistory(year: Int, securityId: SecurityId): PriceHistory = {
     val startYear = year - year % 5
-    val priceHistoryId = symbol ++ ":" ++ startYear.toString
+    val priceHistoryId = securityId.toString ++ ":" ++ startYear.toString
     val cachedPriceHistory = Option(priceHistoryCache.get(priceHistoryId))
     cachedPriceHistory match {
       case Some(priceHistoryElement) => priceHistoryElement.getObjectValue.asInstanceOf[PriceHistory]
       case None =>
         val endYear = startYear + 4
-        val newPriceHistory = loadPriceHistory(symbol,
+        val newPriceHistory = loadPriceHistory(securityId,
                                                datetime(startYear, 1, 1),
                                                datetime(endYear, 12, 31, 23, 59, 59))    // load 5 calendar years of price history into a NavigableMap
         priceHistoryCache.put(new Element(priceHistoryId, newPriceHistory))

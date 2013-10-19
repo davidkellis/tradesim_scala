@@ -1,9 +1,11 @@
 package dke.tradesim
 
 import org.joda.time.{DateTime}
+import dke.tradesim.datetimeUtils.Datestamp
 
 object core {
-  type StockHoldings = Map[String, Long]
+  type SecurityId = Int
+  type StockHoldings = Map[SecurityId, Long]
 
   case class Portfolio(cash: BigDecimal,
                        stocks: StockHoldings)
@@ -14,7 +16,7 @@ object core {
 
   sealed trait Order extends Transaction {
     val time: DateTime
-    val symbol: String
+    val securityId: SecurityId
     val qty: Long
     val fillPrice: Option[BigDecimal]
     def changeQty(newQty: Long): Order
@@ -30,29 +32,29 @@ object core {
   sealed trait BuyOrder extends Order
   sealed trait SellOrder extends Order
 
-  case class MarketBuy(time: DateTime, symbol: String, qty: Long, fillPrice: Option[BigDecimal] = None) extends MarketOrder with BuyOrder {
+  case class MarketBuy(time: DateTime, securityId: SecurityId, qty: Long, fillPrice: Option[BigDecimal] = None) extends MarketOrder with BuyOrder {
     def changeQty(newQty: Long): MarketBuy = this.copy(qty = newQty)
     def changeFillPrice(newFillPrice: BigDecimal): MarketBuy = this.copy(fillPrice = Option(newFillPrice))
   }
 
-  case class MarketSell(time: DateTime, symbol: String, qty: Long, fillPrice: Option[BigDecimal] = None) extends MarketOrder with SellOrder {
+  case class MarketSell(time: DateTime, securityId: SecurityId, qty: Long, fillPrice: Option[BigDecimal] = None) extends MarketOrder with SellOrder {
     def changeQty(newQty: Long): MarketSell = this.copy(qty = newQty)
     def changeFillPrice(newFillPrice: BigDecimal): MarketSell = this.copy(fillPrice = Option(newFillPrice))
   }
 
-  case class LimitBuy(time: DateTime, symbol: String, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal] = None) extends LimitOrder with BuyOrder {
+  case class LimitBuy(time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal] = None) extends LimitOrder with BuyOrder {
     def changeQty(newQty: Long): LimitBuy = this.copy(qty = newQty)
     def changeLimitPrice(newLimitPrice: BigDecimal): LimitBuy = this.copy(limitPrice = newLimitPrice)
     def changeFillPrice(newFillPrice: BigDecimal): LimitBuy = this.copy(fillPrice = Option(newFillPrice))
   }
 
-  case class LimitSell(time: DateTime, symbol: String, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal] = None) extends LimitOrder with SellOrder {
+  case class LimitSell(time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal] = None) extends LimitOrder with SellOrder {
     def changeQty(newQty: Long): LimitSell = this.copy(qty = newQty)
     def changeLimitPrice(newLimitPrice: BigDecimal): LimitSell = this.copy(limitPrice = newLimitPrice)
     def changeFillPrice(newFillPrice: BigDecimal): LimitSell = this.copy(fillPrice = Option(newFillPrice))
   }
 
-  type PriceQuoteFn = (DateTime, String) => Option[BigDecimal]
+  type PriceQuoteFn = (DateTime, SecurityId) => Option[BigDecimal]
 
   case class PortfolioValue(time: DateTime, value: BigDecimal)
 
@@ -79,8 +81,28 @@ object core {
                       isFinalState: (Strategy, Trial, State) => Boolean)
 
 
+  case class Industry(name: String)
+  case class Sector(name: String)
+
+  case class Exchange(label: String, name: String)
+
+  case class Security(id: Option[Int],
+                      bbGid: String,
+                      bbGcid: String,
+                      kind: String,
+                      exchange: Exchange,
+                      symbol: String,
+                      name: String,
+                      startDate: Datestamp,
+                      endDate: Datestamp,
+                      cik: Int,
+                      active: Boolean,
+                      fiscalYearEndDate: Int,
+                      industry: Industry,
+                      sector: Sector)
+
   abstract class Bar {
-    val symbol: String
+    val securityId: SecurityId
     val startTime: DateTime
     val endTime: DateTime
     val open: BigDecimal
@@ -90,7 +112,8 @@ object core {
     val volume: Long
   }
 
-  case class EodBar(symbol: String,
+  case class EodBar(id: Option[Int],
+                    securityId: SecurityId,
                     startTime: DateTime,
                     endTime: DateTime,
                     open: BigDecimal,
@@ -101,14 +124,14 @@ object core {
 
 
   trait CorporateAction {
-    val symbol: String
+    val securityId: SecurityId
     val exDate: DateTime
   }
-  case class Split(symbol: String,
+  case class Split(securityId: SecurityId,
                    exDate: DateTime,
                    ratio: BigDecimal) extends CorporateAction
 
-  case class SplitAdjustment(symbol: String,
+  case class SplitAdjustment(securityId: SecurityId,
                              exDate: DateTime,
                              ratio: BigDecimal,
                              adjustmentTime: DateTime,
@@ -117,14 +140,14 @@ object core {
 
   // See http://www.investopedia.com/articles/02/110802.asp#axzz24Wa9LgDj for the various dates associated with dividend payments
   // See also http://www.sec.gov/answers/dividen.htm
-  case class CashDividend(symbol: String,
+  case class CashDividend(securityId: SecurityId,
                           declarationDate: Option[DateTime],    // date at which the announcement to shareholders/market that company will pay a dividend is made
                           exDate: DateTime,                     // on or after this date, the security trades without the dividend
                           recordDate: Option[DateTime],         // date at which shareholders of record are identified as recipients of the dividend
                           payableDate: Option[DateTime],        // date at which company issues payment of dividend
                           amount: BigDecimal) extends CorporateAction
 
-  case class CashDividendPayment(symbol: String,
+  case class CashDividendPayment(securityId: SecurityId,
                                  exDate: DateTime,                     // on or after this date, the security trades without the dividend
                                  payableDate: Option[DateTime],        // date at which company issues payment of dividend
                                  amountPerShare: BigDecimal,           // amount of the dividend, per share
@@ -147,14 +170,14 @@ object core {
   }
 
   trait FinancialReport
-  case class QuarterlyReport(symbol: String,
+  case class QuarterlyReport(securityId: SecurityId,
                              startTime: DateTime,
                              endTime: DateTime,
                              publicationTime: DateTime,
                              incomeStatement: IncomeStatement,
                              balanceSheet: BalanceSheet,
                              cashFlowStatement: CashFlowStatement) extends FinancialReport
-  case class AnnualReport(symbol: String,
+  case class AnnualReport(securityId: SecurityId,
                           startTime: DateTime,
                           endTime: DateTime,
                           publicationTime: DateTime,
@@ -164,7 +187,7 @@ object core {
 
   def defaultInitialState(time: DateTime, principal: BigDecimal) = State(time,
                                                                          time,
-                                                                         Portfolio(principal, Map[String, Long]()),
+                                                                         Portfolio(principal, Map[SecurityId, Long]()),
                                                                          Vector(),
                                                                          Vector(),
                                                                          List())

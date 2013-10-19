@@ -4,7 +4,7 @@ import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
 import net.sf.ehcache.{Element}
 
-import dke.tradesim.core.{NumericAttribute, StatementAttribute, StatementType, Bar, FinancialReport, QuarterlyReport}
+import dke.tradesim.core.{SecurityId, NumericAttribute, StatementAttribute, StatementType, Bar, FinancialReport, QuarterlyReport}
 import dke.tradesim.datetimeUtils.{datetime, timestamp, seconds}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.logger._
@@ -32,9 +32,9 @@ object quarterlyReports {
    *   ],
    *   unique: true)
    */
-  def queryQuarterlyReport(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[QuarterlyReport] = {
-    info(s"queryQuarterlyReport($time, $symbol)")
-    adapter.queryQuarterlyReport(time, symbol)
+  def queryQuarterlyReport(time: DateTime, securityId: SecurityId)(implicit adapter: Adapter): Option[QuarterlyReport] = {
+    info(s"queryQuarterlyReport($time, $securityId)")
+    adapter.queryQuarterlyReport(time, securityId)
   }
 
   /**
@@ -52,9 +52,9 @@ object quarterlyReports {
    *   ],
    *   unique: true)
    */
-  def queryQuarterlyReportPriorTo(time: DateTime, symbol: String)(implicit adapter: Adapter): Option[QuarterlyReport] = {
-    info(s"queryQuarterlyReportPriorTo($time, $symbol)")
-    adapter.queryQuarterlyReportPriorTo(time, symbol)
+  def queryQuarterlyReportPriorTo(time: DateTime, securityId: SecurityId)(implicit adapter: Adapter): Option[QuarterlyReport] = {
+    info(s"queryQuarterlyReportPriorTo($time, $securityId)")
+    adapter.queryQuarterlyReportPriorTo(time, securityId)
   }
 
   /**
@@ -62,14 +62,14 @@ object quarterlyReports {
    * Example:
    *   (query-quarterly-reports "AAPL" (date-time 2001 1 1) (date-time 2001 12 31 23 59 59))
    */
-  def queryQuarterlyReports(symbol: String)(implicit adapter: Adapter): Seq[QuarterlyReport] = {
-    info(s"queryQuarterlyReports($symbol)")
-    adapter.queryQuarterlyReports(symbol)
+  def queryQuarterlyReports(securityId: SecurityId)(implicit adapter: Adapter): Seq[QuarterlyReport] = {
+    info(s"queryQuarterlyReports($securityId)")
+    adapter.queryQuarterlyReports(securityId)
   }
 
-  def queryQuarterlyReports(symbol: String, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[QuarterlyReport] = {
-    info(s"queryQuarterlyReports($symbol, $earliestTime, $latestTime)")
-    adapter.queryQuarterlyReports(symbol, earliestTime, latestTime)
+  def queryQuarterlyReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime)(implicit adapter: Adapter): Seq[QuarterlyReport] = {
+    info(s"queryQuarterlyReports($securityId, $earliestTime, $latestTime)")
+    adapter.queryQuarterlyReports(securityId, earliestTime, latestTime)
   }
 
   /**
@@ -101,23 +101,23 @@ object quarterlyReports {
    * Returns a NavigableMap holding the quarterly reports (from the database) for <symbol> (optionally, between earliest-datetime and latest-datetime).
    * The map's keys are sorted by the report's start-time.
    */
-  def loadQuarterlyReportHistory(symbol: String): QuarterlyReportHistory = loadQuarterlyReportHistoryFromReports(queryQuarterlyReports(symbol))
-  def loadQuarterlyReportHistory(symbol: String, earliestTime: DateTime, latestTime: DateTime): QuarterlyReportHistory =
-    loadQuarterlyReportHistoryFromReports(queryQuarterlyReports(symbol, earliestTime, latestTime))
+  def loadQuarterlyReportHistory(securityId: SecurityId): QuarterlyReportHistory = loadQuarterlyReportHistoryFromReports(queryQuarterlyReports(securityId))
+  def loadQuarterlyReportHistory(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): QuarterlyReportHistory =
+    loadQuarterlyReportHistoryFromReports(queryQuarterlyReports(securityId, earliestTime, latestTime))
 
 
   val quarterlyReportHistoryCache = cache.buildLruCache(32, "quarterlyReportHistoryCache")
 
   // loads up 2 years of quarterly reports
-  def findQuarterlyReportHistory(year: Int, symbol: String): QuarterlyReportHistory = {
+  def findQuarterlyReportHistory(year: Int, securityId: SecurityId): QuarterlyReportHistory = {
     val startYear = year - year % 2
-    val quarterlyReportHistoryId = symbol ++ ":" ++ startYear.toString
+    val quarterlyReportHistoryId = securityId.toString ++ ":" ++ startYear.toString
     val quarterlyReportHistory = Option(quarterlyReportHistoryCache.get(quarterlyReportHistoryId))
     quarterlyReportHistory match {
       case Some(quarterlyReportHistoryElement) => quarterlyReportHistoryElement.getObjectValue.asInstanceOf[QuarterlyReportHistory]
       case None =>
         val endYear = startYear + 1
-        val newQuarterlyReportHistory = loadQuarterlyReportHistory(symbol,
+        val newQuarterlyReportHistory = loadQuarterlyReportHistory(securityId,
                                                                    datetime(startYear, 1, 1),
                                                                    datetime(endYear, 12, 31, 23, 59, 59))    // load 2 calendar years of quarterly reports into a NavigableMap
         quarterlyReportHistoryCache.put(new Element(quarterlyReportHistoryId, newQuarterlyReportHistory))
@@ -125,31 +125,31 @@ object quarterlyReports {
     }
   }
 
-  def mostRecentQuarterlyReportFromYear(time: DateTime, symbol: String, year: Int): Option[QuarterlyReport] = {
-    val quarterlyReportHistory = findQuarterlyReportHistory(year, symbol)
+  def mostRecentQuarterlyReportFromYear(time: DateTime, securityId: SecurityId, year: Int): Option[QuarterlyReport] = {
+    val quarterlyReportHistory = findQuarterlyReportHistory(year, securityId)
     mostRecentQuarterlyReport(quarterlyReportHistory, timestamp(time))
   }
 
-  // returns the most recent quarterly report for <symbol> as of <time>
-  def findQuarterlyReport(time: DateTime, symbol: String): Option[QuarterlyReport] = {
+  // returns the most recent quarterly report for <securityId> as of <time>
+  def findQuarterlyReport(time: DateTime, securityId: SecurityId): Option[QuarterlyReport] = {
     val year = time.getYear
-    val quarterlyReport = mostRecentQuarterlyReportFromYear(time, symbol, year)               // search the 2-year period that <year> falls within
-                          .orElse(mostRecentQuarterlyReportFromYear(time, symbol, year - 2))  // search the prior 2-year period immediately before the 2-year period that <year> falls within
-    quarterlyReport.orElse(queryQuarterlyReport(time, symbol))
+    val quarterlyReport = mostRecentQuarterlyReportFromYear(time, securityId, year)               // search the 2-year period that <year> falls within
+                          .orElse(mostRecentQuarterlyReportFromYear(time, securityId, year - 2))  // search the prior 2-year period immediately before the 2-year period that <year> falls within
+    quarterlyReport.orElse(queryQuarterlyReport(time, securityId))
   }
 
-  // returns the most recent quarterly reports for <symbol> as of <time>, sorted in order of most recent (newest) to least recent (oldest) publication time
-  def findQuarterlyReports(time: DateTime, symbol: String): Stream[QuarterlyReport] = {
-    val mostRecentQuarterlyReport = findQuarterlyReport(time, symbol)
+  // returns the most recent quarterly reports for <securityId> as of <time>, sorted in order of most recent (newest) to least recent (oldest) publication time
+  def findQuarterlyReports(time: DateTime, securityId: SecurityId): Stream[QuarterlyReport] = {
+    val mostRecentQuarterlyReport = findQuarterlyReport(time, securityId)
     mostRecentQuarterlyReport match {
-      case Some(quarterlyReport) => quarterlyReport #:: findQuarterlyReports(quarterlyReport.publicationTime.minus(seconds(1)), symbol)
+      case Some(quarterlyReport) => quarterlyReport #:: findQuarterlyReports(quarterlyReport.publicationTime.minus(seconds(1)), securityId)
       case None => Stream.empty[QuarterlyReport]
     }
   }
 
   // returns a Some(Stream[QuarterlyReport] of length <qty>) or None
-  def findQuarterlyReports(time: DateTime, symbol: String, qty: Int): Option[Stream[QuarterlyReport]] = {
-    val reports = findQuarterlyReports(time: DateTime, symbol: String).take(qty)
+  def findQuarterlyReports(time: DateTime, securityId: SecurityId, qty: Int): Option[Stream[QuarterlyReport]] = {
+    val reports = findQuarterlyReports(time: DateTime, securityId: SecurityId).take(qty)
     if (reports.length == qty) Some(reports)
     else None
   }
@@ -162,8 +162,8 @@ object quarterlyReports {
     }
   }
 
-  def quarterlyReportAttribute(time: DateTime, symbol: String, statementType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
-    val quarterlyReport = findQuarterlyReport(time, symbol)
+  def quarterlyReportAttribute(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
+    val quarterlyReport = findQuarterlyReport(time, securityId)
     quarterlyReport.flatMap { quarterlyReport =>
       statementType match {
         case StatementType.BalanceSheet => quarterlyReport.balanceSheet.get(attribute)
@@ -181,8 +181,8 @@ object quarterlyReports {
     }
   }
 
-  def numericQuarterlyReportAttribute(time: DateTime, symbol: String, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
-    val attr = quarterlyReportAttribute(time, symbol, statementType, attribute)
+  def numericQuarterlyReportAttribute(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
+    val attr = quarterlyReportAttribute(time, securityId, statementType, attribute)
     attr match {
       case Some(NumericAttribute(shareCount)) => Option(shareCount)
       case _ => None
