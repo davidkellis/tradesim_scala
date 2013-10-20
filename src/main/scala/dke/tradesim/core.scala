@@ -87,7 +87,7 @@ object core {
 
   case class Exchange(id: Option[Int],
                       label: String,
-                      name: String)
+                      name: Option[String])
 
   case class Security(id: Option[Int],
                       bbGid: String,
@@ -96,13 +96,13 @@ object core {
                       exchangeId: Int,
                       symbol: String,
                       name: String,
-                      startDate: Datestamp,
-                      endDate: Datestamp,
-                      cik: Int,
-                      active: Boolean,
-                      fiscalYearEndDate: Int,
-                      industryId: Int,
-                      sectorId: Int)
+                      startDate: Option[Datestamp],
+                      endDate: Option[Datestamp],
+                      cik: Option[Int],
+                      active: Option[Boolean],
+                      fiscalYearEndDate: Option[Int],
+                      industryId: Option[Int],
+                      sectorId: Option[Int])
 
   abstract class Bar {
     val securityId: SecurityId

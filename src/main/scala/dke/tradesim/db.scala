@@ -256,7 +256,7 @@ object db {
     object Exchanges extends Table[Exchange]("exchanges") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
       def label = column[String]("label")
-      def name = column[String]("name")
+      def name = column[Option[String]]("name", O.Nullable)
 
       // Every table needs a * projection with the same type as the table's type parameter
       def * = id.? ~ label ~ name <> (Exchange, Exchange.unapply _)
@@ -271,13 +271,13 @@ object db {
       def exchangeId = column[Int]("exchange_id")
       def symbol = column[String]("symbol")
       def name = column[String]("name")
-      def startDate = column[Datestamp]("start_date")
-      def endDate = column[Datestamp]("end_date")
-      def cik = column[Int]("cik")
-      def isActive = column[Boolean]("active")
-      def fiscalYearEndDate = column[Int]("fiscal_year_end_date")
-      def industryId = column[Int]("industry_id")
-      def sectorId = column[Int]("sector_id")
+      def startDate = column[Option[Datestamp]]("start_date", O.Nullable)
+      def endDate = column[Option[Datestamp]]("end_date", O.Nullable)
+      def cik = column[Option[Int]]("cik", O.Nullable)
+      def isActive = column[Option[Boolean]]("active", O.Nullable)
+      def fiscalYearEndDate = column[Option[Int]]("fiscal_year_end_date", O.Nullable)
+      def industryId = column[Option[Int]]("industry_id", O.Nullable)
+      def sectorId = column[Option[Int]]("sector_id", O.Nullable)
 
       // Every table needs a * projection with the same type as the table's type parameter
       def * = id.? ~ bbGid ~ bbGcid ~ kind ~ exchangeId ~ symbol ~ name ~ startDate ~ endDate ~ cik ~ isActive ~ fiscalYearEndDate ~ industryId ~ sectorId <> (Security, Security.unapply _)
@@ -458,8 +458,12 @@ object db {
 
 
     def withAdapter[T](jdbcConnectionString: String, driver: String, username: String = null, password: String = null)(f: => T): T = {
-      Database.forURL(jdbcConnectionString, username, password, driver = driver) withSession { session =>
-        val adapter = new SlickAdapter()(session)
+//      Database.forURL(jdbcConnectionString, username, password, driver = driver) withSession { session =>
+//        val adapter = new SlickAdapter()(session)
+//        Adapter.withAdapter(adapter)(f)
+//      }
+      Database.forURL(jdbcConnectionString, username, password, driver = driver) withSession {
+        val adapter = new SlickAdapter()(Database.threadLocalSession)
         Adapter.withAdapter(adapter)(f)
       }
     }

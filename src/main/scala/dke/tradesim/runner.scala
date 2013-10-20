@@ -1,11 +1,9 @@
 package dke.tradesim
 
 import org.rogach.scallop._
-import scala.slick.session.{Database}
 import net.sf.ehcache.{CacheManager}
 import dke.tradesim.strategies.buyandhold
 import dke.tradesim.db.{Adapter, SlickAdapter}
-import dke.tradesim.db.SlickAdapter.{AnnualReports, QuarterlyReports, CorporateActions, EodBars}
 
 object Runner {
   class RuntimeConfig(arguments: Seq[String]) extends ScallopConf(arguments) {
