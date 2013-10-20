@@ -5,6 +5,7 @@ import scala.tools.nsc.Settings
 import dke.tradesim.db.SlickAdapter
 
 // this code taken from http://stackoverflow.com/questions/18628516/embedded-scala-repl-interpreter-example-for-2-10
+// Run this REPL from within sbt like this: sbt "runMain dke.tradesim.Repl"
 
 object Repl extends App {
   val settings = new Settings
