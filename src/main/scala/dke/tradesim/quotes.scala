@@ -4,7 +4,7 @@ import java.util.{NavigableMap, TreeMap}
 import org.joda.time.DateTime
 import net.sf.ehcache.{Element}
 
-import dke.tradesim.core.{Bar}
+import dke.tradesim.core.{SecurityId, Bar}
 import dke.tradesim.datetimeUtils.{timestamp, datetime, isInstantBetweenInclusive, millis}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.logger._

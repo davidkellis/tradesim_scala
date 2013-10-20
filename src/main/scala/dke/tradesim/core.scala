@@ -54,6 +54,7 @@ object core {
     def changeFillPrice(newFillPrice: BigDecimal): LimitSell = this.copy(fillPrice = Option(newFillPrice))
   }
 
+  type PriceBarFn = (DateTime, SecurityId) => Option[Bar]
   type PriceQuoteFn = (DateTime, SecurityId) => Option[BigDecimal]
 
   case class PortfolioValue(time: DateTime, value: BigDecimal)
@@ -65,7 +66,7 @@ object core {
                    transactions: TransactionLog,
                    portfolioValueHistory: Seq[PortfolioValue])
 
-  case class Trial(symbols: IndexedSeq[String],
+  case class Trial(securityIds: IndexedSeq[SecurityId],
                    principal: BigDecimal,
                    commissionPerTrade: BigDecimal,
                    commissionPerShare: BigDecimal,
@@ -84,13 +85,15 @@ object core {
   case class Industry(name: String)
   case class Sector(name: String)
 
-  case class Exchange(label: String, name: String)
+  case class Exchange(id: Option[Int],
+                      label: String,
+                      name: String)
 
   case class Security(id: Option[Int],
                       bbGid: String,
                       bbGcid: String,
                       kind: String,
-                      exchange: Exchange,
+                      exchangeId: Int,
                       symbol: String,
                       name: String,
                       startDate: Datestamp,
@@ -98,8 +101,8 @@ object core {
                       cik: Int,
                       active: Boolean,
                       fiscalYearEndDate: Int,
-                      industry: Industry,
-                      sector: Sector)
+                      industryId: Int,
+                      sectorId: Int)
 
   abstract class Bar {
     val securityId: SecurityId
@@ -152,7 +155,7 @@ object core {
                                  payableDate: Option[DateTime],        // date at which company issues payment of dividend
                                  amountPerShare: BigDecimal,           // amount of the dividend, per share
                                  adjustmentTime: DateTime,             // time at which the adjustment took place
-                                 shareQty: Long,                       // number of shares on hand of <symbol>
+                                 shareQty: Long,                       // number of shares on hand of <securityId>
                                  total: BigDecimal) extends Transaction
 
   trait StatementAttribute

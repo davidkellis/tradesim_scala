@@ -26,6 +26,7 @@ import dke.tradesim.core.QuarterlyReport
 import dke.tradesim.core.Split
 import dke.tradesim.json.LiftJValueWithFilter
 
+import scala.language.implicitConversions
 import scala.collection.JavaConversions._
 
 object db {
@@ -52,6 +53,9 @@ object db {
 
   trait Adapter {
     def createDb(): Unit
+
+    def findExchanges(exchangeLabels: Seq[String]): Seq[Exchange]
+    def findStocks(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security]
 
     def queryEodBar(time: DateTime, securityId: SecurityId): Option[Bar]
     def queryEodBarPriorTo(time: DateTime, securityId: SecurityId): Option[Bar]
@@ -249,6 +253,37 @@ object db {
 //  }
 
   object SlickAdapter {
+    object Exchanges extends Table[Exchange]("exchanges") {
+      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
+      def label = column[String]("label")
+      def name = column[String]("name")
+
+      // Every table needs a * projection with the same type as the table's type parameter
+      def * = id.? ~ label ~ name <> (Exchange, Exchange.unapply _)
+    }
+
+
+    object Securities extends Table[Security]("securities") {
+      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
+      def bbGid = column[String]("bb_gid")
+      def bbGcid = column[String]("bb_gcid")
+      def kind = column[String]("type")
+      def exchangeId = column[Int]("exchange_id")
+      def symbol = column[String]("symbol")
+      def name = column[String]("name")
+      def startDate = column[Datestamp]("start_date")
+      def endDate = column[Datestamp]("end_date")
+      def cik = column[Int]("cik")
+      def isActive = column[Boolean]("active")
+      def fiscalYearEndDate = column[Int]("fiscal_year_end_date")
+      def industryId = column[Int]("industry_id")
+      def sectorId = column[Int]("sector_id")
+
+      // Every table needs a * projection with the same type as the table's type parameter
+      def * = id.? ~ bbGid ~ bbGcid ~ kind ~ exchangeId ~ symbol ~ name ~ startDate ~ endDate ~ cik ~ isActive ~ fiscalYearEndDate ~ industryId ~ sectorId <> (Security, Security.unapply _)
+    }
+
+
     type TrialRecord = (Int, String, String, String, String, String, Timestamp, Timestamp, String, String)
     type NewTrialRecord = (String, String, String, String, String, Timestamp, Timestamp, String, String)
     object Trials extends Table[TrialRecord]("trials") {
@@ -438,6 +473,21 @@ object db {
       ddl.create
     }
 
+
+    def findExchanges(exchangeLabels: Seq[String]): Seq[Exchange] = {
+      Query(Exchanges).
+        filter(_.label inSetBind exchangeLabels).
+        list
+    }
+
+    def findStocks(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security] = {
+      Query(Securities).
+        filter(_.exchangeId inSetBind exchanges.flatMap(_.id)).
+        filter(_.symbol inSetBind symbols).
+        list
+    }
+
+
     def queryEodBar(time: DateTime, securityId: SecurityId): Option[Bar] = {
       val bars = Query(EodBars).filter(_.securityId === securityId).filter(_.startTime <= time)
       val sortedBars = bars.sortBy(_.startTime.desc)
@@ -566,7 +616,7 @@ object db {
     }
 
     def buildInsertionTuple(strategyName: String, trial: Trial, state: State): NewTrialRecord = {
-      val symbolList = serializeThriftObject(convertSymbolListToThrift(trial.symbols))
+      val securityIds = serializeThriftObject(convertSecurityIdListToThrift(trial.securityIds))
       val principal = trial.principal.toString
       val commissionPerTrade = trial.commissionPerTrade.toString
       val commissionPerShare = trial.commissionPerShare.toString
@@ -575,12 +625,14 @@ object db {
       val transactionLog = serializeThriftObject(convertTransactionLogToThrift(state.transactions))
       val portfolioValueLog = serializeThriftObject(convertPortfolioValueLogToThrift(state.portfolioValueHistory))
 
-      (strategyName, symbolList, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
+      (strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
     }
 
-    def convertSymbolListToThrift(symbols: Seq[String]): thrift.SymbolList = {
-      val list = new thrift.SymbolList()
-      list.setSymbols(symbols)
+    implicit def securityIdsToListOfInteger(securityIds: Seq[SecurityId]): Seq[java.lang.Integer] = securityIds.map(_.asInstanceOf[Int])
+
+    def convertSecurityIdListToThrift(securityIds: Seq[SecurityId]): thrift.SecurityIds = {
+      val list = new thrift.SecurityIds()
+      list.setSecurityIds(securityIdsToListOfInteger(securityIds))
       list
     }
 
@@ -610,7 +662,7 @@ object db {
     }
 
     def buildThriftMarketBuyOrder(time: DateTime, securityId: SecurityId, qty: Long, fillPrice: Option[BigDecimal]): thrift.MarketBuyOrder = {
-      val order = new thrift.MarketBuyOrder(timestamp(time), symbol, qty)
+      val order = new thrift.MarketBuyOrder(timestamp(time), securityId, qty)
       fillPrice match {
         case Some(price) => order.setFillPrice(price.toString)
         case None => order
@@ -618,7 +670,7 @@ object db {
     }
 
     def buildThriftMarketSellOrder(time: DateTime, securityId: SecurityId, qty: Long, fillPrice: Option[BigDecimal]): thrift.MarketSellOrder = {
-      val order = new thrift.MarketSellOrder(timestamp(time), symbol, qty)
+      val order = new thrift.MarketSellOrder(timestamp(time), securityId, qty)
       fillPrice match {
         case Some(price) => order.setFillPrice(price.toString)
         case None => order
@@ -626,7 +678,7 @@ object db {
     }
 
     def buildThriftLimitBuyOrder(time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal]): thrift.LimitBuyOrder = {
-      val order = new thrift.LimitBuyOrder(timestamp(time), symbol, qty, limitPrice.toString)
+      val order = new thrift.LimitBuyOrder(timestamp(time), securityId, qty, limitPrice.toString)
       fillPrice match {
         case Some(price) => order.setFillPrice(price.toString)
         case None => order
@@ -634,7 +686,7 @@ object db {
     }
 
     def buildThriftLimitSellOrder(time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal]): thrift.LimitSellOrder = {
-      val order = new thrift.LimitSellOrder(timestamp(time), symbol, qty, limitPrice.toString)
+      val order = new thrift.LimitSellOrder(timestamp(time), securityId, qty, limitPrice.toString)
       fillPrice match {
         case Some(price) => order.setFillPrice(price.toString)
         case None => order
@@ -648,7 +700,7 @@ object db {
                                        adjustmentTime: DateTime,
                                        shareQty: Long,
                                        total: BigDecimal): thrift.CashDividendPayment = {
-      val dividendPayment = new thrift.CashDividendPayment(symbol,
+      val dividendPayment = new thrift.CashDividendPayment(securityId,
                                                            timestamp(exDate),
                                                            amountPerShare.toString,
                                                            timestamp(adjustmentTime),
@@ -666,7 +718,7 @@ object db {
                                    adjustmentTime: DateTime,
                                    shareQtyDelta: Long,
                                    cashPayout: BigDecimal): thrift.SplitAdjustment = {
-      new thrift.SplitAdjustment(symbol, timestamp(exDate), ratio.toString, timestamp(adjustmentTime), shareQtyDelta, cashPayout.toString)
+      new thrift.SplitAdjustment(securityId, timestamp(exDate), ratio.toString, timestamp(adjustmentTime), shareQtyDelta, cashPayout.toString)
     }
 
     def convertPortfolioValueLogToThrift(portfolioValueLog: Seq[PortfolioValue]): thrift.PortfolioValueHistory = {

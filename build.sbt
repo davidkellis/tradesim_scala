@@ -8,11 +8,15 @@ name := "tradesim"
 
 version := "1.0"
 
-scalaVersion := "2.10.2"
+scalaVersion := "2.10.3"
+
+//javacOptions ++= Seq("-Xlint:unchecked")  // these unchecked warnings are caused by the thrift-generated java code
 
 scalacOptions ++= Seq(
   "-deprecation",
-  "-Xelide-below", "INFO"
+  "-unchecked",
+  "-Xelide-below", "INFO",
+  "-feature"
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"

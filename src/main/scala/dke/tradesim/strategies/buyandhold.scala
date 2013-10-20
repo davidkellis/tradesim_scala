@@ -1,16 +1,18 @@
 package dke.tradesim.strategies
 
-import org.joda.time.{LocalTime}
-import dke.tradesim.adjustedQuotes.{adjEodSimQuote}
-import dke.tradesim.core.{State, Trial, Strategy, defaultInitialState}
-import dke.tradesim.datetimeUtils.{periodBetween, randomDateTime, datetime, years, days, currentTime, prettyFormatPeriod}
+import org.joda.time.LocalTime
+import dke.tradesim.adjustedQuotes.adjEodSimQuote
+import dke.tradesim.core.{SecurityId, State, Trial, Strategy, defaultInitialState}
+import dke.tradesim.datetimeUtils.{periodBetween, randomDateTime, datetime, years, days}
 import dke.tradesim.logger._
-import dke.tradesim.math.{floor}
+import dke.tradesim.math.floor
 import dke.tradesim.ordering.{maxSharesPurchasable, sharesOnHand, buy, sell}
-import dke.tradesim.portfolio.{portfolioValue}
+import dke.tradesim.portfolio.portfolioValue
 import dke.tradesim.quotes.{barHigh, barLow, barClose, barSimQuote, findEodBar}
 import dke.tradesim.schedule.{buildTradingSchedule, defaultTradingSchedule, defaultHolidaySchedule}
-import dke.tradesim.trial.{buildScheduledTimeIncrementer, buildInitialJumpTimeIncrementer, tradingBloxFillPriceWithSlippage, runTrial, logTrials, buildTrialGenerator, buildAllTrialIntervals, buildTrials, runTrials, runTrialsInParallel, fixedTradingPeriodIsFinalState, runAndLogTrials, runAndLogTrialsInParallel}
+import dke.tradesim.securities.{findStocks, PrimaryUsExchanges}
+import dke.tradesim.trial.{buildScheduledTimeIncrementer, buildInitialJumpTimeIncrementer, tradingBloxFillPriceWithSlippage, runTrial, buildTrialGenerator, buildAllTrialIntervals, buildTrials, fixedTradingPeriodIsFinalState, runAndLogTrialsInParallel}
+import dke.tradesim.securities
 
 object buyandhold {
   def initialState(strategy: Strategy, trial: Trial): State = defaultInitialState(trial.startTime, trial.principal)
@@ -19,15 +21,15 @@ object buyandhold {
     val time = state.time
     val startTime = trial.startTime
     val endTime = trial.endTime
-    val symbol = trial.symbols.head
+    val securityId = trial.securityIds.head
     val portfolio = state.portfolio
 
     time match {
       case _ if time == startTime =>
-        val qty = floor(maxSharesPurchasable(trial, portfolio, time, symbol, adjEodSimQuote).getOrElse(0)).toLong
-        buy(state, time, symbol, qty)
+        val qty = floor(maxSharesPurchasable(trial, portfolio, time, securityId, adjEodSimQuote).getOrElse(0)).toLong
+        buy(state, time, securityId, qty)
       case _ if time == endTime =>
-        sell(state, time, symbol, sharesOnHand(portfolio, symbol))
+        sell(state, time, securityId, sharesOnHand(portfolio, securityId))
       case _ => state
     }
   }
@@ -45,7 +47,8 @@ object buyandhold {
       val purchaseFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barHigh _, 0.15)
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
-      val trial = Trial(Vector("MSFT"), 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
+      val securityIds = findStocks(PrimaryUsExchanges, Seq("MSFT")).flatMap(_.id).toVector
+      val trial = Trial(securityIds, 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       val finalState = runTrial(strategy, trial)
       val finalPortfolioValue = portfolioValue(finalState.portfolio, endTime, barClose _, barSimQuote _)
       println("finalState")
@@ -64,7 +67,8 @@ object buyandhold {
       val purchaseFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barHigh _, 0.15)
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
-      val trial = Trial(Vector("MSFT"), 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
+      val securityIds = findStocks(PrimaryUsExchanges, Seq("MSFT")).flatMap(_.id).toVector
+      val trial = Trial(securityIds, 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       val finalState = runTrial(strategy, trial)
       val finalPortfolioValue = portfolioValue(finalState.portfolio, endTime, barClose _, barSimQuote _)
       println("finalState")
@@ -81,10 +85,10 @@ object buyandhold {
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
       val trialGenerator = buildTrialGenerator(10000, 7.0, 0.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
-      val symbolsToTrade = Vector("AAPL")
-      val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[String], years(1), days(1))
+      val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))
       info("Building trials")
-      val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, symbolsToTrade)
+      val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds)
       info(s"${trials.length} trials")
       runAndLogTrialsInParallel(strategy, trials)
     }
@@ -97,9 +101,9 @@ object buyandhold {
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
       val trialGenerator = buildTrialGenerator(10000, 7.0, 0.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
-      val symbolsToTrade = Vector("AAPL")
-      val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[String], years(1), days(1))
-      val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, symbolsToTrade)
+      val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))
+      val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds)
       info(s"${trials.length} trials")
       runAndLogTrialsInParallel(strategy, trials)
     }

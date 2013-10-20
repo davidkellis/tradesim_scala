@@ -54,12 +54,15 @@ object trial {
    *   Example: if the slippage amount is a +3%, then slippage should be given as 0.03.
    *            if the slippage amount is a -4%, then slippage should be given as -0.04.
    */
-  def naiveFillPriceWithSlippage(priceBarFn: (DateTime, String) => Bar, slippage: BigDecimal): (DateTime, String) => BigDecimal = {
-    val slippageMultiplier = 1 + slippage
-    (time: DateTime, symbol: String) => {
-      val bar = priceBarFn(time, symbol)
-      val fillPrice = barSimQuote(bar) * slippageMultiplier
-      adjustPriceForCorporateActions(fillPrice, symbol, bar.endTime, time)
+  def naiveFillPriceWithSlippage(priceBarFn: PriceBarFn,
+                                 slippage: BigDecimal): PriceQuoteFn = {
+    (time: DateTime, securityId: SecurityId) => {
+      val bar = priceBarFn(time, securityId)
+      bar.map { bar =>
+        val slippageMultiplier = 1 + slippage
+        val fillPrice = barSimQuote(bar) * slippageMultiplier
+        adjustPriceForCorporateActions(fillPrice, securityId, bar.endTime, time)
+      }
     }
   }
 
@@ -75,16 +78,16 @@ object trial {
    * The formula is:
    *   order-price + slippage-multiplier * ([high|low] - order-price)
    */
-  def tradingBloxFillPriceWithSlippage(priceBarFn: (DateTime, String) => Option[Bar],
+  def tradingBloxFillPriceWithSlippage(priceBarFn: PriceBarFn,
                                        orderPriceFn: (Bar) => BigDecimal,
                                        priceBarExtremumFn: (Bar) => BigDecimal,
                                        slippage: BigDecimal): PriceQuoteFn = {
-    (time: DateTime, symbol: String) => {
-      val bar = priceBarFn(time, symbol)
+    (time: DateTime, securityId: SecurityId) => {
+      val bar = priceBarFn(time, securityId)
       bar.map { bar =>
         val orderPrice = orderPriceFn(bar)
         val fillPrice = orderPrice + slippage * (priceBarExtremumFn(bar) - orderPrice)
-        adjustPriceForCorporateActions(fillPrice, symbol, bar.endTime, time)
+        adjustPriceForCorporateActions(fillPrice, securityId, bar.endTime, time)
       }
     }
   }
@@ -219,12 +222,12 @@ object trial {
     result
   }
 
-  def buildAllTrialIntervals(symbolList: IndexedSeq[String], intervalLength: Period, separationLength: Period): Seq[Interval] = {
-    val startDateRange = commonTrialPeriodStartDates(symbolList, intervalLength)
+  def buildAllTrialIntervals(securityIds: IndexedSeq[SecurityId], intervalLength: Period, separationLength: Period): Seq[Interval] = {
+    val startDateRange = commonTrialPeriodStartDates(securityIds, intervalLength)
     startDateRange.map(startDateRange => interspersedIntervals(startDateRange, intervalLength, separationLength)).getOrElse(Vector[Interval]())
   }
 
-  type TrialGenerator = (IndexedSeq[String], DateTime, DateTime) => Trial
+  type TrialGenerator = (IndexedSeq[SecurityId], DateTime, DateTime) => Trial
 
   def buildTrialGenerator(principal: BigDecimal,
                           commissionPerTrade: BigDecimal,
@@ -232,22 +235,24 @@ object trial {
                           timeIncrementerFn: (DateTime) => DateTime,
                           purchaseFillPriceFn: PriceQuoteFn,
                           saleFillPriceFn: PriceQuoteFn): TrialGenerator =
-    (symbolList: IndexedSeq[String], startTime: DateTime, endTime: DateTime) => Trial(symbolList,
-                                                                                      principal,
-                                                                                      commissionPerShare,
-                                                                                      commissionPerTrade,
-                                                                                      startTime,
-                                                                                      endTime,
-                                                                                      timeIncrementerFn,
-                                                                                      purchaseFillPriceFn,
-                                                                                      saleFillPriceFn)
+    (securityIds: IndexedSeq[SecurityId],
+     startTime: DateTime,
+     endTime: DateTime) => Trial(securityIds,
+                                 principal,
+                                 commissionPerShare,
+                                 commissionPerTrade,
+                                 startTime,
+                                 endTime,
+                                 timeIncrementerFn,
+                                 purchaseFillPriceFn,
+                                 saleFillPriceFn)
 
   def buildTrials(strategy: Strategy,
-                  trialIntervalGeneratorFn: (IndexedSeq[String]) => Seq[Interval],
+                  trialIntervalGeneratorFn: (IndexedSeq[SecurityId]) => Seq[Interval],
                   trialGeneratorFn: TrialGenerator,
-                  symbolList: IndexedSeq[String]): Seq[Trial] = {
-    val trialIntervals = trialIntervalGeneratorFn(symbolList)
-    trialIntervals.map(interval => trialGeneratorFn(symbolList, interval.getStart, interval.getEnd))
+                  securityIds: IndexedSeq[SecurityId]): Seq[Trial] = {
+    val trialIntervals = trialIntervalGeneratorFn(securityIds)
+    trialIntervals.map(interval => trialGeneratorFn(securityIds, interval.getStart, interval.getEnd))
   }
 
   def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.map(runTrial(strategy, _)).toVector
