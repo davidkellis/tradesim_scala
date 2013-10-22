@@ -80,178 +80,6 @@ object db {
     def insertTrials(strategyName: String, trialStatePairs: Seq[(Trial, State)]): Seq[Int]
   }
 
-//  object MongoAdapter {
-//    def withAdapter[T](mongoDbConnectionString: String)(f: => T): T = {
-//      val uri = new MongoClientURI(mongoDbConnectionString)
-//      val mongoClient = MongoClient(uri)
-//      val adapter = new MongoAdapter(mongoClient)
-//      Adapter.withAdapter(adapter, f)
-//    }
-//
-//    def convertEodBarRecord(record: MongoDBObject): EodBar = {
-//      EodBar(
-//        record.as[String]("s"),
-//        datetime(record.as[Long]("ts")),
-//        datetime(record.as[Long]("te")),
-//        record.as[BigDecimal]("o"),
-//        record.as[BigDecimal]("h"),
-//        record.as[BigDecimal]("l"),
-//        record.as[BigDecimal]("c"),
-//        record.as[Long]("v")
-//      )
-//    }
-//
-//    def convertCorporateActionRecord(record: MongoDBObject): CorporateAction = {
-//      val kind = record.as[String]("_type")
-//      kind match {
-//        case "Split" => convertSplitRecord(record)
-//        case "CashDividend" => convertCashDividendRecord(record)
-//        case _ => throw new IllegalArgumentException("A corporate action's _type must be either Split or CashDividend")
-//      }
-//    }
-//
-//    def convertSplitRecord(record: MongoDBObject): Split = {
-//      Split(
-//        record.as[String]("s"),
-//        datetime(record.as[Long]("ex")),
-//        record.as[BigDecimal]("r")
-//      )
-//    }
-//
-//    def convertCashDividendRecord(record: MongoDBObject): CashDividend = {
-//      CashDividend(
-//        record.as[String]("s"),
-//        datetime(record.as[Long]("decl")),
-//        datetime(record.as[Long]("ex")),
-//        datetime(record.as[Long]("rec")),
-//        datetime(record.as[Long]("pay")),
-//        record.as[BigDecimal]("a")
-//      )
-//    }
-//
-//    def convertQuarterlyReportRecord(record: MongoDBObject): QuarterlyReport = {
-//      QuarterlyReport(
-//        record.as[String]("s"),
-//        datetime(record.as[Long]("ts")),  // start time
-//        datetime(record.as[Long]("te")),  // end time
-//        datetime(record.as[Long]("tp")),  // publication time
-//        record.as[BigDecimal]("o"),
-//        record.as[BigDecimal]("h"),
-//        record.as[BigDecimal]("l"),
-//        record.as[BigDecimal]("c"),
-//        record.as[Long]("v")
-//      )
-//    }
-//  }
-//
-//  class MongoAdapter(val mongoClient: MongoClient) extends Adapter {
-//    import MongoAdapter._
-//
-//    def queryEodBar(time: DateTime, securityId: SecurityId): Option[Bar] = {
-//      val eodBars = mongoClient("tradesim")("eod_bars")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol) ++ ("ts" $lte timestamp(time))
-//      val orderByClause = MongoDBObject.empty ++ ("ts" -> -1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause).limit(1)
-//      val obj = Option(cursor.next)
-//      obj.map(convertEodBarRecord(_))
-//    }
-//
-//    def queryEodBarPriorTo(time: DateTime, securityId: SecurityId): Option[Bar] = {
-//      val eodBars = mongoClient("tradesim")("eod_bars")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol) ++ ("te" $lt timestamp(time))
-//      val orderByClause = MongoDBObject.empty ++ ("te" -> -1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause).limit(1)
-//      val obj = Option(cursor.next)
-//      obj.map(convertEodBarRecord(_))
-//    }
-//
-//    def queryEodBars(securityId: SecurityId): Seq[Bar] = {
-//      val eodBars = mongoClient("tradesim")("eod_bars")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol)
-//      val orderByClause = MongoDBObject.empty ++ ("ts" -> 1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause)
-//      cursor.map(convertEodBarRecord(_)).toList
-//    }
-//
-//    def queryEodBars(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = {
-//      val eodBars = mongoClient("tradesim")("eod_bars")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol) ++ ("ts" $gte timestamp(earliestTime)) ++ ("te" $lte timestamp(latestTime))
-//      val orderByClause = MongoDBObject.empty ++("ts" -> 1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause)
-//      cursor.map(convertEodBarRecord(_)).toList
-//    }
-//
-//    def findOldestEodBar(securityId: SecurityId): Option[Bar] = {
-//      val eodBars = mongoClient("tradesim")("eod_bars")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol)
-//      val orderByClause = MongoDBObject.empty ++ ("ts" -> 1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause).limit(1)
-//      val obj = Option(cursor.next)
-//      obj.map(convertEodBarRecord(_))
-//    }
-//
-//    def findMostRecentEodBar(securityId: SecurityId): Option[Bar] = {
-//      val eodBars = mongoClient("tradesim")("eod_bars")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol)
-//      val orderByClause = MongoDBObject.empty ++ ("ts" -> -1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause).limit(1)
-//      val obj = Option(cursor.next)
-//      obj.map(convertEodBarRecord(_))
-//    }
-//
-//    /**
-//     * Returns a sequence of Split and CashDividend records (ordered in ascending order by ex_dt - i.e. oldest to newest) for <symbol-or-symbols> that
-//     * have taken effect or have been applied at some point within the interval defined by [begin-dt, end-dt].
-//     * <symbol-or-symbols> may be either a single String or a vector of Strings.
-//     *
-//     * Assumes that there is a mongodb collection named "corporate_actions" containing the fields:
-//     *   s (ticker symbol),
-//     *   ex (timestamp representing the date and time at which the split/dividend takes effect or is applied)
-//     *   _type (a string of either "Split" or "CashDividend")
-//     * and that there is an ascending index of the form:
-//     *   index([
-//     *     [:s, 1],
-//     *     [:ex, 1]
-//     *   ])
-//     */
-//    def queryCorporateActions(symbols: IndexedSeq[String]): IndexedSeq[CorporateAction] = {
-//      val eodBars = mongoClient("tradesim")("corporate_actions")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" $in symbols)
-//      val orderByClause = MongoDBObject.empty ++ ("ex" -> 1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause)
-//      cursor.map(convertCorporateActionRecord(_)).to[Vector]
-//    }
-//
-//    def queryCorporateActions(symbols: IndexedSeq[String], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-//      val eodBars = mongoClient("tradesim")("corporate_actions")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" $in symbols) ++ ("ex" $gte timestamp(startTime)) ++ ("te" $lte timestamp(endTime))
-//      val orderByClause = MongoDBObject.empty ++ ("ex" -> 1)
-//      val cursor = (eodBars.find(query) $orderby orderByClause)
-//      cursor.map(convertCorporateActionRecord(_)).to[Vector]
-//    }
-//
-//    def queryQuarterlyReport(time: DateTime, securityId: SecurityId): Option[QuarterlyReport] = {
-//      val quarterlyReports = mongoClient("tradesim")("quarterly_reports")
-//      val query: DBObject = MongoDBObject.empty ++ ("s" -> symbol) ++ ("ts" $lte timestamp(time))
-//      val orderByClause = MongoDBObject.empty ++ ("ts" -> -1)
-//      val cursor = (quarterlyReports.find(query) $orderby orderByClause).limit(1)
-//      val obj = Option(cursor.next)
-//      obj.map(convertQuarterlyReportRecord(_))
-//    }
-//
-//    def queryQuarterlyReportPriorTo(time: DateTime, securityId: SecurityId): Option[QuarterlyReport] = {
-//
-//    }
-//
-//    def queryQuarterlyReports(securityId: SecurityId): Seq[QuarterlyReport] = {
-//
-//    }
-//
-//    def queryQuarterlyReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[QuarterlyReport] = {
-//
-//    }
-//  }
-
   object SlickAdapter {
     object Exchanges extends Table[Exchange]("exchanges") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
@@ -615,8 +443,10 @@ object db {
     // Trial stuff
 
     def insertTrials(strategyName: String, trialStatePairs: Seq[(Trial, State)]): Seq[Int] = {
-      val records = trialStatePairs.par.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).seq
-      Trials.forInsert.insertAll(records:_*)
+      trialStatePairs.grouped(100).flatMap { pairs =>
+        val records = pairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).seq
+        Trials.forInsert.insertAll(records:_*)
+      }.toSeq
     }
 
     def buildInsertionTuple(strategyName: String, trial: Trial, state: State): NewTrialRecord = {
@@ -632,7 +462,7 @@ object db {
       (strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
     }
 
-    implicit def securityIdsToListOfInteger(securityIds: Seq[SecurityId]): Seq[java.lang.Integer] = securityIds.map(_.asInstanceOf[Int])
+    def securityIdsToListOfInteger(securityIds: Seq[SecurityId]): Seq[java.lang.Integer] = securityIds.map(Int.box(_))
 
     def convertSecurityIdListToThrift(securityIds: Seq[SecurityId]): thrift.SecurityIds = {
       val list = new thrift.SecurityIds()

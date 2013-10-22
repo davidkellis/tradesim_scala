@@ -6,6 +6,8 @@ mainClass in assembly := Some("dke.tradesim.Runner")
 
 name := "tradesim"
 
+mainClass in (Compile, run) := Some("dke.tradesim.Runner")
+
 version := "1.0"
 
 scalaVersion := "2.10.3"

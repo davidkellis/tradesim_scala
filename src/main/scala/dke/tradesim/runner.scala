@@ -5,6 +5,8 @@ import net.sf.ehcache.{CacheManager}
 import dke.tradesim.strategies.buyandhold
 import dke.tradesim.db.{Adapter, SlickAdapter}
 
+// run this from within sbt like this: sbt "run -s bah4"
+
 object Runner {
   class RuntimeConfig(arguments: Seq[String]) extends ScallopConf(arguments) {
     version("tradesim 1.0.0 (c) 2013 David K Ellis")
@@ -22,7 +24,7 @@ object Runner {
   def main(args: Array[String]) {
     val config = new RuntimeConfig(args)
     val jdbcConnectionString = config.jdbc.get.getOrElse("jdbc:postgresql:tradesim")
-    val username = config.username.get.getOrElse("")
+    val username = config.username.get.getOrElse("david")
     val password = config.password.get.getOrElse("")
 
 //    MongoAdapter.withAdapter("mongodb://localhost") {

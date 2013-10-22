@@ -10,7 +10,7 @@ import dke.tradesim.quotes.{barClose, barSimQuote}
 import dke.tradesim.portfolio.{portfolioValue}
 import dke.tradesim.priceHistory.{commonTrialPeriodStartDates}
 import dke.tradesim.splitsDividends.{adjustPortfolioForCorporateActions, adjustPriceForCorporateActions, adjustOpenOrdersForCorporateActions}
-import dke.tradesim.logger.verbose
+import dke.tradesim.logger.{verbose, info}
 
 object trial {
   def fixedTradingPeriodIsFinalState(strategy: Strategy, trial: Trial, state: State): Boolean = isAfterOrEqual(state.time, trial.endTime)
@@ -258,8 +258,10 @@ object trial {
   def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.map(runTrial(strategy, _)).toVector
   def runTrialsInParallel(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.par.map(runTrial(strategy, _)).seq
 
-  def logTrials(strategy: Strategy, trials: Seq[Trial], finalStates: Seq[State])(implicit adapter: Adapter): Unit =
+  def logTrials(strategy: Strategy, trials: Seq[Trial], finalStates: Seq[State])(implicit adapter: Adapter) {
+    info(s"logTrials(${strategy.name}, ${trials.length} trials, ${finalStates.length} final states)")
     adapter.insertTrials(strategy.name, trials.zip(finalStates))
+  }
 
   def runAndLogTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = {
     val t1 = currentTime()
