@@ -1,7 +1,5 @@
 package dke.tradesim
 
-import com.mongodb.casbah.Imports._
-
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.lifted.Query
 import scala.slick.session.Database
@@ -14,16 +12,13 @@ import scala.util.DynamicVariable
 
 import org.json4s._
 import org.json4s.jackson.JsonMethods._
-import org.json4s.JValue
+import org.json4s.jackson.Serialization
+import org.json4s.JsonDSL.WithBigDecimal._
 
 import org.apache.thrift.{TBase, TSerializer, TDeserializer}
 import org.apache.thrift.protocol.TBinaryProtocol
 
-import dke.tradesim.core.CashDividend
-import dke.tradesim.core.EodBar
-import dke.tradesim.core.AnnualReport
-import dke.tradesim.core.QuarterlyReport
-import dke.tradesim.core.Split
+import dke.tradesim.core._
 import dke.tradesim.json.LiftJValueWithFilter
 
 import scala.language.implicitConversions
@@ -81,6 +76,28 @@ object db {
   }
 
   object SlickAdapter {
+    class DateTimeSerializer extends CustomSerializer[DateTime](format => (
+      {
+        case JObject(JField("timestamp", JInt(timestamp)) :: Nil) => datetime(timestamp.toLong)
+      },
+      {
+        case t: DateTime => JObject(JField("timestamp", JInt(timestamp(t))) :: Nil)
+      }
+      )
+    )
+
+    implicit val formats = Serialization.formats(ShortTypeHints(List(
+      classOf[MarketBuy],
+      classOf[MarketSell],
+      classOf[LimitBuy],
+      classOf[LimitSell],
+      classOf[SplitAdjustment],
+      classOf[CashDividendPayment]
+    ))) + new DateTimeSerializer
+
+//    implicit val formats = Serialization.formats(NoTypeHints) + new DateTimeSerializer
+
+
     object Exchanges extends Table[Exchange]("exchanges") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
       def label = column[String]("label")
@@ -450,124 +467,16 @@ object db {
     }
 
     def buildInsertionTuple(strategyName: String, trial: Trial, state: State): NewTrialRecord = {
-      val securityIds = serializeThriftObject(convertSecurityIdListToThrift(trial.securityIds))
+      val securityIds = Serialization.write(SecurityIds(trial.securityIds))
       val principal = trial.principal.toString
       val commissionPerTrade = trial.commissionPerTrade.toString
       val commissionPerShare = trial.commissionPerShare.toString
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
-      val transactionLog = serializeThriftObject(convertTransactionLogToThrift(state.transactions))
-      val portfolioValueLog = serializeThriftObject(convertPortfolioValueLogToThrift(state.portfolioValueHistory))
+      val transactionLog = Serialization.write(Transactions(state.transactions))
+      val portfolioValueLog = Serialization.write(PortfolioValues(state.portfolioValueHistory))
 
       (strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
-    }
-
-    def securityIdsToListOfInteger(securityIds: Seq[SecurityId]): Seq[java.lang.Integer] = securityIds.map(Int.box(_))
-
-    def convertSecurityIdListToThrift(securityIds: Seq[SecurityId]): thrift.SecurityIds = {
-      val list = new thrift.SecurityIds()
-      list.setSecurityIds(securityIdsToListOfInteger(securityIds))
-      list
-    }
-
-    def convertTransactionLogToThrift(transactions: TransactionLog): thrift.TransactionLog = {
-      val transactionLog = new thrift.TransactionLog()
-      transactionLog.setTransactions(transactions.map(convertTransactionToThrift))
-      transactionLog
-    }
-
-    def convertTransactionToThrift(transaction: Transaction): thrift.Transaction = {
-      val thriftTransaction = new thrift.Transaction()
-      transaction match {
-        case MarketBuy(time, securityId, qty, fillPrice) =>
-          thriftTransaction.setMarketBuyOrder(buildThriftMarketBuyOrder(time, securityId, qty, fillPrice))
-        case MarketSell(time, securityId, qty, fillPrice) =>
-          thriftTransaction.setMarketSellOrder(buildThriftMarketSellOrder(time, securityId, qty, fillPrice))
-        case LimitBuy(time, securityId, qty, limitPrice, fillPrice) =>
-          thriftTransaction.setLimitBuyOrder(buildThriftLimitBuyOrder(time, securityId, qty, limitPrice, fillPrice))
-        case LimitSell(time, securityId, qty, limitPrice, fillPrice) =>
-          thriftTransaction.setLimitSellOrder(buildThriftLimitSellOrder(time, securityId, qty, limitPrice, fillPrice))
-        case CashDividendPayment(securityId, exDate, payableDate, amountPerShare, adjustmentTime, shareQty, total) =>
-          thriftTransaction.setCashDividendPayment(buildThriftCashDividendPayment(securityId, exDate, payableDate, amountPerShare, adjustmentTime, shareQty, total))
-        case SplitAdjustment(securityId, exDate, ratio, adjustmentTime, shareQtyDelta, cashPayout) =>
-          thriftTransaction.setSplitAdjustment(buildThriftSplitAdjustment(securityId, exDate, ratio, adjustmentTime, shareQtyDelta, cashPayout))
-      }
-      thriftTransaction
-    }
-
-    def buildThriftMarketBuyOrder(time: DateTime, securityId: SecurityId, qty: Long, fillPrice: Option[BigDecimal]): thrift.MarketBuyOrder = {
-      val order = new thrift.MarketBuyOrder(timestamp(time), securityId, qty)
-      fillPrice match {
-        case Some(price) => order.setFillPrice(price.toString)
-        case None => order
-      }
-    }
-
-    def buildThriftMarketSellOrder(time: DateTime, securityId: SecurityId, qty: Long, fillPrice: Option[BigDecimal]): thrift.MarketSellOrder = {
-      val order = new thrift.MarketSellOrder(timestamp(time), securityId, qty)
-      fillPrice match {
-        case Some(price) => order.setFillPrice(price.toString)
-        case None => order
-      }
-    }
-
-    def buildThriftLimitBuyOrder(time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal]): thrift.LimitBuyOrder = {
-      val order = new thrift.LimitBuyOrder(timestamp(time), securityId, qty, limitPrice.toString)
-      fillPrice match {
-        case Some(price) => order.setFillPrice(price.toString)
-        case None => order
-      }
-    }
-
-    def buildThriftLimitSellOrder(time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal, fillPrice: Option[BigDecimal]): thrift.LimitSellOrder = {
-      val order = new thrift.LimitSellOrder(timestamp(time), securityId, qty, limitPrice.toString)
-      fillPrice match {
-        case Some(price) => order.setFillPrice(price.toString)
-        case None => order
-      }
-    }
-
-    def buildThriftCashDividendPayment(securityId: SecurityId,
-                                       exDate: DateTime,
-                                       payableDate: Option[DateTime],
-                                       amountPerShare: BigDecimal,
-                                       adjustmentTime: DateTime,
-                                       shareQty: Long,
-                                       total: BigDecimal): thrift.CashDividendPayment = {
-      val dividendPayment = new thrift.CashDividendPayment(securityId,
-                                                           timestamp(exDate),
-                                                           amountPerShare.toString,
-                                                           timestamp(adjustmentTime),
-                                                           shareQty,
-                                                           total.toString)
-      payableDate match {
-        case Some(date) => dividendPayment.setPayableDate(timestamp(date))
-        case None => dividendPayment
-      }
-    }
-
-    def buildThriftSplitAdjustment(securityId: SecurityId,
-                                   exDate: DateTime,
-                                   ratio: BigDecimal,
-                                   adjustmentTime: DateTime,
-                                   shareQtyDelta: Long,
-                                   cashPayout: BigDecimal): thrift.SplitAdjustment = {
-      new thrift.SplitAdjustment(securityId, timestamp(exDate), ratio.toString, timestamp(adjustmentTime), shareQtyDelta, cashPayout.toString)
-    }
-
-    def convertPortfolioValueLogToThrift(portfolioValueLog: Seq[PortfolioValue]): thrift.PortfolioValueHistory = {
-      val portfolioValueHistory = new thrift.PortfolioValueHistory()
-      portfolioValueHistory.setPortfolioValues(portfolioValueLog.map(convertPortfolioValueToThrift))
-      portfolioValueHistory
-    }
-
-    def convertPortfolioValueToThrift(portfolioValue: PortfolioValue): thrift.PortfolioValue = {
-      new thrift.PortfolioValue(timestamp(portfolioValue.time), portfolioValue.value.toString)
-    }
-
-    def serializeThriftObject[T <: org.apache.thrift.TBase[_, _], F <: org.apache.thrift.TFieldIdEnum](thriftObject: TBase[T, F]): String = {
-      val serializer = new TSerializer(new TBinaryProtocol.Factory())
-      serializer.toString(thriftObject)
     }
   }
 }

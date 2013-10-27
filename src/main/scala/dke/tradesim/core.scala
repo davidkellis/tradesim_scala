@@ -5,6 +5,8 @@ import dke.tradesim.datetimeUtils.Datestamp
 
 object core {
   type SecurityId = Int
+  case class SecurityIds(securityIds: Seq[SecurityId])
+
   type StockHoldings = Map[SecurityId, Long]
 
   case class Portfolio(cash: BigDecimal,
@@ -13,6 +15,7 @@ object core {
   sealed trait Transaction
 
   type TransactionLog = IndexedSeq[Transaction]
+  case class Transactions(transactions: Seq[Transaction])
 
   sealed trait Order extends Transaction {
     val time: DateTime
@@ -58,6 +61,7 @@ object core {
   type PriceQuoteFn = (DateTime, SecurityId) => Option[BigDecimal]
 
   case class PortfolioValue(time: DateTime, value: BigDecimal)
+  case class PortfolioValues(portfolioValues: Seq[PortfolioValue])
 
   case class State(previousTime: DateTime,
                    time: DateTime,
