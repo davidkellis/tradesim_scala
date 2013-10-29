@@ -164,7 +164,7 @@ object splitsDividends {
   def adjustPriceForCorporateActions(price: BigDecimal, securityId: SecurityId, priceObservationTime: DateTime, adjustmentTime: DateTime): BigDecimal =
     price * cumulativePriceAdjustmentFactor(securityId, priceObservationTime, adjustmentTime)
 
-  def adjustPortfolioForCorporateActions(currentState: State, earlierObservationTime: DateTime, laterObservationTime: DateTime): State = {
+  def adjustPortfolioForCorporateActions[StateT <: State](currentState: StateT, earlierObservationTime: DateTime, laterObservationTime: DateTime): StateT = {
     val portfolio = currentState.portfolio
     val securityIds = portfolio.stocks.keys.toVector
     val corporateActions = findCorporateActions(securityIds, earlierObservationTime, laterObservationTime)
@@ -188,7 +188,7 @@ object splitsDividends {
     }
   }
 
-  def adjustPortfolio(corporateAction: CorporateAction, currentState: State): State = corporateAction match {
+  def adjustPortfolio[StateT <: State](corporateAction: CorporateAction, currentState: StateT): StateT = corporateAction match {
     case split: Split => adjustPortfolio(split, currentState)
     case dividend: CashDividend => adjustPortfolio(dividend, currentState)
   }
@@ -198,7 +198,7 @@ object splitsDividends {
    * Note:
    *   new holdings = old holdings * split ratio
    */
-  def adjustPortfolio(split: Split, currentState: State): State = {
+  def adjustPortfolio[StateT <: State](split: Split, currentState: StateT): StateT = {
     val portfolio = currentState.portfolio
     val securityId = split.securityId
     val exDate = split.exDate
@@ -224,7 +224,7 @@ object splitsDividends {
     }.getOrElse(currentState)
   }
 
-  def adjustPortfolio(dividend: CashDividend, currentState: State): State = {
+  def adjustPortfolio[StateT <: State](dividend: CashDividend, currentState: StateT): StateT = {
     val portfolio = currentState.portfolio
     val qty = sharesOnHand(portfolio, dividend.securityId)
     val dividendPaymentAmount = computeDividendPaymentAmount(portfolio, dividend, qty)

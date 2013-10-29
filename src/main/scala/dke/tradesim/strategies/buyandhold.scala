@@ -1,8 +1,8 @@
 package dke.tradesim.strategies
 
-import org.joda.time.LocalTime
+import org.joda.time.{DateTime, LocalTime}
 import dke.tradesim.adjustedQuotes.adjEodSimQuote
-import dke.tradesim.core.{SecurityId, State, Trial, Strategy, defaultInitialState}
+import dke.tradesim.core._
 import dke.tradesim.datetimeUtils.{periodBetween, randomDateTime, datetime, years, days}
 import dke.tradesim.logger._
 import dke.tradesim.math.floor
@@ -12,12 +12,31 @@ import dke.tradesim.quotes.{barHigh, barLow, barClose, barSimQuote, findEodBar}
 import dke.tradesim.schedule.{buildTradingSchedule, defaultTradingSchedule, defaultHolidaySchedule}
 import dke.tradesim.securities.{findStocks, PrimaryUsExchanges}
 import dke.tradesim.trial.{buildScheduledTimeIncrementer, buildInitialJumpTimeIncrementer, tradingBloxFillPriceWithSlippage, runTrial, buildTrialGenerator, buildAllTrialIntervals, buildTrials, fixedTradingPeriodIsFinalState, runAndLogTrialsInParallel}
-import dke.tradesim.securities
+import dke.tradesim.core
+import dke.tradesim.core.Strategy
+import dke.tradesim.core.Trial
 
 object buyandhold {
-  def initialState(strategy: Strategy, trial: Trial): State = defaultInitialState(trial.startTime, trial.principal)
 
-  def nextState(strategy: Strategy, trial: Trial, state: State): State = {
+  case class State(previousTime: DateTime,
+                   time: DateTime,
+                   portfolio: Portfolio,
+                   orders: IndexedSeq[Order],
+                   transactions: TransactionLog,
+                   portfolioValueHistory: Seq[PortfolioValue],
+                   hasEnteredPosition: Boolean) extends core.State {
+    def copy(previousTime: DateTime = previousTime,
+             time: DateTime = time,
+             portfolio: Portfolio = portfolio,
+             orders: IndexedSeq[Order] = orders,
+             transactions: TransactionLog = transactions,
+             portfolioValueHistory: Seq[PortfolioValue] = portfolioValueHistory): State =
+      new State(previousTime, time, portfolio, orders, transactions, portfolioValueHistory, hasEnteredPosition)
+  }
+
+  def initialState(strategy: Strategy[State], trial: Trial): State = State(null, null, null, null, null, null, false).initializeState(trial.startTime, trial.principal)
+
+  def nextState(strategy: Strategy[State], trial: Trial, state: State): State = {
     val time = state.time
     val startTime = trial.startTime
     val endTime = trial.endTime
@@ -34,7 +53,7 @@ object buyandhold {
     }
   }
 
-  def buildStrategy(): Strategy = Strategy("Buy And Hold", initialState, nextState, fixedTradingPeriodIsFinalState)
+  def buildStrategy(): Strategy[State] = Strategy("Buy And Hold", initialState, nextState, fixedTradingPeriodIsFinalState)
 
   object scenarios {
     def runSingleTrial1() {

@@ -111,33 +111,33 @@ object ordering {
     case sellOrder: SellOrder => orderFillPrice(sellOrder, purchaseFillPriceFn, saleFillPriceFn)
   }
 
-  def cancelAllPendingOrders(currentState: State): State = currentState.copy(orders = Vector())
+  def cancelAllPendingOrders[StateT <: State](currentState: StateT): StateT = currentState.copy(orders = Vector())
 
-  def buy(currentState: State, time: DateTime, securityId: SecurityId, qty: Long): State = {
+  def buy[StateT <: State](currentState: StateT, time: DateTime, securityId: SecurityId, qty: Long): StateT = {
     val newOrders = currentState.orders :+ MarketBuy(time, securityId, qty, None)
     currentState.copy(orders = newOrders)
   }
 
-  def buyImmediately(currentState: State, securityId: SecurityId, qty: Long): State = buy(currentState, currentState.time, securityId, qty)
+  def buyImmediately[StateT <: State](currentState: StateT, securityId: SecurityId, qty: Long): StateT = buy(currentState, currentState.time, securityId, qty)
 
-  def limitBuy(currentState: State, time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal): State = {
+  def limitBuy[StateT <: State](currentState: StateT, time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal): StateT = {
     val newOrders = currentState.orders :+ LimitBuy(time, securityId, qty, limitPrice, None)
     currentState.copy(orders = newOrders)
   }
 
-  def sell(currentState: State, time: DateTime, securityId: SecurityId, qty: Long): State = {
+  def sell[StateT <: State](currentState: StateT, time: DateTime, securityId: SecurityId, qty: Long): StateT = {
     val newOrders = currentState.orders :+ MarketSell(time, securityId, qty, None)
     currentState.copy(orders = newOrders)
   }
 
-  def sellImmediately(currentState: State, securityId: SecurityId, qty: Long): State = sell(currentState, currentState.time, securityId, qty)
+  def sellImmediately[StateT <: State](currentState: StateT, securityId: SecurityId, qty: Long): StateT = sell(currentState, currentState.time, securityId, qty)
 
-  def limitSell(currentState: State, time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal): State = {
+  def limitSell[StateT <: State](currentState: StateT, time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal): StateT = {
     val newOrders = currentState.orders :+ LimitSell(time, securityId, qty, limitPrice, None)
     currentState.copy(orders = newOrders)
   }
 
-  def closeOpenStockPosition(currentState: State, securityId: SecurityId): State = {
+  def closeOpenStockPosition[StateT <: State](currentState: StateT, securityId: SecurityId): StateT = {
     val qtyOnHand = sharesOnHand(currentState.portfolio, securityId)
     qtyOnHand match {
       case qty if qty > 0 => sellImmediately(currentState, securityId, qtyOnHand)    // we own shares, so sell them
@@ -146,7 +146,7 @@ object ordering {
     }
   }
 
-  def closeAllOpenStockPositions(currentState: State): State = {
+  def closeAllOpenStockPositions[StateT <: State](currentState: StateT): StateT = {
     val stocks = currentState.portfolio.stocks
     if (!stocks.isEmpty)
       stocks.keys.foldLeft(currentState)(closeOpenStockPosition)

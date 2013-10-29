@@ -15,8 +15,8 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
 import org.json4s.JsonDSL.WithBigDecimal._
 
-import org.apache.thrift.{TBase, TSerializer, TDeserializer}
-import org.apache.thrift.protocol.TBinaryProtocol
+//import org.apache.thrift.{TBase, TSerializer, TDeserializer}
+//import org.apache.thrift.protocol.TBinaryProtocol
 
 import dke.tradesim.core._
 import dke.tradesim.json.LiftJValueWithFilter
@@ -72,7 +72,7 @@ object db {
     def queryAnnualReports(securityId: SecurityId): Seq[AnnualReport]
     def queryAnnualReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport]
 
-    def insertTrials(strategyName: String, trialStatePairs: Seq[(Trial, State)]): Seq[Int]
+    def insertTrials[StateT <: State](strategyName: String, trialStatePairs: Seq[(Trial, StateT)]): Seq[Int]
   }
 
   object SlickAdapter {
@@ -459,14 +459,14 @@ object db {
 
     // Trial stuff
 
-    def insertTrials(strategyName: String, trialStatePairs: Seq[(Trial, State)]): Seq[Int] = {
+    def insertTrials[StateT <: State](strategyName: String, trialStatePairs: Seq[(Trial, StateT)]): Seq[Int] = {
       trialStatePairs.grouped(100).flatMap { pairs =>
         val records = pairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).seq
         Trials.forInsert.insertAll(records:_*)
       }.toSeq
     }
 
-    def buildInsertionTuple(strategyName: String, trial: Trial, state: State): NewTrialRecord = {
+    def buildInsertionTuple[StateT <: State](strategyName: String, trial: Trial, state: StateT): NewTrialRecord = {
       val securityIds = Serialization.write(SecurityIds(trial.securityIds))
       val principal = trial.principal.toString
       val commissionPerTrade = trial.commissionPerTrade.toString

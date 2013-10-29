@@ -63,12 +63,28 @@ object core {
   case class PortfolioValue(time: DateTime, value: BigDecimal)
   case class PortfolioValues(portfolioValues: Seq[PortfolioValue])
 
-  case class State(previousTime: DateTime,
-                   time: DateTime,
-                   portfolio: Portfolio,
-                   orders: IndexedSeq[Order],
-                   transactions: TransactionLog,
-                   portfolioValueHistory: Seq[PortfolioValue])
+  trait State {
+    val previousTime: DateTime
+    val time: DateTime
+    val portfolio: Portfolio
+    val orders: IndexedSeq[Order]
+    val transactions: TransactionLog
+    val portfolioValueHistory: Seq[PortfolioValue]
+
+    def copy(previousTime: DateTime = previousTime,
+             time: DateTime = time,
+             portfolio: Portfolio = portfolio,
+             orders: IndexedSeq[Order] = orders,
+             transactions: TransactionLog = transactions,
+             portfolioValueHistory: Seq[PortfolioValue] = portfolioValueHistory): this.type
+
+    def initializeState(time: DateTime, principal: BigDecimal): this.type = copy(time,
+                                                                                 time,
+                                                                                 Portfolio(principal, Map[SecurityId, Long]()),
+                                                                                 Vector(),
+                                                                                 Vector(),
+                                                                                 List())
+  }
 
   case class Trial(securityIds: IndexedSeq[SecurityId],
                    principal: BigDecimal,
@@ -80,10 +96,10 @@ object core {
                    purchaseFillPrice: PriceQuoteFn,
                    saleFillPrice: PriceQuoteFn)
 
-  case class Strategy(name: String,
-                      buildInitState: (Strategy, Trial) => State,
-                      buildNextState: (Strategy, Trial, State) => State,
-                      isFinalState: (Strategy, Trial, State) => Boolean)
+  case class Strategy[StateT <: State](name: String,
+                                       buildInitState: (Strategy[StateT], Trial) => StateT,
+                                       buildNextState: (Strategy[StateT], Trial, StateT) => StateT,
+                                       isFinalState: (Strategy[StateT], Trial, StateT) => Boolean)
 
 
   case class Industry(name: String)
@@ -191,13 +207,6 @@ object core {
                           incomeStatement: IncomeStatement,
                           balanceSheet: BalanceSheet,
                           cashFlowStatement: CashFlowStatement) extends FinancialReport
-
-  def defaultInitialState(time: DateTime, principal: BigDecimal) = State(time,
-                                                                         time,
-                                                                         Portfolio(principal, Map[SecurityId, Long]()),
-                                                                         Vector(),
-                                                                         Vector(),
-                                                                         List())
 
   // like the -> (thread) operator in clojure
   def threadThrough[T](o: T)(fns: Function[T, T]*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))

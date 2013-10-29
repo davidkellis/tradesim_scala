@@ -1,5 +1,5 @@
 target/
 .idea/
 .idea_modules/
-tradesim.iml
+*.iml
 .history

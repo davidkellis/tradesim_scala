@@ -13,7 +13,7 @@ import dke.tradesim.splitsDividends.{adjustPortfolioForCorporateActions, adjustP
 import dke.tradesim.logger.{verbose, info}
 
 object trial {
-  def fixedTradingPeriodIsFinalState(strategy: Strategy, trial: Trial, state: State): Boolean = isAfterOrEqual(state.time, trial.endTime)
+  def fixedTradingPeriodIsFinalState[StateT <: State](strategy: Strategy[StateT], trial: Trial, state: StateT): Boolean = isAfterOrEqual(state.time, trial.endTime)
 
   /**
    * Returns a function of one argument, <time>. The function returns the next scheduled time after <time> such that the time
@@ -101,11 +101,11 @@ object trial {
    * fewer or more shares/cash/etc. than current-state.portfolio (meaning, the portfolio will be adjusted for filled orders);
    * and new-current-state.transactions may contain additional filled orders (NOTE: filled orders have a non-nil fill-price)
    */
-  def executeOrders(trial: Trial, currentState: State): State = {
+  def executeOrders[StateT <: State](trial: Trial, currentState: StateT): StateT = {
     val purchaseFillPriceFn = trial.purchaseFillPrice
     val saleFillPriceFn = trial.saleFillPrice
 
-    def executeOrders(portfolio: Portfolio, orders: IndexedSeq[Order], unfilledOrders: IndexedSeq[Order], transactions: TransactionLog): State = {
+    def executeOrders(portfolio: Portfolio, orders: IndexedSeq[Order], unfilledOrders: IndexedSeq[Order], transactions: TransactionLog): StateT = {
       if (orders.isEmpty)                                                                     // if there aren't any open orders...
         currentState.copy(portfolio = portfolio,                                              // return the new/next current state
                           orders = unfilledOrders,
@@ -134,7 +134,7 @@ object trial {
    * Returns a new State that has been adjusted for stock splits and dividend payouts that have gone into effect at some point within the
    * interval [current-state.previous-time, current-state.time].
    */
-  def adjustStrategyStateForRecentSplitsAndDividends(currentState: State): State = {
+  def adjustStrategyStateForRecentSplitsAndDividends[StateT <: State](currentState: StateT): StateT = {
     val openOrders = currentState.orders
     val previousTime = currentState.previousTime
     val currentTime = currentState.time
@@ -143,15 +143,15 @@ object trial {
     currentStateWithAdjustedPortfolio.copy(orders = adjustedOpenOrders)
   }
 
-  def incrementStateTime(nextTime: DateTime, currentState: State): State = currentState.copy(previousTime = currentState.time, time = nextTime)
+  def incrementStateTime[StateT <: State](nextTime: DateTime, currentState: StateT): StateT = currentState.copy(previousTime = currentState.time, time = nextTime)
 
-  def logCurrentPortfolioValue(currentState: State): State = {
+  def logCurrentPortfolioValue[StateT <: State](currentState: StateT): StateT = {
     val currentPortfolioValue = portfolioValue(currentState.portfolio, currentState.time, barClose _, barSimQuote _)
     val newHistory = currentState.portfolioValueHistory :+ PortfolioValue(currentState.time, currentPortfolioValue)
     currentState.copy(portfolioValueHistory = newHistory)
   }
 
-  def closeAllOpenPositions(trial: Trial, currentState: State): State = {
+  def closeAllOpenPositions[StateT <: State](trial: Trial, currentState: StateT): StateT = {
     threadThrough(currentState)(
       cancelAllPendingOrders,
       closeAllOpenStockPositions,
@@ -180,7 +180,7 @@ object trial {
    *   been adjusted for corporate actions that took place between Jan 1, 2010 and June 1, 2010, but the user
    *   might only expect the final state to have been adjusted for corporate actions before Jan 1, 2010.
    */
-  def runTrial(strategy: Strategy, trial: Trial): State = {
+  def runTrial[StateT <: State](strategy: Strategy[StateT], trial: Trial): StateT = {
     val buildInitStrategyState = strategy.buildInitState
     val buildNextStrategyState = strategy.buildNextState
     val isFinalState = strategy.isFinalState
@@ -190,7 +190,7 @@ object trial {
 //    println("strategy=" + strategy)
 //    println("trial=" + trial)
 
-    def runTrial(currentState: State): State = {
+    def runTrial(currentState: StateT): StateT = {
 //      println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
 //      println("currentState=" + currentState)
 
@@ -247,7 +247,7 @@ object trial {
                                  purchaseFillPriceFn,
                                  saleFillPriceFn)
 
-  def buildTrials(strategy: Strategy,
+  def buildTrials[StateT <: State](strategy: Strategy[StateT],
                   trialIntervalGeneratorFn: (IndexedSeq[SecurityId]) => Seq[Interval],
                   trialGeneratorFn: TrialGenerator,
                   securityIds: IndexedSeq[SecurityId]): Seq[Trial] = {
@@ -255,15 +255,15 @@ object trial {
     trialIntervals.map(interval => trialGeneratorFn(securityIds, interval.getStart, interval.getEnd))
   }
 
-  def runTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.map(runTrial(strategy, _)).toVector
-  def runTrialsInParallel(strategy: Strategy, trials: Seq[Trial]): Seq[State] = trials.par.map(runTrial(strategy, _)).seq
+  def runTrials[StateT <: State](strategy: Strategy[StateT], trials: Seq[Trial]): Seq[StateT] = trials.map(runTrial(strategy, _)).toVector
+  def runTrialsInParallel[StateT <: State](strategy: Strategy[StateT], trials: Seq[Trial]): Seq[StateT] = trials.par.map(runTrial(strategy, _)).seq
 
-  def logTrials(strategy: Strategy, trials: Seq[Trial], finalStates: Seq[State])(implicit adapter: Adapter) {
+  def logTrials[StateT <: State](strategy: Strategy[StateT], trials: Seq[Trial], finalStates: Seq[StateT])(implicit adapter: Adapter) {
     info(s"logTrials(${strategy.name}, ${trials.length} trials, ${finalStates.length} final states)")
     adapter.insertTrials(strategy.name, trials.zip(finalStates))
   }
 
-  def runAndLogTrials(strategy: Strategy, trials: Seq[Trial]): Seq[State] = {
+  def runAndLogTrials[StateT <: State](strategy: Strategy[StateT], trials: Seq[Trial]): Seq[StateT] = {
     val t1 = currentTime()
     val finalStates = runTrials(strategy, trials)
     val t2 = currentTime()
@@ -275,7 +275,7 @@ object trial {
     finalStates
   }
 
-  def runAndLogTrialsInParallel(strategy: Strategy, trials: Seq[Trial]): Seq[State] = {
+  def runAndLogTrialsInParallel[StateT <: State](strategy: Strategy[StateT], trials: Seq[Trial]): Seq[StateT] = {
     val t1 = currentTime()
     val finalStates = runTrialsInParallel(strategy, trials)
     val t2 = currentTime()
