@@ -63,7 +63,7 @@ object core {
   case class PortfolioValue(time: DateTime, value: BigDecimal)
   case class PortfolioValues(portfolioValues: Seq[PortfolioValue])
 
-  trait State {
+  trait State[SubType] {
     val previousTime: DateTime
     val time: DateTime
     val portfolio: Portfolio
@@ -76,14 +76,14 @@ object core {
              portfolio: Portfolio = portfolio,
              orders: IndexedSeq[Order] = orders,
              transactions: TransactionLog = transactions,
-             portfolioValueHistory: Seq[PortfolioValue] = portfolioValueHistory): this.type
+             portfolioValueHistory: Seq[PortfolioValue] = portfolioValueHistory): SubType
 
-    def initializeState(time: DateTime, principal: BigDecimal): this.type = copy(time,
-                                                                                 time,
-                                                                                 Portfolio(principal, Map[SecurityId, Long]()),
-                                                                                 Vector(),
-                                                                                 Vector(),
-                                                                                 List())
+    def initializeState(time: DateTime, principal: BigDecimal): SubType = copy(time,
+                                                                               time,
+                                                                               Portfolio(principal, Map[SecurityId, Long]()),
+                                                                               Vector(),
+                                                                               Vector(),
+                                                                               List())
   }
 
   case class Trial(securityIds: IndexedSeq[SecurityId],
@@ -96,10 +96,10 @@ object core {
                    purchaseFillPrice: PriceQuoteFn,
                    saleFillPrice: PriceQuoteFn)
 
-  case class Strategy[StateT <: State](name: String,
-                                       buildInitState: (Strategy[StateT], Trial) => StateT,
-                                       buildNextState: (Strategy[StateT], Trial, StateT) => StateT,
-                                       isFinalState: (Strategy[StateT], Trial, StateT) => Boolean)
+  case class Strategy[StateT <: State[StateT]](name: String,
+                                               buildInitState: (Strategy[StateT], Trial) => StateT,
+                                               buildNextState: (Strategy[StateT], Trial, StateT) => StateT,
+                                               isFinalState: (Strategy[StateT], Trial, StateT) => Boolean)
 
 
   case class Industry(name: String)

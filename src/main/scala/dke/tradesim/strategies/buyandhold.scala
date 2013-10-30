@@ -24,7 +24,8 @@ object buyandhold {
                    orders: IndexedSeq[Order],
                    transactions: TransactionLog,
                    portfolioValueHistory: Seq[PortfolioValue],
-                   hasEnteredPosition: Boolean) extends core.State {
+                   hasEnteredPosition: Boolean) extends core.State[State] {
+
     def copy(previousTime: DateTime = previousTime,
              time: DateTime = time,
              portfolio: Portfolio = portfolio,

@@ -164,7 +164,7 @@ object splitsDividends {
   def adjustPriceForCorporateActions(price: BigDecimal, securityId: SecurityId, priceObservationTime: DateTime, adjustmentTime: DateTime): BigDecimal =
     price * cumulativePriceAdjustmentFactor(securityId, priceObservationTime, adjustmentTime)
 
-  def adjustPortfolioForCorporateActions[StateT <: State](currentState: StateT, earlierObservationTime: DateTime, laterObservationTime: DateTime): StateT = {
+  def adjustPortfolioForCorporateActions[StateT <: State[StateT]](currentState: StateT, earlierObservationTime: DateTime, laterObservationTime: DateTime): StateT = {
     val portfolio = currentState.portfolio
     val securityIds = portfolio.stocks.keys.toVector
     val corporateActions = findCorporateActions(securityIds, earlierObservationTime, laterObservationTime)
@@ -188,7 +188,7 @@ object splitsDividends {
     }
   }
 
-  def adjustPortfolio[StateT <: State](corporateAction: CorporateAction, currentState: StateT): StateT = corporateAction match {
+  def adjustPortfolio[StateT <: State[StateT]](corporateAction: CorporateAction, currentState: StateT): StateT = corporateAction match {
     case split: Split => adjustPortfolio(split, currentState)
     case dividend: CashDividend => adjustPortfolio(dividend, currentState)
   }
@@ -198,7 +198,7 @@ object splitsDividends {
    * Note:
    *   new holdings = old holdings * split ratio
    */
-  def adjustPortfolio[StateT <: State](split: Split, currentState: StateT): StateT = {
+  def adjustPortfolio[StateT <: State[StateT]](split: Split, currentState: StateT): StateT = {
     val portfolio = currentState.portfolio
     val securityId = split.securityId
     val exDate = split.exDate
@@ -224,7 +224,7 @@ object splitsDividends {
     }.getOrElse(currentState)
   }
 
-  def adjustPortfolio[StateT <: State](dividend: CashDividend, currentState: StateT): StateT = {
+  def adjustPortfolio[StateT <: State[StateT]](dividend: CashDividend, currentState: StateT): StateT = {
     val portfolio = currentState.portfolio
     val qty = sharesOnHand(portfolio, dividend.securityId)
     val dividendPaymentAmount = computeDividendPaymentAmount(portfolio, dividend, qty)
