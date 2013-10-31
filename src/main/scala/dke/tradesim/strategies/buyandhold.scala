@@ -33,6 +33,8 @@ object buyandhold {
              transactions: TransactionLog = transactions,
              portfolioValueHistory: Seq[PortfolioValue] = portfolioValueHistory): State =
       new State(previousTime, time, portfolio, orders, transactions, portfolioValueHistory, hasEnteredPosition)
+      
+    def withHasEnteredPosition(hasEnteredPosition: Boolean): State = new State(previousTime, time, portfolio, orders, transactions, portfolioValueHistory, hasEnteredPosition)
   }
 
   def initialState(strategy: Strategy[State], trial: Trial): State = State(null, null, null, null, null, null, false).initializeState(trial.startTime, trial.principal)
@@ -45,7 +47,7 @@ object buyandhold {
 
     if (!state.hasEnteredPosition) {
       val qty = floor(maxSharesPurchasable(trial, portfolio, time, securityId, adjEodSimQuote).getOrElse(0)).toLong
-      buy(state, time, securityId, qty)
+      buy(state, time, securityId, qty).withHasEnteredPosition(true)
     } else if (time == endTime) {
       sell(state, time, securityId, sharesOnHand(portfolio, securityId))
     } else {
