@@ -267,11 +267,11 @@ object trial {
     val t1 = currentTime()
     val finalStates = runTrials(strategy, trials)
     val t2 = currentTime()
-    verbose(s"Time to run trials: ${prettyFormatPeriod(periodBetween(t1, t2))}")
+    info(s"Time to run trials: ${prettyFormatPeriod(periodBetween(t1, t2))}")
     val t3 = currentTime()
     logTrials(strategy, trials, finalStates)
     val t4 = currentTime()
-    verbose(s"Time to log trials: ${prettyFormatPeriod(periodBetween(t3, t4))}")
+    info(s"Time to log trials: ${prettyFormatPeriod(periodBetween(t3, t4))}")
     finalStates
   }
 
@@ -279,11 +279,11 @@ object trial {
     val t1 = currentTime()
     val finalStates = runTrialsInParallel(strategy, trials)
     val t2 = currentTime()
-    verbose(s"Time to run trials: ${prettyFormatPeriod(periodBetween(t1, t2))}")
+    info(s"Time to run trials: ${prettyFormatPeriod(periodBetween(t1, t2))}")
     val t3 = currentTime()
     logTrials(strategy, trials, finalStates)
     val t4 = currentTime()
-    verbose(s"Time to log trials: ${prettyFormatPeriod(periodBetween(t3, t4))}")
+    info(s"Time to log trials: ${prettyFormatPeriod(periodBetween(t3, t4))}")
     finalStates
   }
 }

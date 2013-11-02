@@ -7,6 +7,7 @@ import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 import dke.tradesim.core._
 import dke.tradesim.datetimeUtils.{timestamp, datetime, Datestamp, Timestamp}
+import dke.tradesim.logger.{verbose, info}
 import org.joda.time.DateTime
 import scala.util.DynamicVariable
 
@@ -145,7 +146,7 @@ object db {
 
       // Every table needs a * projection with the same type as the table's type parameter
       def * = id ~ strategyName ~ securityIds ~ principal ~ commissionPerTrade ~ commissionPerShare ~ startTime ~ endTime ~ transactionLog ~ portfolioValueLog
-      def forInsert = strategyName ~ securityIds ~ principal ~ commissionPerTrade ~ commissionPerShare ~ startTime ~ endTime ~ transactionLog ~ portfolioValueLog returning id
+      def forInsert = strategyName ~ securityIds ~ principal ~ commissionPerTrade ~ commissionPerShare ~ startTime ~ endTime ~ transactionLog ~ portfolioValueLog
     }
 
 
@@ -460,9 +461,14 @@ object db {
     // Trial stuff
 
     def insertTrials[StateT <: State[StateT]](strategyName: String, trialStatePairs: Seq[(Trial, StateT)]): Unit = {
-      trialStatePairs.grouped(100).foreach{ pairs =>
-        val records = pairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).seq
-        Trials.forInsert.insertAll(records:_*)
+      // trialStatePairs.foreach { pair => 
+      //   Trials.forInsert.insert(buildInsertionTuple(strategyName, pair._1, pair._2))
+      // }
+      trialStatePairs.grouped(500).foreach { pairs =>
+        verbose(s"Building group of records.")
+        val records = pairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).toSeq
+        verbose(s"Inserting group of records.")
+        Trials.forInsert.insertAll(records: _*)
       }
     }
 
