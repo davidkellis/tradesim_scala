@@ -47,8 +47,13 @@ object buyandhold {
 
     if (!state.hasEnteredPosition) {
       val qty = floor(maxSharesPurchasable(trial, portfolio, time, securityId, adjEodSimQuote).getOrElse(0)).toLong
-      buy(state, time, securityId, qty).withHasEnteredPosition(true)
+//      info(s"buy $qty shares")
+//      info(s"state = $state")
+      val newState = buy(state, time, securityId, qty).withHasEnteredPosition(true)
+//      info(s"newState = $newState")
+      newState
     } else if (time == endTime) {
+//      info(s"sell all shares")
       sell(state, time, securityId, sharesOnHand(portfolio, securityId))
     } else {
       state
@@ -99,7 +104,7 @@ object buyandhold {
       val strategy = buildStrategy()
       val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
-      val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1)) //.take(500)
+      val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))  //.take(500)
       info("Building trials")
       val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds)
       info(s"${trials.length} trials")

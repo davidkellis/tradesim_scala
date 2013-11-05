@@ -113,9 +113,10 @@ object trial {
       else {                                                                                  // otherwise, try to fill the first open order:
         val order = orders.head
         val nextOrders = orders.tail
+        val currentTime = currentState.time
 
-        if (isOrderFillable(order, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)) { // if the order is fillable, then fill it, and continue
-          val fillPrice = orderFillPrice(order, purchaseFillPriceFn, saleFillPriceFn).get     // isOrderFillable implies that this expression returns a BigDecimal
+        if (isOrderFillable(order, currentTime, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)) { // if the order is fillable, then fill it, and continue
+          val fillPrice = orderFillPrice(order, currentTime, purchaseFillPriceFn, saleFillPriceFn).get     // isOrderFillable implies that this expression returns a BigDecimal
           val filledOrder = order.changeFillPrice(fillPrice)
           val nextPortfolio = adjustPortfolioFromFilledOrder(trial, portfolio, filledOrder)
           val nextTransactions = transactions :+ filledOrder
@@ -186,7 +187,7 @@ object trial {
     val isFinalState = strategy.isFinalState
     val incrementTime = trial.incrementTime
 
-//    println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+//    println("============================================")
 //    println("strategy=" + strategy)
 //    println("trial=" + trial)
 
