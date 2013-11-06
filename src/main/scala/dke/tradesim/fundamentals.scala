@@ -156,3 +156,8 @@ object fundamentals {
     } yield price * averageSharesOutstanding
   }
 }
+
+// todo:
+// 1. select subset of companies that meet some criteria at time t.
+// 2. rank companies by some set of attributes
+// 3. build company snapshots containing a given set of attributes along side a set of future return yields for each of several different time frames s.t. each timeframe begins at the time the snapshot is taken (or immediately following?)

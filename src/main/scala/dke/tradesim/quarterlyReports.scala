@@ -164,13 +164,7 @@ object quarterlyReports {
 
   def quarterlyReportAttribute(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
     val quarterlyReport = findQuarterlyReport(time, securityId)
-    quarterlyReport.flatMap { quarterlyReport =>
-      statementType match {
-        case StatementType.BalanceSheet => quarterlyReport.balanceSheet.get(attribute)
-        case StatementType.IncomeStatement => quarterlyReport.incomeStatement.get(attribute)
-        case StatementType.CashFlowStatement => quarterlyReport.cashFlowStatement.get(attribute)
-      }
-    }
+    quarterlyReport.flatMap(quarterlyReportAttribute(_, statementType, attribute))
   }
 
   def numericQuarterlyReportAttribute(quarterlyReport: QuarterlyReport, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
