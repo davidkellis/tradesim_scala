@@ -258,7 +258,7 @@ object fundamentals {
 
 // todo:
 // 1. select subset of companies that meet some criteria at time t.
-//    > companies.filter { totalDebt(datetime(), _.securityId) }
+//    > companies.filter { totalDebt(datetime(), _.securityId) == 0 }
 // 2. rank companies by some set of attributes
 //    > companies.sortBy { totalDebt(datetime(), _.securityId) }    // one attribute
 // 3. build company snapshots containing a given set of attributes along side a set of future return yields for each of several different time frames s.t. each timeframe begins at the time the snapshot is taken (or immediately following?)
