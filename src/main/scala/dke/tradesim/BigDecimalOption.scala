@@ -70,6 +70,6 @@ class BigDecimalOption(val n: Option[BigDecimal]) extends Ordered[BigDecimalOpti
 }
 
 
-import BigDecimalOption.implicits._
-BigDecimalOption(4) < BigDecimal(5)
-BigDecimalOption(4) == Some(BigDecimal(4))
+//import BigDecimalOption.implicits._
+//BigDecimalOption(4) < BigDecimal(5)
+//BigDecimalOption(4) == Some(BigDecimal(4))

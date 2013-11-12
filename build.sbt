@@ -18,7 +18,8 @@ scalacOptions ++= Seq(
   "-deprecation",
   "-unchecked",
   "-Xelide-below", "INFO",
-  "-feature"
+  "-feature",
+  "-language", "implicitConversions"
 )
 
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
