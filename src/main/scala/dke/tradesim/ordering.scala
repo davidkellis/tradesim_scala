@@ -1,9 +1,9 @@
 package dke.tradesim
 
-import dke.tradesim.core._
-import dke.tradesim.core.LimitBuy
-import dke.tradesim.core.LimitSell
 import org.joda.time.DateTime
+import dke.tradesim.core._
+import dke.tradesim.math._
+import dke.tradesim.adjustedQuotes._
 
 object ordering {
   def isLimitOrder(order: Order): Boolean = order.isInstanceOf[LimitBuy] || order.isInstanceOf[LimitSell]
@@ -19,6 +19,9 @@ object ordering {
 
   def setSharesOnHand(portfolio: Portfolio, securityId: SecurityId, qty: Long): Portfolio =
     portfolio.copy(stocks = portfolio.stocks + (securityId -> qty))
+
+  def cashOnHand[StateT <: State[StateT]](state: StateT): BigDecimal = state.portfolio.cash
+  def cashOnHand(portfolio: Portfolio): BigDecimal = portfolio.cash
 
   def purchaseCost(qty: Long, price: BigDecimal, commissionPerTrade: BigDecimal, commissionPerShare: BigDecimal): BigDecimal =
     (qty * (price + commissionPerShare)) + commissionPerTrade
@@ -68,8 +71,14 @@ object ordering {
                            portfolio: Portfolio,
                            time: DateTime,
                            securityId: SecurityId,
+                           bestOfferPriceFn: PriceQuoteFn): Option[BigDecimal] =
+    maxSharesPurchasable(trial, portfolio.cash, time, securityId, bestOfferPriceFn)
+
+  def maxSharesPurchasable(trial: Trial,
+                           principal: BigDecimal,
+                           time: DateTime,
+                           securityId: SecurityId,
                            bestOfferPriceFn: PriceQuoteFn): Option[BigDecimal] = {
-    val principal = portfolio.cash
     val commissionPerTrade = trial.commissionPerTrade
     val commissionPerShare = trial.commissionPerShare
     val price = bestOfferPriceFn(time, securityId)
@@ -121,11 +130,22 @@ object ordering {
 
   def buyImmediately[StateT <: State[StateT]](currentState: StateT, securityId: SecurityId, qty: Long): StateT = buy(currentState, currentState.time, securityId, qty)
 
+  def buyEqually[StateT <: State[StateT]](trial: Trial, currentState: StateT, securityIds: IndexedSeq[SecurityId], bestOfferPriceFn: PriceQuoteFn): StateT = {
+    val count = securityIds.length
+    val cash = cashOnHand(currentState)
+    val principalPerSecurity = cash / count
+    securityIds.foldLeft(currentState) { (state, securityId) =>
+      val qty = maxSharesPurchasable(trial, principalPerSecurity, currentState.time, securityId, bestOfferPriceFn)
+      qty.map(qty => buyImmediately(state, securityId, floor(qty).toLong)).getOrElse(state)
+    }
+  }
+
   def limitBuy[StateT <: State[StateT]](currentState: StateT, time: DateTime, securityId: SecurityId, qty: Long, limitPrice: BigDecimal): StateT = {
     val newOrders = currentState.orders :+ LimitBuy(time, securityId, qty, limitPrice, None)
     currentState.copy(orders = newOrders)
   }
 
+  // this should be merged with sellImmediately
   def sell[StateT <: State[StateT]](currentState: StateT, time: DateTime, securityId: SecurityId, qty: Long): StateT = {
     val newOrders = currentState.orders :+ MarketSell(time, securityId, qty, None)
     currentState.copy(orders = newOrders)

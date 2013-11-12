@@ -27,6 +27,7 @@ resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repos
 libraryDependencies ++= Seq(
   "joda-time" % "joda-time" % "2.2",
   "org.joda" % "joda-convert" % "1.2",
+  "com.github.nscala-time" %% "nscala-time" % "0.6.0",
   "javax.transaction" % "jta" % "1.1",
   "net.sf.ehcache" % "ehcache" % "2.7.4",
   "com.typesafe.slick" % "slick_2.10" % "1.0.0",
