@@ -11,6 +11,10 @@ import dke.tradesim.logger._
 
 import Adapter.threadLocalAdapter
 
+// IMPORTANT NOTE:
+// The quarterly report logic in this module assumes that each quarterly report is published before the
+// subsequent quarterly report; i.e. Q1report.publicationDate < Q2report.publicationDate
+// A violation of this assumption will cause some of the logic in this module to break!
 
 object quarterlyReports {
 //  type FinancialReportHistory = NavigableMap[Long, FinancialReport]   // a price history is a collection of (timestamp -> FinancialReport) pairs
@@ -162,25 +166,48 @@ object quarterlyReports {
     }
   }
 
-  def quarterlyReportAttribute(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
+  def quarterlyAttribute(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[StatementAttribute] = {
     val quarterlyReport = findQuarterlyReport(time, securityId)
     quarterlyReport.flatMap(quarterlyReportAttribute(_, statementType, attribute))
   }
 
-  def numericQuarterlyReportAttribute(quarterlyReport: QuarterlyReport, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
+  def numericQuarterlyAttribute(quarterlyReport: QuarterlyReport, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
     val attr = quarterlyReportAttribute(quarterlyReport, statementType, attribute)
-    attr match {
-      case Some(NumericAttribute(shareCount)) => Option(shareCount)
-      case _ => None
-    }
+    extractNumericAttribute(attr)
   }
 
-  def numericQuarterlyReportAttribute(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
-    val attr = quarterlyReportAttribute(time, securityId, statementType, attribute)
-    attr match {
-      case Some(NumericAttribute(shareCount)) => Option(shareCount)
-      case _ => None
-    }
+  def numericQuarterlyAttribute(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
+    val attr = quarterlyAttribute(time, securityId, statementType, attribute)
+    extractNumericAttribute(attr)
+  }
+
+  def extractNumericAttribute(attribute: Option[StatementAttribute]): Option[BigDecimal] = attribute match {
+    case Some(NumericAttribute(number)) => Option(number)
+    case _ => None
+  }
+
+  def quarterlyAttributeSequence(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Stream[Option[StatementAttribute]] = {
+    val quarterlyReports = findQuarterlyReports(time, securityId)
+    quarterlyReports.map(quarterlyReportAttribute(_, statementType, attribute))
+  }
+
+  def numericQuarterlyAttributes(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Stream[Option[BigDecimal]] = {
+    val attrs = quarterlyAttributeSequence(time, securityId, statementType, attribute)
+    attrs.map(extractNumericAttribute(_))
+  }
+
+  // use for computing growth from Q1 2005 to Q2 2005
+  def quarterOverQuarterGrowth(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
+    for {
+      Stream(Some(newestAttr), Some(olderAttr)) <- numericQuarterlyAttributes(time, securityId, statementType, attribute).take(2)
+    } yield newestAttr / olderAttr - 1.0
+  }
+
+  // use for computing growth from Q1 2004 to Q1 2005
+  def quarterOnQuarterGrowth(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
+    for {
+      Stream(Some(newestAttr), _, _, _, Some(olderAttr)) <- numericQuarterlyAttributes(time, securityId, statementType, attribute).take(5)
+    } yield newestAttr / olderAttr - 1.0
   }
 
 }

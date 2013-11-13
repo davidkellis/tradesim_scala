@@ -56,19 +56,19 @@ object fundamentals {
     }
 
     def basicWeightedSharesOutstanding(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.BasicWeightedShares)
+      numericQuarterlyAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.BasicWeightedShares)
 
     def basicWeightedSharesOutstanding(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.BasicWeightedShares)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.BasicWeightedShares)
 
     def cashAndCashEquivalents(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.CashAndCashEquivalents)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.CashAndCashEquivalents)
 
     def currentAssets(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.CurrentAssets)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.CurrentAssets)
 
     def currentLiabilities(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.CurrentLiabilities)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.CurrentLiabilities)
 
     def dilutedEarningsPerShare(quarterlyReport: QuarterlyReport): Option[BigDecimal] = {
       for {
@@ -94,13 +94,13 @@ object fundamentals {
     }
 
     def dilutedWeightedSharesOutstanding(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.DilutedWeightedShares)
+      numericQuarterlyAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.DilutedWeightedShares)
 
     def dilutedWeightedSharesOutstanding(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.DilutedWeightedShares)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.DilutedWeightedShares)
 
     def ebit(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.EBIT)
+      numericQuarterlyAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.EBIT)
 
     // http://www.investopedia.com/terms/e/enterprisevalue.asp
     // http://en.wikipedia.org/wiki/Enterprise_value
@@ -130,7 +130,7 @@ object fundamentals {
     }
 
     def longTermDebt(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.LongTermDebt)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.LongTermDebt)
 
     def marketCapitalization(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
       for {
@@ -140,22 +140,22 @@ object fundamentals {
     }
 
     def minorityInterest(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.MinorityInterest)
+      numericQuarterlyAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.MinorityInterest)
 
     def netFixedAssets(time: DateTime, securityId: SecurityId): Option[BigDecimal] = 
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.NetFixedAssets)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.NetFixedAssets)
 
     def netIncome(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(quarterlyReport, StatementType.IncomeStatement, IncomeStatementAttributes.NetIncome)
+      numericQuarterlyAttribute(quarterlyReport, StatementType.IncomeStatement, IncomeStatementAttributes.NetIncome)
 
     def netIncome(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.NetIncome)
+      numericQuarterlyAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.NetIncome)
 
     def preferredDividends(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(quarterlyReport, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+      numericQuarterlyAttribute(quarterlyReport, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
 
     def preferredDividends(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+      numericQuarterlyAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
 
     // def sharesOutstanding(time: DateTime, quarterlyReport: QuarterlyReport): Option[BigDecimal] = {
     //   val sharesOutAttribute = quarterlyReport.balanceSheet.get(BalanceSheetAttributes.SharesOutstanding)
@@ -182,7 +182,7 @@ object fundamentals {
     }
 
     def shortTermDebt(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.ShortTermDebt)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.ShortTermDebt)
 
     def totalDebt(time: DateTime, securityId: SecurityId): Option[BigDecimal] = {
       for {
@@ -192,10 +192,10 @@ object fundamentals {
     }
     
     def unadjustedSharesOutstanding(quarterlyReport: QuarterlyReport): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
+      numericQuarterlyAttribute(quarterlyReport, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
 
     def unadjustedSharesOutstanding(time: DateTime, securityId: SecurityId): Option[BigDecimal] =
-      numericQuarterlyReportAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
+      numericQuarterlyAttribute(time, securityId, StatementType.BalanceSheet, BalanceSheetAttributes.SharesOutstanding)
 
     // http://www.investopedia.com/terms/w/workingcapital.asp
     // working capital = current assets - current liabilities
@@ -216,7 +216,7 @@ object fundamentals {
         lastFourQuarterlyNetIncomeNumbers = lastFourQuarterlyReports.map(report => mrq.netIncome(report))
         if lastFourQuarterlyNetIncomeNumbers.length == 4
         netIncome = lastFourQuarterlyNetIncomeNumbers.flatten.reduceLeft(_ + _)
-        preferredDividends <- numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+        preferredDividends <- numericQuarterlyAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
         averageSharesOutstanding <- mrq.basicWeightedSharesOutstanding(time, securityId)
       } yield (netIncome - preferredDividends) / averageSharesOutstanding
     }
@@ -227,7 +227,7 @@ object fundamentals {
         lastFourQuarterlyNetIncomeNumbers = lastFourQuarterlyReports.map(report => mrq.netIncome(report))
         if lastFourQuarterlyNetIncomeNumbers.length == 4
         netIncome = lastFourQuarterlyNetIncomeNumbers.flatten.reduceLeft(_ + _)
-        preferredDividends <- numericQuarterlyReportAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
+        preferredDividends <- numericQuarterlyAttribute(time, securityId, StatementType.IncomeStatement, IncomeStatementAttributes.PreferredDividends)
         averageSharesOutstanding <- mrq.dilutedWeightedSharesOutstanding(time, securityId)
       } yield (netIncome - preferredDividends) / averageSharesOutstanding
     }
