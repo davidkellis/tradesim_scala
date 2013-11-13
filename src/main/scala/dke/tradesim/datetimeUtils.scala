@@ -49,7 +49,7 @@ object datetimeUtils {
 
   def findTimeZone(timeZoneName: String): DateTimeZone = DateTimeZone.forID(timeZoneName)
 
-  def midnight(datetime: DateTime): DateTime = datetime.toDateMidnight.toDateTime
+  def midnight(datetime: DateTime): DateTime = datetime.withTimeAtStartOfDay()
 
   def years(n: Int): Period = Years.years(n).toPeriod
   def days(n: Int): Period = Days.days(n).toPeriod

@@ -51,19 +51,12 @@ object magicformula {
 
   def nextState(strategy: Strategy[State], trial: Trial, state: State): State = {
     val time = state.time
-    val endTime = trial.endTime
     val securityIds = trial.securityIds
-    val portfolio = state.portfolio
     val stateMachine = state.stateMachine
 
     stateMachine match {
       case NeedEnter =>
-        val filteredSecurityIds = filter(securityIds) { securityId =>
-          mrq.marketCapitalization(time, securityId).map(_ >= 50000000)
-        }
-        val rankedSecurityIds = rank(filteredSecurityIds,
-                                     Seq(Ordering.by { securityId: SecurityId => mrq.greenblattEarningsYield(time, securityId) },
-                                         Ordering.by { securityId: SecurityId => mrq.greenblattReturnOnCapital(time, securityId) }))
+        val rankedSecurityIds = applyMagicFormulaRanking(securityIds, time, 50000000)
         val securityIdsToBuy = rankedSecurityIds.take(20)
         buyEqually(trial, state, securityIdsToBuy, adjEodSimQuote).withStateMachine(Holding)
       case Holding =>
@@ -73,6 +66,15 @@ object magicformula {
         } else
           state
     }
+  }
+
+  def applyMagicFormulaRanking(securityIds: Seq[SecurityId], time: DateTime, marketCap: Long): IndexedSeq[SecurityId] = {
+    val filteredSecurityIds = filter(securityIds) { securityId =>
+      mrq.marketCapitalization(time, securityId).map(_ >= marketCap)
+    }
+    rank(filteredSecurityIds,
+      Seq(Ordering.by { securityId: SecurityId => mrq.greenblattEarningsYield(time, securityId) },
+          Ordering.by { securityId: SecurityId => mrq.greenblattReturnOnCapital(time, securityId) }))
   }
 
   def buildStrategy(): Strategy[State] = Strategy("Magic Formula", initialState, nextState, fixedTradingPeriodIsFinalState)
