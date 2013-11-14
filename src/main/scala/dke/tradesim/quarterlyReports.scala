@@ -142,7 +142,7 @@ object quarterlyReports {
     quarterlyReport.orElse(queryQuarterlyReport(time, securityId))
   }
 
-  // returns the most recent quarterly reports for <securityId> as of <time>, sorted in order of most recent (newest) to least recent (oldest) publication time
+  // returns a sequence of consecutive quarterly reports for <securityId> as of <time>, sorted in order of most recent (newest) to least recent (oldest) publication time
   def findQuarterlyReports(time: DateTime, securityId: SecurityId): Stream[QuarterlyReport] = {
     val mostRecentQuarterlyReport = findQuarterlyReport(time, securityId)
     mostRecentQuarterlyReport match {
@@ -186,28 +186,38 @@ object quarterlyReports {
     case _ => None
   }
 
+  // returns a sequence of attributes taken from consecutive quarterly reports
   def quarterlyAttributeSequence(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Stream[Option[StatementAttribute]] = {
     val quarterlyReports = findQuarterlyReports(time, securityId)
     quarterlyReports.map(quarterlyReportAttribute(_, statementType, attribute))
   }
 
+  // returns a sequence of numeric attributes taken from consecutive quarterly reports
   def numericQuarterlyAttributes(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Stream[Option[BigDecimal]] = {
     val attrs = quarterlyAttributeSequence(time, securityId, statementType, attribute)
-    attrs.map(extractNumericAttribute(_))
+    attrs.map(extractNumericAttribute)
   }
 
   // use for computing growth from Q1 2005 to Q2 2005
-  def quarterOverQuarterGrowth(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
-    for {
-      Stream(Some(newestAttr), Some(olderAttr)) <- numericQuarterlyAttributes(time, securityId, statementType, attribute).take(2)
-    } yield newestAttr / olderAttr - 1.0
+  def quarterOverQuarterGrowth(time: DateTime,
+                               securityId: SecurityId,
+                               statementType: StatementType.Value,
+                               attribute: String): Option[BigDecimal] = {
+    numericQuarterlyAttributes(time, securityId, statementType, attribute).take(2) match {
+      case Stream(Some(newestAttr), Some(olderAttr)) => Some(newestAttr / olderAttr - 1.0)
+      case _ => None
+    }
   }
 
   // use for computing growth from Q1 2004 to Q1 2005
-  def quarterOnQuarterGrowth(time: DateTime, securityId: SecurityId, statementType: StatementType.Value, attribute: String): Option[BigDecimal] = {
-    for {
-      Stream(Some(newestAttr), _, _, _, Some(olderAttr)) <- numericQuarterlyAttributes(time, securityId, statementType, attribute).take(5)
-    } yield newestAttr / olderAttr - 1.0
+  def quarterOnQuarterGrowth(time: DateTime,
+                             securityId: SecurityId,
+                             statementType: StatementType.Value,
+                             attribute: String): Option[BigDecimal] = {
+    numericQuarterlyAttributes(time, securityId, statementType, attribute).take(5) match {
+      case Stream(Some(newestAttr), _, _, _, Some(olderAttr)) => Some(newestAttr / olderAttr - 1.0)
+      case _ => None
+    }
   }
 
 }
