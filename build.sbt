@@ -25,7 +25,7 @@ scalacOptions ++= Seq(
 resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
 
 libraryDependencies ++= Seq(
-  "joda-time" % "joda-time" % "2.2",
+  "joda-time" % "joda-time" % "2.3",
   "org.joda" % "joda-convert" % "1.2",
   "com.github.nscala-time" %% "nscala-time" % "0.6.0",
   "javax.transaction" % "jta" % "1.1",
