@@ -208,6 +208,13 @@ object core {
                           balanceSheet: BalanceSheet,
                           cashFlowStatement: CashFlowStatement) extends FinancialReport
 
+  def extractNumericAttributes(statement: Statement): Map[String, BigDecimal] = {
+    statement.flatMap {
+      case (key, NumericAttribute(number)) => Some(key -> number)
+      case _ => None
+    }
+  }
+
   // like the -> (thread) operator in clojure
   def threadThrough[T](o: T)(fns: Function[T, T]*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))
 }
