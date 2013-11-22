@@ -22,7 +22,9 @@ object predictiveVariables {
       val attributes = extractNumericAttributes(snapshot.quarterlyReport.incomeStatement) ++
                        extractNumericAttributes(snapshot.quarterlyReport.balanceSheet) ++
                        extractNumericAttributes(snapshot.quarterlyReport.cashFlowStatement)
-      val futureReturns = queryForFutureReturns()
+      // todo, finish this
+//      val futureReturns = queryForFutureReturns()
+      val futureReturns = Map[String, BigDecimal]()
       AttributeSetSnapshot(attributes, futureReturns)
     }
   }

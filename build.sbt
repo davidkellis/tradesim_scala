@@ -40,5 +40,6 @@ libraryDependencies ++= Seq(
   "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test",
   //"org.apache.thrift" % "libthrift" % "0.9.1",
   "org.scala-lang" % "scala-compiler" % "2.10.2",
-  "org.scala-lang" % "jline" % "2.10.2"
+  "org.scala-lang" % "jline" % "2.10.2",
+  "org.spire-math" %% "spire" % "0.6.0"
 )
