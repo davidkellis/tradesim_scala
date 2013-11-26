@@ -91,6 +91,12 @@ object sample {
     def stdDev: BigDecimal = variance.sqrt
   }
 
+  def stdDev(xs: Seq[BigDecimal]): BigDecimal = {
+    val onlineVariance = new OnlineVariance
+    xs.foreach(onlineVariance.push(_))
+    onlineVariance.stdDev
+  }
+
   def sum(xs: Seq[BigDecimal]): BigDecimal = xs.fold(BigDecimal(0))(_ + _)
 
   def variance(xs: Seq[BigDecimal]): BigDecimal = {
