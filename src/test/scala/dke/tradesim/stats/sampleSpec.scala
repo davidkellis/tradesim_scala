@@ -2,6 +2,7 @@ package dke.tradesim.stats
 
 import org.scalatest.FunSpec
 import java.math.MathContext
+import breeze.linalg.{DenseVector, DenseMatrix}
 
 import sample._
 
@@ -44,15 +45,26 @@ class sampleSpec extends FunSpec {
     }
   }
 
+//  describe("ols") {
+//    // checked against wolfram alpha with this:
+//    //   linear fit {1.59,1.14}, {2.89,2.54}, {3.76,3.89}, {4.93,4.18}
+//    it("performs a linear regression") {
+//      val xs = List[BigDecimal](1.59, 2.89, 3.76, 4.93)
+//      val ys = List[BigDecimal](1.14, 2.54, 3.89, 4.18)
+//      val result = ols(xs, ys)
+//      assert(result.slope.round(new MathContext(6)) === BigDecimal("0.956321"))
+//      assert(result.intercept.round(new MathContext(6)) === BigDecimal("-0.211186"))
+//    }
+//  }
+
   describe("ols") {
     // checked against wolfram alpha with this:
     //   linear fit {1.59,1.14}, {2.89,2.54}, {3.76,3.89}, {4.93,4.18}
     it("performs a linear regression") {
-      val xs = List[BigDecimal](1.59, 2.89, 3.76, 4.93)
-      val ys = List[BigDecimal](1.14, 2.54, 3.89, 4.18)
-      val result = ols(xs, ys)
-      assert(result.slope.round(new MathContext(6)) === BigDecimal("0.956321"))
-      assert(result.intercept.round(new MathContext(6)) === BigDecimal("-0.211186"))
+      val xs = DenseMatrix((1.59, 1.0), (2.89, 1.0), (3.76, 1.0), (4.93, 1.0))
+      val ys = DenseVector(1.14, 2.54, 3.89, 4.18)
+      val beta = ols(xs, ys)
+      assert(beta.toArray === Array(0.9563205952545724, -0.21118555987567958))
     }
   }
 
