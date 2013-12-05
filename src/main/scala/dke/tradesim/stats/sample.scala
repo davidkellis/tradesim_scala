@@ -2,6 +2,8 @@ package dke.tradesim.stats
 
 import scala.collection.LinearSeq
 import spire.implicits._
+import breeze.linalg._
+import nak.regress._
 
 object sample {
   // returns the sample correlation coefficient (Pearson's r coefficient)
@@ -22,12 +24,41 @@ object sample {
     onlineMean(xs, 0, 0)
   }
 
-  case class OlsResult(slope: BigDecimal, intercept: BigDecimal)
-  def ols(xs: Seq[BigDecimal], ys: Seq[BigDecimal]): OlsResult = {
-    val pairs = xs.zip(ys)
-    val onlineRegression = new OnlineRegression
-    pairs.foreach(pair => onlineRegression.push(pair._1, pair._2))
-    OlsResult(onlineRegression.slope, onlineRegression.intercept)
+//  case class OlsResult(slope: BigDecimal, intercept: BigDecimal)
+//  def ols(xs: Seq[BigDecimal], ys: Seq[BigDecimal]): OlsResult = {
+//    val pairs = xs.zip(ys)
+//    val onlineRegression = new OnlineRegression
+//    pairs.foreach(pair => onlineRegression.push(pair._1, pair._2))
+//    OlsResult(onlineRegression.slope, onlineRegression.intercept)
+//  }
+
+  /**
+   * example:
+   *   ols(DenseMatrix((1.59, 1.0), (2.89, 1.0), (3.76, 1.0), (4.93, 1.0)), DenseVector(1.14, 2.54, 3.89, 4.18))
+   *   -> breeze.linalg.DenseVector[Double] = DenseVector(0.9563205952545724, -0.21118555987567958)
+   * verification in R:
+   *   > xs <- c(1.59, 2.89, 3.76, 4.93)
+   *   > ys <- c(1.14, 2.54, 3.89, 4.18)
+   *   > xs_m=matrix(c(xs, 1, 1, 1, 1), 4)
+   *   > beta <- solve(t(xs_m) %*% xs_m) %*% t(xs_m) %*% ys
+   *   > beta
+   *              [,1]
+   *   [1,]  0.9563206
+   *   [2,] -0.2111856
+   */
+  def ols(observations: DenseMatrix[Double], outputs: DenseVector[Double]): DenseVector[Double] = {
+    LinearRegression.regress(observations, outputs)
+  }
+
+  def linearModel(observations: DenseMatrix[Double], outputs: DenseVector[Double]): Function[Seq[Double], Double] = {
+    val beta = ols(observations, outputs).toArray
+    (observation: Seq[Double]) => {
+      observation.zipWithIndex.foldLeft(0.0) { (sum, observedValueWithIndexPair) =>
+        val (observedValue, index) = observedValueWithIndexPair
+        val coefficient = beta(index)
+        sum + coefficient * observedValue
+      }
+    }
   }
 
   // copied from http://www.johndcook.com/running_regression.html

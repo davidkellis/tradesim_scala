@@ -22,7 +22,12 @@ scalacOptions ++= Seq(
   "-language", "implicitConversions"
 )
 
-resolvers += "Sonatype OSS Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots"
+resolvers ++= Seq(
+  // other resolvers here
+  // if you want to use snapshot builds (currently 0.6-SNAPSHOT), use this.
+  "Sonatype Snapshots" at "https://oss.sonatype.org/content/repositories/snapshots/",
+  "Sonatype Releases" at "https://oss.sonatype.org/content/repositories/releases/"
+)
 
 libraryDependencies ++= Seq(
   "joda-time" % "joda-time" % "2.3",
@@ -41,5 +46,7 @@ libraryDependencies ++= Seq(
   //"org.apache.thrift" % "libthrift" % "0.9.1",
   "org.scala-lang" % "scala-compiler" % "2.10.2",
   "org.scala-lang" % "jline" % "2.10.2",
-  "org.spire-math" %% "spire" % "0.6.0"
+  "org.spire-math" %% "spire" % "0.6.0",
+  "org.scalanlp" %% "breeze" % "0.6-SNAPSHOT",
+  "org.scalanlp" % "nak" % "1.2.0"
 )
