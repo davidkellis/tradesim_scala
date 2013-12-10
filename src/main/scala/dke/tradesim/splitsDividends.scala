@@ -112,7 +112,7 @@ object splitsDividends {
     }
   }
 
-  /*
+  /**
    * See http://www.crsp.com/documentation/product/stkind/definitions/factor_to_adjust_price_in_period.html for implementation notes.
    * Returns an adjustment factor that:
    * 1. when multiplied by an unadjusted stock price, yields an adjusted stock price. i.e. unadjusted-price * adjustment-factor = adjusted-price
@@ -120,7 +120,7 @@ object splitsDividends {
    */
   def computeSplitAdjustmentFactor(splitRatio: BigDecimal): BigDecimal = 1 / splitRatio
 
-  /*
+  /**
    * See http://www.crsp.com/documentation/product/stkind/definitions/factor_to_adjust_price_in_period.html for implementation notes.
    * <prior-eod-bar> is the most recent EOD bar prior to the ex-date of <dividend>
    *
@@ -159,6 +159,7 @@ object splitsDividends {
    *   See http://www.quantshare.com/sa-112-stock-split-dividend
    *   or
    *   http://help.yahoo.com/kb/index?locale=en_US&page=content&y=PROD_FIN&id=SLN2311&impressions=true
+   *   http://help.yahoo.com/kb/index?locale=en_US&page=content&y=PROD_FIN&id=SLN2311&actp=lorax&pir=wMsp3EFibUlGxLjgTY.StSPNcMXGv318Io7yMwp2vXYNYOLFM2Y-
    *   for instructions on how to adjust a price for cash dividends.
    */
   def adjustPriceForCorporateActions(price: BigDecimal, securityId: SecurityId, priceObservationTime: DateTime, adjustmentTime: DateTime): BigDecimal =
@@ -193,7 +194,7 @@ object splitsDividends {
     case dividend: CashDividend => adjustPortfolio(dividend, currentState)
   }
 
-  /*
+  /**
    * Given a portfolio and split, this function applies the split to the portfolio and returns a split-adjusted portfolio.
    * Note:
    *   new holdings = old holdings * split ratio
@@ -302,6 +303,5 @@ object splitsDividends {
       case _ => BigDecimal(1)
     }
   }
-
 
 }
