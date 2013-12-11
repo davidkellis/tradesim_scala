@@ -342,11 +342,31 @@ object db {
         list
     }
 
+
+    implicit val getSecurityResult = GetResult(r => Security(r.nextIntOption,
+                                                             r.nextString,
+                                                             r.nextString,
+                                                             r.nextString,
+                                                             r.nextString,
+                                                             r.nextString,
+                                                             r.nextIntOption,
+                                                             r.nextIntOption,
+                                                             r.nextIntOption,
+                                                             r.nextBooleanOption,
+                                                             r.nextIntOption,
+                                                             r.nextIntOption,
+                                                             r.nextIntOption))
+
     def findStocks(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security] = {
-      Query(Securities).
-        filter(_.exchanges.map(&:id).some(exchangeId => exchangeId inSetBind exchanges.flatMap(_.id))).
-        filter(_.symbol inSetBind symbols).
-        list
+      val sql = s"""
+        |select s.*
+        |from securities s
+        |inner join exchange_securites etos on etos.security_id = s.id
+        |inner join exchanges e on e.id = etos.exchange_id
+        |where s.symbol in (${symbols.mkString("'", "','", "'")})
+        |  and e.id in (${exchanges.map(_.id).mkString("'", "','", "'")})
+      """.stripMargin
+      Q.queryNA[Security](sql).list
     }
 
 
@@ -387,11 +407,10 @@ object db {
     }
 
 
-    implicit val getCorporateActionRecord = GetResult(a => (a.nextInt, a.nextString, a.nextString, a.nextInt, a.nextInt, a.nextInt, a.nextInt, a.nextBigDecimal))
+    implicit val getCorporateActionResult = GetResult(a => (a.nextInt, a.nextString, a.nextString, a.nextInt, a.nextInt, a.nextInt, a.nextInt, a.nextBigDecimal))
 
     def queryCorporateActions(securityIds: IndexedSeq[Int]): IndexedSeq[CorporateAction] = {
-      val sql =
-      s"""
+      val sql = s"""
         |select * from corporate_actions
         |where security_id in (${securityIds.mkString("'", "','", "'")})
         |order by ex_date
@@ -400,8 +419,7 @@ object db {
     }
 
     def queryCorporateActions(securityIds: IndexedSeq[Int], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
-      val sql =
-        s"""
+      val sql = s"""
         |select * from corporate_actions
         |where security_id in (${securityIds.mkString("'", "','", "'")})
         |and ex_date >= ${timestamp(startTime)}
