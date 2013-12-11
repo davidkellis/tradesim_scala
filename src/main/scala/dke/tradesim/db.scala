@@ -106,6 +106,7 @@ object db {
 
       // Every table needs a * projection with the same type as the table's type parameter
       def * = id.? ~ label ~ name <> (Exchange, Exchange.unapply _)
+      def securities = ExchangeToSecurity.filter(_.exchangeId === id).flatMap(_.securityIdFK)
     }
 
 
@@ -114,7 +115,6 @@ object db {
       def bbGid = column[String]("bb_gid")
       def bbGcid = column[String]("bb_gcid")
       def kind = column[String]("type")
-      def exchangeId = column[Int]("exchange_id")
       def symbol = column[String]("symbol")
       def name = column[String]("name")
       def startDate = column[Option[Datestamp]]("start_date", O.Nullable)
@@ -126,7 +126,19 @@ object db {
       def sectorId = column[Option[Int]]("sector_id", O.Nullable)
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id.? ~ bbGid ~ bbGcid ~ kind ~ exchangeId ~ symbol ~ name ~ startDate ~ endDate ~ cik ~ isActive ~ fiscalYearEndDate ~ industryId ~ sectorId <> (Security, Security.unapply _)
+      def * = id.? ~ bbGid ~ bbGcid ~ kind ~ symbol ~ name ~ startDate ~ endDate ~ cik ~ isActive ~ fiscalYearEndDate ~ industryId ~ sectorId <> (Security, Security.unapply _)
+      def exchanges = ExchangeToSecurity.filter(_.securityId === id).flatMap(_.exchangeIdFK)
+    }
+
+
+    // this is a join table between exchanges and securities
+    object ExchangeToSecurity extends Table[(Int, Int)]("exchange_securities") {
+      def exchangeId = column[Int]("exchange_id")
+      def securityId = column[Int]("security_id")
+
+      def * = exchangeId ~ securityId
+      def exchangeIdFK = foreignKey("exchange_id_fk", exchangeId, Exchanges)(exchange => exchange.id)
+      def securityIdFK = foreignKey("security_id_fk", securityId, Securities)(security => security.id)
     }
 
 
@@ -332,7 +344,7 @@ object db {
 
     def findStocks(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security] = {
       Query(Securities).
-        filter(_.exchangeId inSetBind exchanges.flatMap(_.id)).
+        filter(_.exchanges.map(&:id).some(exchangeId => exchangeId inSetBind exchanges.flatMap(_.id))).
         filter(_.symbol inSetBind symbols).
         list
     }

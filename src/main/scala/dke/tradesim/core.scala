@@ -113,7 +113,6 @@ object core {
                       bbGid: String,
                       bbGcid: String,
                       kind: String,
-                      exchangeId: Int,
                       symbol: String,
                       name: String,
                       startDate: Option[Datestamp],
