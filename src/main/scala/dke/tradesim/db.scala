@@ -359,12 +359,12 @@ object db {
 
     def findStocks(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security] = {
       val sql = s"""
-        |select s.*
+        |select s.id, s.bb_gid, s.bb_gcid, s.type, s.symbol, s.name, s.start_date, s.end_date, s.cik, s.active, s.fiscal_year_end_date, s.industry_id, s.sector_id
         |from securities s
-        |inner join exchange_securites etos on etos.security_id = s.id
+        |inner join exchange_securities etos on etos.security_id = s.id
         |inner join exchanges e on e.id = etos.exchange_id
         |where s.symbol in (${symbols.mkString("'", "','", "'")})
-        |  and e.id in (${exchanges.map(_.id).mkString("'", "','", "'")})
+        |  and e.id in (${exchanges.flatMap(_.id).mkString("'", "','", "'")})
       """.stripMargin
       Q.queryNA[Security](sql).list
     }
@@ -411,7 +411,7 @@ object db {
 
     def queryCorporateActions(securityIds: IndexedSeq[Int]): IndexedSeq[CorporateAction] = {
       val sql = s"""
-        |select * from corporate_actions
+        |select id, type, security_id, declaration_date, ex_date, record_date, payable_date, number from corporate_actions
         |where security_id in (${securityIds.mkString("'", "','", "'")})
         |order by ex_date
       """.stripMargin
@@ -420,7 +420,7 @@ object db {
 
     def queryCorporateActions(securityIds: IndexedSeq[Int], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
       val sql = s"""
-        |select * from corporate_actions
+        |select id, type, security_id, declaration_date, ex_date, record_date, payable_date, number from corporate_actions
         |where security_id in (${securityIds.mkString("'", "','", "'")})
         |and ex_date >= ${timestamp(startTime)}
         |and ex_date <= ${timestamp(endTime)}
