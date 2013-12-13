@@ -126,5 +126,24 @@ object buyandhold {
       runAndLogTrialsInParallel(strategy, trials)
     }
 
+    def runMultipleTrials3() {
+      val tradingSchedule = buildTradingSchedule(defaultTradingSchedule, defaultHolidaySchedule)
+      val timeIncrementerFn = buildScheduledTimeIncrementer(new LocalTime(12, 0, 0), days(1), tradingSchedule)
+      val purchaseFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barHigh _, 0.15)
+      val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
+      val strategy = buildStrategy()
+      val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
+      val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))     //.take(500)
+
+      val securities = findStocks(PrimaryUsExchanges, Seq("ACITX","PTRRX","FKSRX","PHYRX","ACVAX","ACCAX","ACOAX","RELDX","SSAIX","MRLOX","REACX","GITSX","IENAX","GGHCX","ARFAX","ARBMX","ARWAX","ARCMX","ARYAX","ARDMX","AROAX","ARFMX","ALPAX","LCEAX","RRFDX","SVSPX","RGACX","JDCRX","RRGSX","MRVEX","IJH","TWVAX","RRMGX","FVFRX","ASQAX","SESPX","GTSRX","ODVNX"))
+      securities.foreach { security =>
+        info("Building trials")
+        val trialSecurityIds = Vector(security.id.get)
+        val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, trialSecurityIds)
+        info(s"${trials.length} trials")
+        runAndLogTrialsInParallel(strategy, trials)
+      }
+    }
+
   }
 }
