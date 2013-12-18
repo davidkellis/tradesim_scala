@@ -135,7 +135,7 @@ object buyandhold {
       val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))     //.take(500)
 
-      val securities = findStocks(PrimaryUsExchanges, Seq("ACITX","PTRRX","FKSRX","PHYRX","ACVAX","ACCAX","ACOAX","RELDX","SSAIX","MRLOX","REACX","GITSX","IENAX","GGHCX","ARFAX","ARBMX","ARWAX","ARCMX","ARYAX","ARDMX","AROAX","ARFMX","ALPAX","LCEAX","RRFDX","SVSPX","RGACX","JDCRX","RRGSX","MRVEX","IJH","TWVAX","RRMGX","FVFRX","ASQAX","SESPX","GTSRX","ODVNX"))
+      val securities = findStocks(PrimaryUsExchanges, Seq("ACITX","PTRRX","FKSRX","PHYRX","ACVAX","ACCAX","ACOAX","RELDX","SSAIX","MRLOX","REACX","GITSX","IENAX","GGHCX","ARFAX","ARBMX","ARWAX","ARCMX","ARYAX","ARDMX","AROAX","ARFMX","ALPAX","LCEAX","RRFDX","SVSPX","RGACX","JDCRX","RRGSX","MRVEX","IJH","TWVAX","RRMGX","FVFRX","ASQAX","SESPX","GTSRX","ODVNX","RERCX"))
       securities.foreach { security =>
         info("Building trials")
         val trialSecurityIds = Vector(security.id.get)
