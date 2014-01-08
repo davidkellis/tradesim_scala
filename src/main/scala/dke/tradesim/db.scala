@@ -2,7 +2,6 @@ package dke.tradesim
 
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.lifted.Query
-import scala.slick.session.Database
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 import dke.tradesim.core._
@@ -16,10 +15,6 @@ import org.json4s.jackson.JsonMethods._
 import org.json4s.jackson.Serialization
 import org.json4s.JsonDSL.WithBigDecimal._
 
-//import org.apache.thrift.{TBase, TSerializer, TDeserializer}
-//import org.apache.thrift.protocol.TBinaryProtocol
-
-import dke.tradesim.core._
 import dke.tradesim.json.LiftJValueWithFilter
 
 import scala.language.implicitConversions
@@ -39,10 +34,10 @@ object db {
     /**
      * An implicit function that returns the thread-local adapter in a withAdapater block
      */
-    implicit def threadLocalAdapter: Adapter = {
+    implicit def dynamicAdapter: Adapter = {
       val s = dyn.value
       if(s eq null)
-        throw new Exception("No implicit adapter available; threadLocalAdapter can only be used within a withAdapter block")
+        throw new Exception("No implicit adapter available; dynamicAdapter can only be used within a withAdapter block")
       else s
     }
   }
@@ -99,18 +94,20 @@ object db {
 //    implicit val formats = Serialization.formats(NoTypeHints) + new DateTimeSerializer
 
 
-    object Exchanges extends Table[Exchange]("exchanges") {
+    class Exchanges(tag: Tag) extends Table[Exchange](tag, "exchanges") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
       def label = column[String]("label")
       def name = column[Option[String]]("name", O.Nullable)
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id.? ~ label ~ name <> (Exchange, Exchange.unapply _)
+      def * = (id.?, label, name) <> (Exchange.tupled, Exchange.unapply)
       def securities = ExchangeToSecurity.filter(_.exchangeId === id).flatMap(_.securityIdFK)
     }
 
+    object Exchanges extends TableQuery(new Exchanges(_))
 
-    object Securities extends Table[Security]("securities") {
+
+    class Securities(tag: Tag) extends Table[Security](tag, "securities") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
       def bbGid = column[String]("bb_gid")
       def bbGcid = column[String]("bb_gcid")
@@ -126,25 +123,28 @@ object db {
       def sectorId = column[Option[Int]]("sector_id", O.Nullable)
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id.? ~ bbGid ~ bbGcid ~ kind ~ symbol ~ name ~ startDate ~ endDate ~ cik ~ isActive ~ fiscalYearEndDate ~ industryId ~ sectorId <> (Security, Security.unapply _)
+      def * = (id.?, bbGid, bbGcid, kind, symbol, name, startDate, endDate, cik, isActive, fiscalYearEndDate, industryId, sectorId) <> (Security.tupled, Security.unapply)
       def exchanges = ExchangeToSecurity.filter(_.securityId === id).flatMap(_.exchangeIdFK)
     }
 
+    object Securities extends TableQuery(new Securities(_))
+
 
     // this is a join table between exchanges and securities
-    object ExchangeToSecurity extends Table[(Int, Int)]("exchange_securities") {
+    class ExchangeToSecurity(tag: Tag) extends Table[(Int, Int)](tag, "exchange_securities") {
       def exchangeId = column[Int]("exchange_id")
       def securityId = column[Int]("security_id")
 
-      def * = exchangeId ~ securityId
+      def * = (exchangeId, securityId)
       def exchangeIdFK = foreignKey("exchange_id_fk", exchangeId, Exchanges)(exchange => exchange.id)
       def securityIdFK = foreignKey("security_id_fk", securityId, Securities)(security => security.id)
     }
 
+    object ExchangeToSecurity extends TableQuery(new ExchangeToSecurity(_))
+
 
     type TrialRecord = (Int, String, String, String, String, String, Timestamp, Timestamp, String, String)
-    type NewTrialRecord = (String, String, String, String, String, Timestamp, Timestamp, String, String)
-    object Trials extends Table[TrialRecord]("trials") {
+    class Trials(tag: Tag) extends Table[TrialRecord](tag, "trials") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def strategyName = column[String]("strategy_name")
       def securityIds = column[String]("security_ids")            // This is a JSON array
@@ -157,22 +157,23 @@ object db {
       def portfolioValueLog = column[String]("portfolio_value_log", O.DBType("text"))
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id ~ strategyName ~ securityIds ~ principal ~ commissionPerTrade ~ commissionPerShare ~ startTime ~ endTime ~ transactionLog ~ portfolioValueLog
-      def forInsert = strategyName ~ securityIds ~ principal ~ commissionPerTrade ~ commissionPerShare ~ startTime ~ endTime ~ transactionLog ~ portfolioValueLog
+      def * = (id, strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
     }
 
+    object Trials extends TableQuery(new Trials(_))
 
-    implicit val DateTimeToTimestamp = MappedTypeMapper.base[DateTime, Timestamp](
+
+    implicit val DateTimeToTimestamp = MappedColumnType.base[DateTime, Timestamp](
       dt => timestamp(dt),              // map DateTime to Timestamp
       timestamp => datetime(timestamp)  // map Timestamp to DateTime
     )
 
-    implicit val BigDecimalToString = MappedTypeMapper.base[BigDecimal, String](
+    implicit val BigDecimalToString = MappedColumnType.base[BigDecimal, String](
       bd => bd.toString,      // map BigDecimal to String
       str => BigDecimal(str)  // map Timestamp to DateTime
     )
 
-    object EodBars extends Table[EodBar]("eod_bars") {
+    class EodBars(tag: Tag) extends Table[EodBar](tag, "eod_bars") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def securityId = column[SecurityId]("security_id")
       def startTime = column[DateTime]("start_time")
@@ -184,8 +185,10 @@ object db {
       def volume = column[Long]("volume")
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id.? ~ securityId ~ startTime ~ endTime ~ open ~ high ~ low ~ close ~ volume <> (EodBar, EodBar.unapply _)
+      def * = (id.?, securityId, startTime, endTime, open, high, low, close, volume) <> (EodBar.tupled, EodBar.unapply)
     }
+
+    object EodBars extends TableQuery(new EodBars(_))
 
 //    def convertEodBarRecord(record: EodBarRecord): EodBar = {
 //      record match {
@@ -198,7 +201,7 @@ object db {
 
 
     type CorporateActionRecord = (Int, String, Int, Option[Datestamp], Datestamp, Option[Datestamp], Option[Datestamp], String)
-    object CorporateActions extends Table[CorporateActionRecord]("corporate_actions") {
+    class CorporateActions(tag: Tag) extends Table[CorporateActionRecord](tag, "corporate_actions") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def kind = column[String]("type")                     // either Split or CashDividend
       def securityId = column[SecurityId]("security_id")
@@ -211,8 +214,10 @@ object db {
       def ratioOrAmount = column[String]("number")      // split ratio OR dividend amount
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id ~ kind ~ securityId ~ declarationDate ~ exDate ~ recordDate ~ payableDate ~ ratioOrAmount
+      def * = (id, kind, securityId, declarationDate, exDate, recordDate, payableDate, ratioOrAmount)
     }
+
+    object CorporateActions extends TableQuery(new CorporateActions(_))
 
     def convertCorporateActionRecord(record: CorporateActionRecord): CorporateAction = {
       record match {
@@ -226,7 +231,7 @@ object db {
 
 
     type QuarterlyReportRecord = (Int, SecurityId, Timestamp, Timestamp, Timestamp, String, String, String)
-    object QuarterlyReports extends Table[QuarterlyReportRecord]("quarterly_reports") {
+    class QuarterlyReports(tag: Tag) extends Table[QuarterlyReportRecord](tag, "quarterly_reports") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def securityId = column[SecurityId]("security_id")
       def startTime = column[Timestamp]("start_time")
@@ -237,11 +242,13 @@ object db {
       def cashFlowStatement = column[String]("cash_flow_statement", O.DBType("text"))
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id ~ securityId ~ startTime ~ endTime ~ publicationTime ~ incomeStatement ~ balanceSheet ~ cashFlowStatement
+      def * = (id, securityId, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement)
     }
+
+    object QuarterlyReports extends TableQuery(new QuarterlyReports(_))
 
     type AnnualReportRecord = (Int, SecurityId, Timestamp, Timestamp, Timestamp, String, String, String)
-    object AnnualReports extends Table[AnnualReportRecord]("annual_reports") {
+    class AnnualReports(tag: Tag) extends Table[AnnualReportRecord](tag, "annual_reports") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def securityId = column[SecurityId]("security_id")
       def startTime = column[Timestamp]("start_time")
@@ -252,8 +259,10 @@ object db {
       def cashFlowStatement = column[String]("cash_flow_statement", O.DBType("text"))
 
       // Every table needs a * projection with the same type as the table's type parameter
-      def * = id ~ securityId ~ startTime ~ endTime ~ publicationTime ~ incomeStatement ~ balanceSheet ~ cashFlowStatement
+      def * = (id, securityId, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement)
     }
+
+    object AnnualReports extends TableQuery(new AnnualReports(_))
 
     // assumes json is of the form: [ "header", [attribute, value], [attribute, value], "header", [attr, val], ... ]
     // where the json structure is no more than 1 level deep (i.e. there are no sub-sections)
@@ -320,8 +329,8 @@ object db {
 //        val adapter = new SlickAdapter()(session)
 //        Adapter.withAdapter(adapter)(f)
 //      }
-      Database.forURL(jdbcConnectionString, username, password, driver = driver) withSession {
-        val adapter = new SlickAdapter()(Database.threadLocalSession)
+      Database.forURL(jdbcConnectionString, username, password, driver = driver) withDynSession {
+        val adapter = new SlickAdapter()(Database.dynamicSession)
         Adapter.withAdapter(adapter)(f)
       }
     }
@@ -331,13 +340,13 @@ object db {
     import SlickAdapter._
 
     def createDb() {
-      val ddl: scala.slick.lifted.DDL = EodBars.ddl ++ CorporateActions.ddl ++ QuarterlyReports.ddl ++ AnnualReports.ddl
+      val ddl = EodBars.ddl ++ CorporateActions.ddl ++ QuarterlyReports.ddl ++ AnnualReports.ddl
       ddl.create
     }
 
 
     def findExchanges(exchangeLabels: Seq[String]): Seq[Exchange] = {
-      Query(Exchanges).
+      Exchanges.
         filter(_.label inSetBind exchangeLabels).
         list
     }
@@ -371,37 +380,37 @@ object db {
 
 
     def queryEodBar(time: DateTime, securityId: SecurityId): Option[Bar] = {
-      val bars = Query(EodBars).filter(_.securityId === securityId).filter(_.startTime <= time)
+      val bars = EodBars.filter(_.securityId === securityId).filter(_.startTime <= time)
       val sortedBars = bars.sortBy(_.startTime.desc)
       sortedBars.take(1).firstOption
     }
 
     def queryEodBarPriorTo(time: DateTime, securityId: SecurityId): Option[Bar] = {
-      val bars = Query(EodBars).filter(_.securityId === securityId).filter(_.endTime < time)
+      val bars = EodBars.filter(_.securityId === securityId).filter(_.endTime < time)
       val sortedBars = bars.sortBy(_.endTime.desc)
       sortedBars.take(1).firstOption
     }
 
     def queryEodBars(securityId: SecurityId): Seq[Bar] = {
-      val bars = Query(EodBars).filter(_.securityId === securityId)
+      val bars = EodBars.filter(_.securityId === securityId)
       bars.sortBy(_.startTime).list
     }
 
     def queryEodBars(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = {
-      val bars = Query(EodBars).filter(_.securityId === securityId)
-                               .filter(_.startTime >= earliestTime)
-                               .filter(_.endTime <= latestTime)
+      val bars = EodBars.filter(_.securityId === securityId)
+                        .filter(_.startTime >= earliestTime)
+                        .filter(_.endTime <= latestTime)
       bars.sortBy(_.startTime).list
     }
 
     def findOldestEodBar(securityId: SecurityId): Option[Bar] = {
-      val bars = Query(EodBars).filter(_.securityId === securityId)
+      val bars = EodBars.filter(_.securityId === securityId)
       val sortedBars = bars.sortBy(_.startTime)
       sortedBars.take(1).firstOption
     }
 
     def findMostRecentEodBar(securityId: SecurityId): Option[Bar] = {
-      val bars = Query(EodBars).filter(_.securityId === securityId)
+      val bars = EodBars.filter(_.securityId === securityId)
       val sortedBars = bars.sortBy(_.startTime.desc)
       sortedBars.take(1).firstOption
     }
@@ -415,7 +424,7 @@ object db {
         |where security_id in (${securityIds.mkString("'", "','", "'")})
         |order by ex_date
       """.stripMargin
-      Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).to[Vector]
+      Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).buildColl[Vector]
     }
 
     def queryCorporateActions(securityIds: IndexedSeq[Int], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
@@ -426,63 +435,63 @@ object db {
         |and ex_date <= ${timestamp(endTime)}
         |order by ex_date
       """.stripMargin
-      Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).to[Vector]
+      Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).buildColl[Vector]
     }
 
 
     def queryQuarterlyReport(time: DateTime, securityId: SecurityId): Option[QuarterlyReport] = {
-      val reports = Query(QuarterlyReports).filter(_.securityId === securityId).filter(_.startTime <= timestamp(time))
+      val reports = QuarterlyReports.filter(_.securityId === securityId).filter(_.startTime <= timestamp(time))
       val sortedReports = reports.sortBy(_.startTime.desc)
       val record = sortedReports.take(1).firstOption
       convertQuarterlyReportRecord(record)
     }
 
     def queryQuarterlyReportPriorTo(time: DateTime, securityId: SecurityId): Option[QuarterlyReport] = {
-      val reports = Query(QuarterlyReports).filter(_.securityId === securityId).filter(_.endTime < timestamp(time))
+      val reports = QuarterlyReports.filter(_.securityId === securityId).filter(_.endTime < timestamp(time))
       val sortedReports = reports.sortBy(_.endTime.desc)
       val record = sortedReports.take(1).firstOption
       convertQuarterlyReportRecord(record)
     }
 
     def queryQuarterlyReports(securityId: SecurityId): Seq[QuarterlyReport] = {
-      val reports = Query(QuarterlyReports).filter(_.securityId === securityId)
+      val reports = QuarterlyReports.filter(_.securityId === securityId)
       val sortedReports = reports.sortBy(_.startTime)
       sortedReports.mapResult(convertQuarterlyReportRecord(_)).list
     }
 
     def queryQuarterlyReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[QuarterlyReport] = {
-      val reports = Query(QuarterlyReports).filter(_.securityId === securityId)
-                                           .filter(_.startTime >= timestamp(earliestTime))
-                                           .filter(_.endTime <= timestamp(latestTime))
+      val reports = QuarterlyReports.filter(_.securityId === securityId)
+                                    .filter(_.startTime >= timestamp(earliestTime))
+                                    .filter(_.endTime <= timestamp(latestTime))
       val sortedReports = reports.sortBy(_.startTime)
       sortedReports.mapResult(convertQuarterlyReportRecord(_)).list
     }
 
 
     def queryAnnualReport(time: DateTime, securityId: SecurityId): Option[AnnualReport] = {
-      val reports = Query(AnnualReports).filter(_.securityId === securityId).filter(_.startTime <= timestamp(time))
+      val reports = AnnualReports.filter(_.securityId === securityId).filter(_.startTime <= timestamp(time))
       val sortedReports = reports.sortBy(_.startTime.desc)
       val record = sortedReports.take(1).firstOption
       convertAnnualReportRecord(record)
     }
 
     def queryAnnualReportPriorTo(time: DateTime, securityId: SecurityId): Option[AnnualReport] = {
-      val reports = Query(AnnualReports).filter(_.securityId === securityId).filter(_.endTime < timestamp(time))
+      val reports = AnnualReports.filter(_.securityId === securityId).filter(_.endTime < timestamp(time))
       val sortedReports = reports.sortBy(_.endTime.desc)
       val record = sortedReports.take(1).firstOption
       convertAnnualReportRecord(record)
     }
 
     def queryAnnualReports(securityId: SecurityId): Seq[AnnualReport] = {
-      val reports = Query(AnnualReports).filter(_.securityId === securityId)
+      val reports = AnnualReports.filter(_.securityId === securityId)
       val sortedReports = reports.sortBy(_.startTime)
       sortedReports.mapResult(convertAnnualReportRecord(_)).list
     }
 
     def queryAnnualReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport] = {
-      val reports = Query(AnnualReports).filter(_.securityId === securityId)
-                                        .filter(_.startTime >= timestamp(earliestTime))
-                                        .filter(_.endTime <= timestamp(latestTime))
+      val reports = AnnualReports.filter(_.securityId === securityId)
+                                 .filter(_.startTime >= timestamp(earliestTime))
+                                 .filter(_.endTime <= timestamp(latestTime))
       val sortedReports = reports.sortBy(_.startTime)
       sortedReports.mapResult(convertAnnualReportRecord(_)).list
     }
@@ -498,11 +507,11 @@ object db {
         verbose(s"Building group of records.")
         val records = pairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).toSeq
         verbose(s"Inserting group of records.")
-        Trials.forInsert.insertAll(records: _*)
+        Trials.insertAll(records: _*)
       }
     }
 
-    def buildInsertionTuple[StateT <: State[StateT]](strategyName: String, trial: Trial, state: StateT): NewTrialRecord = {
+    def buildInsertionTuple[StateT <: State[StateT]](strategyName: String, trial: Trial, state: StateT): TrialRecord = {
       val securityIds = Serialization.write(SecurityIds(trial.securityIds))
       val principal = trial.principal.toString
       val commissionPerTrade = trial.commissionPerTrade.toString
@@ -512,7 +521,7 @@ object db {
       val transactionLog = Serialization.write(Transactions(state.transactions))
       val portfolioValueLog = Serialization.write(PortfolioValues(state.portfolioValueHistory))
 
-      (strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
+      (0, strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
     }
   }
 }

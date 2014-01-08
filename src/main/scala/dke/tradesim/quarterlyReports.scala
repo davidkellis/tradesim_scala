@@ -9,7 +9,7 @@ import dke.tradesim.datetimeUtils.{datetime, timestamp, seconds}
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.logger._
 
-import Adapter.threadLocalAdapter
+import Adapter.dynamicAdapter
 
 // IMPORTANT NOTE:
 // The quarterly report logic in this module assumes that each quarterly report is published before the

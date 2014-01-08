@@ -13,7 +13,7 @@ import dke.tradesim.quotes.{findEodBarPriorTo, barClose}
 import dke.tradesim.math.{floor}
 import dke.tradesim.ordering.{sharesOnHand, setSharesOnHand, addCash, setOrderQty, setLimitPrice}
 
-import Adapter.threadLocalAdapter
+import Adapter.dynamicAdapter
 
 object splitsDividends {
   case class AdjustmentFactor(corporateAction: CorporateAction, priorEodBar: Option[Bar], adjustmentFactor: BigDecimal)

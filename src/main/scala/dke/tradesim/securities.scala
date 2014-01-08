@@ -4,7 +4,7 @@ import dke.tradesim.core.{Exchange, Security}
 import dke.tradesim.logger.info
 import dke.tradesim.db.Adapter
 
-import Adapter.threadLocalAdapter
+import Adapter.dynamicAdapter
 
 object securities {
   def findExchanges(exchangeLabels: Seq[String])(implicit adapter: Adapter): Seq[Exchange] = {

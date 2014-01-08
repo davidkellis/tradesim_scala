@@ -1,4 +1,4 @@
-import AssemblyKeys._ // put this at the top of the file
+import AssemblyKeys._   // put this at the top of the file
 
 assemblySettings
 
@@ -35,15 +35,14 @@ libraryDependencies ++= Seq(
   "com.github.nscala-time" %% "nscala-time" % "0.6.0",
   "javax.transaction" % "jta" % "1.1",
   "net.sf.ehcache" % "ehcache" % "2.7.4",
-  "com.typesafe.slick" % "slick_2.10" % "1.0.0",
-  //"org.mongodb" %% "casbah" % "2.6.0",
+  "com.typesafe.slick" %% "slick" % "2.0.0-RC1",
   "org.slf4j" % "slf4j-nop" % "1.6.4",
   "postgresql" % "postgresql" % "9.1-901.jdbc4",
   "org.rogach" %% "scallop" % "0.9.2",
   "org.json4s" %% "json4s-jackson" % "3.2.2",
   "com.lambdaworks" % "jacks_2.10" % "2.2.0",
+  "net.sandrogrzicic" %% "scalabuff-runtime" % "1.3.6",
   "org.scalatest" % "scalatest_2.10" % "1.9.1" % "test",
-  //"org.apache.thrift" % "libthrift" % "0.9.1",
   "org.scala-lang" % "scala-compiler" % "2.10.2",
   "org.scala-lang" % "jline" % "2.10.2",
   "org.spire-math" %% "spire" % "0.6.0",

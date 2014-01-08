@@ -27,10 +27,9 @@ object Runner {
     val username = config.username.get.getOrElse("david")
     val password = config.password.get.getOrElse("")
 
-//    MongoAdapter.withAdapter("mongodb://localhost") {
     SlickAdapter.withAdapter(jdbcConnectionString, "org.postgresql.Driver", username, password) {
       if (config.setupDb()) {
-        Adapter.threadLocalAdapter.createDb()
+        Adapter.dynamicAdapter.createDb()
       } else if (config.scenario.isSupplied) {
         readLine("Press any key to start")
         config.scenario.get match {

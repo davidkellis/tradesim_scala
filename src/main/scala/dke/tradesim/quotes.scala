@@ -9,7 +9,7 @@ import dke.tradesim.datetimeUtils.{timestamp, datetime, isInstantBetweenInclusiv
 import dke.tradesim.db.{Adapter}
 import dke.tradesim.logger._
 
-import Adapter.threadLocalAdapter
+import Adapter.dynamicAdapter
 
 object quotes {
   def barOpen(bar: Bar): BigDecimal = bar.open

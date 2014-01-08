@@ -32,7 +32,7 @@ class TradesimRepl extends ILoop {
                       "dke.tradesim.datetimeUtils._",
                       "dke.tradesim.db.{Adapter, SlickAdapter}",
                       "dke.tradesim.db.SlickAdapter._",
-                      "Database.threadLocalSession")
+                      "Database.dynamicSession")
     }
   }
 
