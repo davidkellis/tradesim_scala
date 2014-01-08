@@ -143,7 +143,7 @@ object db {
     object ExchangeToSecurity extends TableQuery(new ExchangeToSecurity(_))
 
 
-    type TrialRecord = (Int, String, String, String, String, String, Timestamp, Timestamp, String, String)
+    type TrialRecord = (Int, String, String, String, String, String, Timestamp, Timestamp, Array[Byte], Array[Byte])
     class Trials(tag: Tag) extends Table[TrialRecord](tag, "trials") {
       def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
       def strategyName = column[String]("strategy_name")
@@ -153,8 +153,8 @@ object db {
       def commissionPerShare = column[String]("commission_per_share")
       def startTime = column[Timestamp]("start_time")
       def endTime = column[Timestamp]("end_time")
-      def transactionLog = column[String]("transaction_log", O.DBType("text"))
-      def portfolioValueLog = column[String]("portfolio_value_log", O.DBType("text"))
+      def transactionLog = column[Array[Byte]]("transaction_log")
+      def portfolioValueLog = column[Array[Byte]]("portfolio_value_log")
 
       // Every table needs a * projection with the same type as the table's type parameter
       def * = (id, strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
@@ -518,10 +518,18 @@ object db {
       val commissionPerShare = trial.commissionPerShare.toString
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
-      val transactionLog = Serialization.write(Transactions(state.transactions))
-      val portfolioValueLog = Serialization.write(PortfolioValues(state.portfolioValueHistory))
+      val transactionLog = convertTransactionsToProtobuf(Transactions(state.transactions)).toByteArray
+      val portfolioValueLog = convertPortfolioValuesToProtobuf(PortfolioValues(state.portfolioValueHistory)).toByteArray
 
       (0, strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
+    }
+
+    def convertTransactionsToProtobuf(transactions: Transactions): protobuf.Transactions = {
+
+    }
+
+    def convertPortfolioValuesToProtobuf(portfolioValues: PortfolioValues): protobuf.PortfolioValues = {
+
     }
   }
 }
