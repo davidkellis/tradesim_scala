@@ -518,18 +518,18 @@ object db {
       val commissionPerShare = trial.commissionPerShare.toString
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
-      val transactionLog = convertTransactionsToProtobuf(Transactions(state.transactions)).toByteArray
-      val portfolioValueLog = convertPortfolioValuesToProtobuf(PortfolioValues(state.portfolioValueHistory)).toByteArray
+      val transactionLog = convertTransactionsToProtobuf(state.transactions).toByteArray
+      val portfolioValueLog = convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray
 
       (0, strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
     }
 
-    def convertTransactionsToProtobuf(transactions: Transactions): protobuf.Transactions = {
-
+    def convertTransactionsToProtobuf(transactions: TransactionLog): protobuf.TransactionLog = {
+      protobuf.TransactionLog()
     }
 
-    def convertPortfolioValuesToProtobuf(portfolioValues: PortfolioValues): protobuf.PortfolioValues = {
-
+    def convertPortfolioValuesToProtobuf(portfolioValues: Seq[PortfolioValue]): protobuf.PortfolioValueLog = {
+      protobuf.PortfolioValueLog()
     }
   }
 }
