@@ -1,10 +1,10 @@
 package dke.tradesim
 
 import scala.slick.driver.PostgresDriver.simple._
-import scala.slick.lifted.Query
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
 
 import dke.tradesim.core._
+//import dke.tradesim.database.Tables._
 import dke.tradesim.datetimeUtils.{timestamp, datetime, Datestamp, Timestamp}
 import dke.tradesim.logger.{verbose, info}
 import org.joda.time.DateTime
@@ -68,7 +68,7 @@ object db {
     def queryAnnualReports(securityId: SecurityId): Seq[AnnualReport]
     def queryAnnualReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport]
 
-    def insertTrials[StateT <: State[StateT]](strategyName: String, trialStatePairs: Seq[(Trial, StateT)]): Unit
+    def insertTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trialStatePairs: Seq[(Trial, StateT)]): Unit
   }
 
   object SlickAdapter {
@@ -499,16 +499,24 @@ object db {
 
     // Trial stuff
 
-    def insertTrials[StateT <: State[StateT]](strategyName: String, trialStatePairs: Seq[(Trial, StateT)]): Unit = {
+    def insertTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trialStatePairs: Seq[(Trial, StateT)]): Unit = {
       // trialStatePairs.foreach { pair => 
       //   Trials.forInsert.insert(buildInsertionTuple(strategyName, pair._1, pair._2))
       // }
       trialStatePairs.grouped(500).foreach { pairs =>
         verbose(s"Building group of records.")
-        val records = pairs.map(pair => buildInsertionTuple(strategyName, pair._1, pair._2)).toSeq
+        val records = pairs.map(pair => buildInsertionTuple(strategy.name, pair._1, pair._2)).toSeq
         verbose(s"Inserting group of records.")
         Trials.insertAll(records: _*)
       }
+    }
+
+    def insertTrialSet[StateT <: State[StateT]](strategy: Strategy[StateT]): Unit = {
+
+    }
+
+    def insertStrategy[StateT <: State[StateT]](strategy: Strategy[StateT]): Unit = {
+
     }
 
     def buildInsertionTuple[StateT <: State[StateT]](strategyName: String, trial: Trial, state: StateT): TrialRecord = {

@@ -261,7 +261,7 @@ object trial {
 
   def logTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trials: Seq[Trial], finalStates: Seq[StateT])(implicit adapter: Adapter) {
     info(s"logTrials(${strategy.name}, ${trials.length} trials, ${finalStates.length} final states)")
-    adapter.insertTrials(strategy.name, trials.zip(finalStates))
+    adapter.insertTrials(strategy, trials.zip(finalStates))
   }
 
   def runAndLogTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trials: Seq[Trial]): Seq[StateT] = {
