@@ -444,8 +444,6 @@ object db {
     def buildTrialsRow[StateT <: State[StateT]](trialSetId: Int, trial: Trial, state: StateT): TrialsRow = {
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
-//      val transactionLog = convertByteArrayToBlob(convertTransactionsToProtobuf(state.transactions).toByteArray)
-//      val portfolioValueLog = convertByteArrayToBlob(convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray)
       val transactionLog = convertTransactionsToProtobuf(state.transactions).toByteArray
       val portfolioValueLog = convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray
 

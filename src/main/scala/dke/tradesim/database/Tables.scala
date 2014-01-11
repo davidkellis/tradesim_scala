@@ -22,11 +22,11 @@ trait Tables {
    *  @param balanceSheet Database column balance_sheet 
    *  @param cashFlowStatement Database column cash_flow_statement 
    *  @param securityId Database column security_id  */
-  case class AnnualReportsRow(id: Int, startTime: Long, endTime: Long, publicationTime: Long, incomeStatement: java.sql.Blob, balanceSheet: java.sql.Blob, cashFlowStatement: java.sql.Blob, securityId: Int)
+  case class AnnualReportsRow(id: Int, startTime: Long, endTime: Long, publicationTime: Long, incomeStatement: Array[Byte], balanceSheet: Array[Byte], cashFlowStatement: Array[Byte], securityId: Int)
   /** GetResult implicit for fetching AnnualReportsRow objects using plain SQL queries */
-  implicit def GetResultAnnualReportsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[java.sql.Blob]): GR[AnnualReportsRow] = GR{
+  implicit def GetResultAnnualReportsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[Array[Byte]]): GR[AnnualReportsRow] = GR{
     prs => import prs._
-    AnnualReportsRow.tupled((<<[Int], <<[Long], <<[Long], <<[Long], <<[java.sql.Blob], <<[java.sql.Blob], <<[java.sql.Blob], <<[Int]))
+    AnnualReportsRow.tupled((<<[Int], <<[Long], <<[Long], <<[Long], <<[Array[Byte]], <<[Array[Byte]], <<[Array[Byte]], <<[Int]))
   }
   /** Table description of table annual_reports. Objects of this class serve as prototypes for rows in queries. */
   class AnnualReports(tag: Tag) extends Table[AnnualReportsRow](tag, "annual_reports") {
@@ -43,11 +43,11 @@ trait Tables {
     /** Database column publication_time  */
     val publicationTime: Column[Long] = column[Long]("publication_time")
     /** Database column income_statement  */
-    val incomeStatement: Column[java.sql.Blob] = column[java.sql.Blob]("income_statement")
+    val incomeStatement: Column[Array[Byte]] = column[Array[Byte]]("income_statement")
     /** Database column balance_sheet  */
-    val balanceSheet: Column[java.sql.Blob] = column[java.sql.Blob]("balance_sheet")
+    val balanceSheet: Column[Array[Byte]] = column[Array[Byte]]("balance_sheet")
     /** Database column cash_flow_statement  */
-    val cashFlowStatement: Column[java.sql.Blob] = column[java.sql.Blob]("cash_flow_statement")
+    val cashFlowStatement: Column[Array[Byte]] = column[Array[Byte]]("cash_flow_statement")
     /** Database column security_id  */
     val securityId: Column[Int] = column[Int]("security_id")
     
@@ -225,11 +225,11 @@ trait Tables {
    *  @param balanceSheet Database column balance_sheet 
    *  @param cashFlowStatement Database column cash_flow_statement 
    *  @param securityId Database column security_id  */
-  case class QuarterlyReportsRow(id: Int, startTime: Long, endTime: Long, publicationTime: Long, incomeStatement: java.sql.Blob, balanceSheet: java.sql.Blob, cashFlowStatement: java.sql.Blob, securityId: Int)
+  case class QuarterlyReportsRow(id: Int, startTime: Long, endTime: Long, publicationTime: Long, incomeStatement: Array[Byte], balanceSheet: Array[Byte], cashFlowStatement: Array[Byte], securityId: Int)
   /** GetResult implicit for fetching QuarterlyReportsRow objects using plain SQL queries */
-  implicit def GetResultQuarterlyReportsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[java.sql.Blob]): GR[QuarterlyReportsRow] = GR{
+  implicit def GetResultQuarterlyReportsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[Array[Byte]]): GR[QuarterlyReportsRow] = GR{
     prs => import prs._
-    QuarterlyReportsRow.tupled((<<[Int], <<[Long], <<[Long], <<[Long], <<[java.sql.Blob], <<[java.sql.Blob], <<[java.sql.Blob], <<[Int]))
+    QuarterlyReportsRow.tupled((<<[Int], <<[Long], <<[Long], <<[Long], <<[Array[Byte]], <<[Array[Byte]], <<[Array[Byte]], <<[Int]))
   }
   /** Table description of table quarterly_reports. Objects of this class serve as prototypes for rows in queries. */
   class QuarterlyReports(tag: Tag) extends Table[QuarterlyReportsRow](tag, "quarterly_reports") {
@@ -246,11 +246,11 @@ trait Tables {
     /** Database column publication_time  */
     val publicationTime: Column[Long] = column[Long]("publication_time")
     /** Database column income_statement  */
-    val incomeStatement: Column[java.sql.Blob] = column[java.sql.Blob]("income_statement")
+    val incomeStatement: Column[Array[Byte]] = column[Array[Byte]]("income_statement")
     /** Database column balance_sheet  */
-    val balanceSheet: Column[java.sql.Blob] = column[java.sql.Blob]("balance_sheet")
+    val balanceSheet: Column[Array[Byte]] = column[Array[Byte]]("balance_sheet")
     /** Database column cash_flow_statement  */
-    val cashFlowStatement: Column[java.sql.Blob] = column[java.sql.Blob]("cash_flow_statement")
+    val cashFlowStatement: Column[Array[Byte]] = column[Array[Byte]]("cash_flow_statement")
     /** Database column security_id  */
     val securityId: Column[Int] = column[Int]("security_id")
     
