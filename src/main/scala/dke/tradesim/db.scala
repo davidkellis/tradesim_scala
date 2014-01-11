@@ -241,8 +241,7 @@ object db {
       val sql = s"""
         |select s.id, s.bb_gid, s.bb_gcid, s.type, s.symbol, s.name, s.start_date, s.end_date, s.cik, s.active, s.fiscal_year_end_date, s.exchange_id, s.industry_id, s.sector_id
         |from securities s
-        |inner join exchange_securities etos on etos.security_id = s.id
-        |inner join exchanges e on e.id = etos.exchange_id
+        |inner join exchanges e on e.id = s.exchange_id
         |where s.symbol in (${symbols.mkString("'", "','", "'")})
         |  and e.id in (${exchanges.flatMap(_.id).mkString("'", "','", "'")})
       """.stripMargin
@@ -379,7 +378,13 @@ object db {
           verbose(s"Building group of records.")
           val trialRows = pairs.map(pair => buildTrialsRow(trialSetRow.id, pair._1, pair._2)).toSeq
           verbose(s"Inserting group of records.")
-          Trials ++= trialRows
+          try {
+            Trials ++= trialRows
+          } catch {
+            case e: java.sql.BatchUpdateException =>
+              println("*" * 80)
+              e.getNextException.printStackTrace()
+          }
         }
       }
     }
@@ -401,24 +406,24 @@ object db {
         row.copy(id = trialSetId)
       }
 
-//      val tsId_sId_pairs = (for {
-//        ts <- TrialSets if ts.strategyId === strategyId
-//        sToTs <- SecuritiesTrialSets if sToTs.trialSetId === ts.id
-//        s <- Securities if sToTs.securityId === s.id
-//        if s.id inSetBind trial.securityIds
-//        if ts.principal === trial.principal
-//        if ts.commissionPerTrade === trial.commissionPerTrade
-//        if ts.commissionPerShare === trial.commissionPerShare
-//      } yield (ts.id, s.id)).list
-
       val tsId_sId_pairs = (for {
-        ((ts, joinTable), s) <- (TrialSets innerJoin SecuritiesTrialSets) innerJoin Securities
-        if ts.strategyId === strategyId
+        ts <- TrialSets if ts.strategyId === strategyId
+        sToTs <- SecuritiesTrialSets if sToTs.trialSetId === ts.id
+        s <- Securities if sToTs.securityId === s.id
         if s.id inSetBind trial.securityIds
         if ts.principal === trial.principal
         if ts.commissionPerTrade === trial.commissionPerTrade
         if ts.commissionPerShare === trial.commissionPerShare
       } yield (ts.id, s.id)).list
+
+//      val tsId_sId_pairs = (for {
+//        ((ts, joinTable), s) <- (TrialSets innerJoin SecuritiesTrialSets) innerJoin Securities
+//        if ts.strategyId === strategyId
+//        if s.id inSetBind trial.securityIds
+//        if ts.principal === trial.principal
+//        if ts.commissionPerTrade === trial.commissionPerTrade
+//        if ts.commissionPerShare === trial.commissionPerShare
+//      } yield (ts.id, s.id)).list
 
       val groupedIdPairs = tsId_sId_pairs.groupBy(_._1)     // group (tsId, sId) pairs by tsId yielding a Map[tsId, Seq[sId]]
 
@@ -439,8 +444,10 @@ object db {
     def buildTrialsRow[StateT <: State[StateT]](trialSetId: Int, trial: Trial, state: StateT): TrialsRow = {
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
-      val transactionLog = convertByteArrayToBlob(convertTransactionsToProtobuf(state.transactions).toByteArray)
-      val portfolioValueLog = convertByteArrayToBlob(convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray)
+//      val transactionLog = convertByteArrayToBlob(convertTransactionsToProtobuf(state.transactions).toByteArray)
+//      val portfolioValueLog = convertByteArrayToBlob(convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray)
+      val transactionLog = convertTransactionsToProtobuf(state.transactions).toByteArray
+      val portfolioValueLog = convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray
 
       TrialsRow(0, startTime, endTime, transactionLog, portfolioValueLog, trialSetId)
     }

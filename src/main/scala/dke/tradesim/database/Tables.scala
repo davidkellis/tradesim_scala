@@ -453,11 +453,11 @@ trait Tables {
    *  @param transactionLog Database column transaction_log 
    *  @param portfolioValueLog Database column portfolio_value_log 
    *  @param trialSetId Database column trial_set_id  */
-  case class TrialsRow(id: Int, startTime: Long, endTime: Long, transactionLog: java.sql.Blob, portfolioValueLog: java.sql.Blob, trialSetId: Int)
+  case class TrialsRow(id: Int, startTime: Long, endTime: Long, transactionLog: Array[Byte], portfolioValueLog: Array[Byte], trialSetId: Int)
   /** GetResult implicit for fetching TrialsRow objects using plain SQL queries */
-  implicit def GetResultTrialsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[java.sql.Blob]): GR[TrialsRow] = GR{
+  implicit def GetResultTrialsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[Array[Byte]]): GR[TrialsRow] = GR{
     prs => import prs._
-    TrialsRow.tupled((<<[Int], <<[Long], <<[Long], <<[java.sql.Blob], <<[java.sql.Blob], <<[Int]))
+    TrialsRow.tupled((<<[Int], <<[Long], <<[Long], <<[Array[Byte]], <<[Array[Byte]], <<[Int]))
   }
   /** Table description of table trials. Objects of this class serve as prototypes for rows in queries. */
   class Trials(tag: Tag) extends Table[TrialsRow](tag, "trials") {
@@ -472,9 +472,9 @@ trait Tables {
     /** Database column end_time  */
     val endTime: Column[Long] = column[Long]("end_time")
     /** Database column transaction_log  */
-    val transactionLog: Column[java.sql.Blob] = column[java.sql.Blob]("transaction_log")
+    val transactionLog: Column[Array[Byte]] = column[Array[Byte]]("transaction_log")
     /** Database column portfolio_value_log  */
-    val portfolioValueLog: Column[java.sql.Blob] = column[java.sql.Blob]("portfolio_value_log")
+    val portfolioValueLog: Column[Array[Byte]] = column[Array[Byte]]("portfolio_value_log")
     /** Database column trial_set_id  */
     val trialSetId: Column[Int] = column[Int]("trial_set_id")
     
