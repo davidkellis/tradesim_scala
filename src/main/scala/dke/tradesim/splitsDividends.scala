@@ -74,7 +74,7 @@ object splitsDividends {
     securityIds.flatMap(findCorporateActions(_, startTime, endTime))
 
   def findEodBarPriorToCorporateAction(corporateAction: CorporateAction): Option[Bar] =
-    findEodBarPriorTo(corporateAction.exDate, corporateAction.securityId)
+    findEodBarPriorTo(midnight(corporateAction.exDate), corporateAction.securityId)
 
   // computes a cumulative price adjustment factor
   def cumulativePriceAdjustmentFactor(securityId: SecurityId, startTime: DateTime, endTime: DateTime): BigDecimal =
@@ -211,7 +211,7 @@ object splitsDividends {
     val eodBar = findEodBarPriorTo(midnight(exDate), securityId)
     eodBar.map { eodBar =>
       val closingPrice = barClose(eodBar)
-      val splitAdjustedSharePrice = adjustPriceForCorporateActions(closingPrice, securityId, eodBar.endTime, exDate)
+      val splitAdjustedSharePrice = adjustPriceForCorporateActions(closingPrice, securityId, eodBar.endTime, midnight(exDate))
       val fractionalShareCashValue = fractionalShareQty * splitAdjustedSharePrice
       val adjustedPortfolio = threadThrough(portfolio)(setSharesOnHand(_, securityId, adjSharesOnHand),
                                                        addCash(_, fractionalShareCashValue))

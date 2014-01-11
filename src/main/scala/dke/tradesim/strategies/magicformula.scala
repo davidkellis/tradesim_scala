@@ -11,7 +11,7 @@ import dke.tradesim.ordering._
 import dke.tradesim.portfolio.portfolioValue
 import dke.tradesim.quotes.{barHigh, barLow, barClose, barSimQuote, findEodBar}
 import dke.tradesim.schedule.{buildTradingSchedule, defaultTradingSchedule, defaultHolidaySchedule}
-import dke.tradesim.securities.{findStocks, PrimaryUsExchanges}
+import dke.tradesim.securities.{findSecurities, PrimaryUsExchanges}
 import dke.tradesim.trial.{buildScheduledTimeIncrementer, buildInitialJumpTimeIncrementer, tradingBloxFillPriceWithSlippage, runTrial, buildTrialGenerator, buildAllTrialIntervals, buildTrials, fixedTradingPeriodIsFinalState, runAndLogTrialsInParallel}
 import dke.tradesim.{core}
 import dke.tradesim.core.Strategy
@@ -90,7 +90,7 @@ object magicformula {
       val purchaseFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barHigh _, 0.15)
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
-      val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val securityIds = findSecurities(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
       val trial = Trial(securityIds, 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       info("Running 1 trial")
       runAndLogTrialsInParallel(strategy, Seq(trial))
@@ -104,7 +104,7 @@ object magicformula {
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
       val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
-      val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val securityIds = findSecurities(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))  //.take(500)
       info("Building trials")
       val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds)

@@ -21,6 +21,8 @@ object datetimeUtils {
   def date(year: Int, month: Int): LocalDate = new LocalDate(year, month, 1)
   def date(year: Int, month: Int, day: Int): LocalDate = new LocalDate(year, month, day)
 
+  def datestamp(date: LocalDate): Datestamp = date.toString("yyyyMMdd").toInt
+
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
   def datetime(year: Int, month: Int, day: Int): DateTime = datetime(year, month, day, 0, 0, 0)
   def datetime(year: Int, month: Int, day: Int, hour: Int, minute: Int, second: Int): DateTime =
@@ -45,10 +47,14 @@ object datetimeUtils {
     datetime(year, month, day, hour, minute, second)
   }
 
+  def datetime(date: LocalDate): DateTime = datetime(date.getYear, date.getMonthOfYear, date.getDayOfMonth)
+
+  def timestamp(date: LocalDate): Timestamp = datetime(date).toString("yyyyMMddHHmmss").toLong
   def timestamp(datetime: ReadableDateTime): Timestamp = datetime.toString("yyyyMMddHHmmss").toLong
 
   def findTimeZone(timeZoneName: String): DateTimeZone = DateTimeZone.forID(timeZoneName)
 
+  def midnight(date: LocalDate): DateTime = datetime(date).withTimeAtStartOfDay()
   def midnight(datetime: DateTime): DateTime = datetime.withTimeAtStartOfDay()
 
   def years(n: Int): Period = Years.years(n).toPeriod

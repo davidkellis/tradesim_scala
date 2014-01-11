@@ -10,7 +10,7 @@ import dke.tradesim.ordering.{maxSharesPurchasable, sharesOnHand, buy, sell}
 import dke.tradesim.portfolio.portfolioValue
 import dke.tradesim.quotes.{barHigh, barLow, barClose, barSimQuote, findEodBar}
 import dke.tradesim.schedule.{buildTradingSchedule, defaultTradingSchedule, defaultHolidaySchedule}
-import dke.tradesim.securities.{findStocks, PrimaryUsExchanges}
+import dke.tradesim.securities.{findSecurities, PrimaryUsExchanges}
 import dke.tradesim.trial.{buildScheduledTimeIncrementer, buildInitialJumpTimeIncrementer, tradingBloxFillPriceWithSlippage, runTrial, buildTrialGenerator, buildAllTrialIntervals, buildTrials, fixedTradingPeriodIsFinalState, runAndLogTrialsInParallel}
 import dke.tradesim.core
 import dke.tradesim.core.Strategy
@@ -73,7 +73,7 @@ object buyandhold {
       val purchaseFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barHigh _, 0.15)
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
-      val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val securityIds = findSecurities(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
       val trial = Trial(securityIds, 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       info("Running 1 trial")
       runAndLogTrialsInParallel(strategy, Seq(trial))
@@ -89,7 +89,7 @@ object buyandhold {
       val purchaseFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barHigh _, 0.15)
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
-      val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val securityIds = findSecurities(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
       val trial = Trial(securityIds, 10000, 7.0, 0.0, startTime, endTime, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       info("Running 1 trial")
       runAndLogTrialsInParallel(strategy, Seq(trial))
@@ -103,7 +103,7 @@ object buyandhold {
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
       val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
-      val securityIds = findStocks(PrimaryUsExchanges, Seq("IJH")).flatMap(_.id).toVector
+      val securityIds = findSecurities(PrimaryUsExchanges, Seq("IJH")).flatMap(_.id).toVector
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))  //.take(500)
       info("Building trials")
       val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds)
@@ -119,7 +119,7 @@ object buyandhold {
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.15)
       val strategy = buildStrategy()
       val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
-      val securityIds = findStocks(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val securityIds = findSecurities(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))
       val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds)
       info(s"${trials.length} trials")
@@ -135,7 +135,7 @@ object buyandhold {
       val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))     //.take(500)
 
-      val securities = findStocks(PrimaryUsExchanges, Seq("ACITX","PTRRX","FKSRX","PHYRX","ACVAX","ACCAX","ACOAX","RELDX","SSAIX","MRLOX","REACX","GITSX","IENAX","GGHCX","ARFAX","ARBMX","ARWAX","ARCMX","ARYAX","ARDMX","AROAX","ARFMX","ALPAX","LCEAX","RRFDX","SVSPX","RGACX","JDCRX","RRGSX","MRVEX","IJH","TWVAX","RRMGX","FVFRX","ASQAX","SESPX","GTSRX","ODVNX","RERCX"))
+      val securities = findSecurities(PrimaryUsExchanges, Seq("ACITX","PTRRX","FKSRX","PHYRX","ACVAX","ACCAX","ACOAX","RELDX","SSAIX","MRLOX","REACX","GITSX","IENAX","GGHCX","ARFAX","ARBMX","ARWAX","ARCMX","ARYAX","ARDMX","AROAX","ARFMX","ALPAX","LCEAX","RRFDX","SVSPX","RGACX","JDCRX","RRGSX","MRVEX","IJH","TWVAX","RRMGX","FVFRX","ASQAX","SESPX","GTSRX","ODVNX","RERCX"))
       securities.foreach { security =>
         info("Building trials")
         val trialSecurityIds = Vector(security.id.get)

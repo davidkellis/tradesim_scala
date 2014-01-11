@@ -1,6 +1,6 @@
 package dke.tradesim
 
-import org.joda.time.{DateTime}
+import org.joda.time.{LocalDate, DateTime}
 import dke.tradesim.datetimeUtils.Datestamp
 
 object core {
@@ -120,6 +120,7 @@ object core {
                       cik: Option[Int],
                       active: Option[Boolean],
                       fiscalYearEndDate: Option[Int],
+                      exchangeId: Option[Int],
                       industryId: Option[Int],
                       sectorId: Option[Int])
 
@@ -147,14 +148,14 @@ object core {
 
   trait CorporateAction {
     val securityId: SecurityId
-    val exDate: DateTime
+    val exDate: LocalDate
   }
   case class Split(securityId: SecurityId,
-                   exDate: DateTime,
+                   exDate: LocalDate,
                    ratio: BigDecimal) extends CorporateAction
 
   case class SplitAdjustment(securityId: SecurityId,
-                             exDate: DateTime,
+                             exDate: LocalDate,
                              ratio: BigDecimal,
                              adjustmentTime: DateTime,
                              shareQtyDelta: Long,
@@ -163,18 +164,18 @@ object core {
   // See http://www.investopedia.com/articles/02/110802.asp#axzz24Wa9LgDj for the various dates associated with dividend payments
   // See also http://www.sec.gov/answers/dividen.htm
   case class CashDividend(securityId: SecurityId,
-                          declarationDate: Option[DateTime],    // date at which the announcement to shareholders/market that company will pay a dividend is made
-                          exDate: DateTime,                     // on or after this date, the security trades without the dividend
-                          recordDate: Option[DateTime],         // date at which shareholders of record are identified as recipients of the dividend
-                          payableDate: Option[DateTime],        // date at which company issues payment of dividend
+                          declarationDate: Option[LocalDate],    // date at which the announcement to shareholders/market that company will pay a dividend is made
+                          exDate: LocalDate,                     // on or after this date, the security trades without the dividend
+                          recordDate: Option[LocalDate],         // date at which shareholders of record are identified as recipients of the dividend
+                          payableDate: Option[LocalDate],        // date at which company issues payment of dividend
                           amount: BigDecimal) extends CorporateAction
 
   case class CashDividendPayment(securityId: SecurityId,
-                                 exDate: DateTime,                     // on or after this date, the security trades without the dividend
-                                 payableDate: Option[DateTime],        // date at which company issues payment of dividend
-                                 amountPerShare: BigDecimal,           // amount of the dividend, per share
-                                 adjustmentTime: DateTime,             // time at which the adjustment took place
-                                 shareQty: Long,                       // number of shares on hand of <securityId>
+                                 exDate: LocalDate,                     // on or after this date, the security trades without the dividend
+                                 payableDate: Option[LocalDate],        // date at which company issues payment of dividend
+                                 amountPerShare: BigDecimal,            // amount of the dividend, per share
+                                 adjustmentTime: DateTime,              // time at which the adjustment took place
+                                 shareQty: Long,                        // number of shares on hand of <securityId>
                                  total: BigDecimal) extends Transaction
 
   trait StatementAttribute

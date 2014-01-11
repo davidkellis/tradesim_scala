@@ -2,10 +2,11 @@ package dke.tradesim
 
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
+import javax.sql.rowset.serial.SerialBlob
 
 import dke.tradesim.core._
-//import dke.tradesim.database.Tables._
-import dke.tradesim.datetimeUtils.{timestamp, datetime, Datestamp, Timestamp}
+import dke.tradesim.database.Tables._
+import dke.tradesim.datetimeUtils.{timestamp, datestamp, datetime, date, Datestamp, Timestamp}
 import dke.tradesim.logger.{verbose, info}
 import org.joda.time.DateTime
 import scala.util.DynamicVariable
@@ -17,8 +18,7 @@ import org.json4s.JsonDSL.WithBigDecimal._
 
 import dke.tradesim.json.LiftJValueWithFilter
 
-import scala.language.implicitConversions
-import scala.collection.JavaConversions._
+//import scala.collection.JavaConversions._
 
 object db {
   object Adapter {
@@ -46,7 +46,7 @@ object db {
     def createDb(): Unit
 
     def findExchanges(exchangeLabels: Seq[String]): Seq[Exchange]
-    def findStocks(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security]
+    def findSecurities(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security]
 
     def queryEodBar(time: DateTime, securityId: SecurityId): Option[Bar]
     def queryEodBarPriorTo(time: DateTime, securityId: SecurityId): Option[Bar]
@@ -94,74 +94,21 @@ object db {
 //    implicit val formats = Serialization.formats(NoTypeHints) + new DateTimeSerializer
 
 
-    class Exchanges(tag: Tag) extends Table[Exchange](tag, "exchanges") {
-      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
-      def label = column[String]("label")
-      def name = column[Option[String]]("name", O.Nullable)
-
-      // Every table needs a * projection with the same type as the table's type parameter
-      def * = (id.?, label, name) <> (Exchange.tupled, Exchange.unapply)
-      def securities = ExchangeToSecurity.filter(_.exchangeId === id).flatMap(_.securityIdFK)
+    def convertExchangesRow(record: ExchangesRow): Exchange = {
+      record match {
+        case ExchangesRow(id, label, name) =>
+          Exchange(Some(id), label, name)
+      }
     }
 
-    object Exchanges extends TableQuery(new Exchanges(_))
-
-
-    class Securities(tag: Tag) extends Table[Security](tag, "securities") {
-      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)
-      def bbGid = column[String]("bb_gid")
-      def bbGcid = column[String]("bb_gcid")
-      def kind = column[String]("type")
-      def symbol = column[String]("symbol")
-      def name = column[String]("name")
-      def startDate = column[Option[Datestamp]]("start_date", O.Nullable)
-      def endDate = column[Option[Datestamp]]("end_date", O.Nullable)
-      def cik = column[Option[Int]]("cik", O.Nullable)
-      def isActive = column[Option[Boolean]]("active", O.Nullable)
-      def fiscalYearEndDate = column[Option[Int]]("fiscal_year_end_date", O.Nullable)
-      def industryId = column[Option[Int]]("industry_id", O.Nullable)
-      def sectorId = column[Option[Int]]("sector_id", O.Nullable)
-
-      // Every table needs a * projection with the same type as the table's type parameter
-      def * = (id.?, bbGid, bbGcid, kind, symbol, name, startDate, endDate, cik, isActive, fiscalYearEndDate, industryId, sectorId) <> (Security.tupled, Security.unapply)
-      def exchanges = ExchangeToSecurity.filter(_.securityId === id).flatMap(_.exchangeIdFK)
+    def convertSecuritiesRow(record: SecuritiesRow): Security = {
+      record match {
+        case SecuritiesRow(id, kind, Some(bbGid), Some(bbGcid), symbol, Some(name), startDate, endDate, cik, fiscalYearEndDate, active, exchangeId, industryId, sectorId) =>
+          Security(Some(id), bbGid, bbGcid, kind, symbol, name, startDate, endDate, cik, active, fiscalYearEndDate, exchangeId, industryId, sectorId)
+        case SecuritiesRow(id, _, _, _, _, _, _, _, _, _, _, _, _, _) =>
+          throw new Exception(s"Malformed SecuritiesRow: id=$id")
+      }
     }
-
-    object Securities extends TableQuery(new Securities(_))
-
-
-    // this is a join table between exchanges and securities
-    class ExchangeToSecurity(tag: Tag) extends Table[(Int, Int)](tag, "exchange_securities") {
-      def exchangeId = column[Int]("exchange_id")
-      def securityId = column[Int]("security_id")
-
-      def * = (exchangeId, securityId)
-      def exchangeIdFK = foreignKey("exchange_id_fk", exchangeId, Exchanges)(exchange => exchange.id)
-      def securityIdFK = foreignKey("security_id_fk", securityId, Securities)(security => security.id)
-    }
-
-    object ExchangeToSecurity extends TableQuery(new ExchangeToSecurity(_))
-
-
-    type TrialRecord = (Int, String, String, String, String, String, Timestamp, Timestamp, Array[Byte], Array[Byte])
-    class Trials(tag: Tag) extends Table[TrialRecord](tag, "trials") {
-      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
-      def strategyName = column[String]("strategy_name")
-      def securityIds = column[String]("security_ids")            // This is a JSON array
-      def principal = column[String]("principal")
-      def commissionPerTrade = column[String]("commission_per_trade")
-      def commissionPerShare = column[String]("commission_per_share")
-      def startTime = column[Timestamp]("start_time")
-      def endTime = column[Timestamp]("end_time")
-      def transactionLog = column[Array[Byte]]("transaction_log")
-      def portfolioValueLog = column[Array[Byte]]("portfolio_value_log")
-
-      // Every table needs a * projection with the same type as the table's type parameter
-      def * = (id, strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
-    }
-
-    object Trials extends TableQuery(new Trials(_))
-
 
     implicit val DateTimeToTimestamp = MappedColumnType.base[DateTime, Timestamp](
       dt => timestamp(dt),              // map DateTime to Timestamp
@@ -173,96 +120,25 @@ object db {
       str => BigDecimal(str)  // map Timestamp to DateTime
     )
 
-    class EodBars(tag: Tag) extends Table[EodBar](tag, "eod_bars") {
-      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
-      def securityId = column[SecurityId]("security_id")
-      def startTime = column[DateTime]("start_time")
-      def endTime = column[DateTime]("end_time")
-      def open = column[BigDecimal]("open")
-      def high = column[BigDecimal]("high")
-      def low = column[BigDecimal]("low")
-      def close = column[BigDecimal]("close")
-      def volume = column[Long]("volume")
-
-      // Every table needs a * projection with the same type as the table's type parameter
-      def * = (id.?, securityId, startTime, endTime, open, high, low, close, volume) <> (EodBar.tupled, EodBar.unapply)
-    }
-
-    object EodBars extends TableQuery(new EodBars(_))
-
-//    def convertEodBarRecord(record: EodBarRecord): EodBar = {
-//      record match {
-//        case (_, symbol, startTime, endTime, open, high, low, close, volume) =>
-//          EodBar(symbol, datetime(startTime), datetime(endTime), BigDecimal(open), BigDecimal(high), BigDecimal(low), BigDecimal(close), volume)
-//      }
-//    }
-//
-//    def convertEodBarRecord(record: Option[EodBarRecord]): Option[EodBar] = record.map(convertEodBarRecord(_))
-
-
-    type CorporateActionRecord = (Int, String, Int, Option[Datestamp], Datestamp, Option[Datestamp], Option[Datestamp], String)
-    class CorporateActions(tag: Tag) extends Table[CorporateActionRecord](tag, "corporate_actions") {
-      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
-      def kind = column[String]("type")                     // either Split or CashDividend
-      def securityId = column[SecurityId]("security_id")
-
-      def declarationDate = column[Option[Datestamp]]("declaration_date", O.Nullable)
-      def exDate = column[Datestamp]("ex_date")
-      def recordDate = column[Option[Datestamp]]("record_date", O.Nullable)
-      def payableDate = column[Option[Datestamp]]("payable_date", O.Nullable)
-
-      def ratioOrAmount = column[String]("number")      // split ratio OR dividend amount
-
-      // Every table needs a * projection with the same type as the table's type parameter
-      def * = (id, kind, securityId, declarationDate, exDate, recordDate, payableDate, ratioOrAmount)
-    }
-
-    object CorporateActions extends TableQuery(new CorporateActions(_))
-
-    def convertCorporateActionRecord(record: CorporateActionRecord): CorporateAction = {
+    def convertEodBarsRow(record: EodBarsRow): EodBar = {
       record match {
-        case (_, "Split", securityId, _, exDate, _, _, ratio) =>
-          Split(securityId, datetime(exDate), BigDecimal(ratio))
-        case (_, "CashDividend", securityId, declarationDate, exDate, recordDate, payableDate, amount) =>
-          CashDividend(securityId, declarationDate.map(datetime _), datetime(exDate), recordDate.map(datetime _), payableDate.map(datetime _), BigDecimal(amount))
-        case (id, _, _, _, _, _, _, _) => throw new Exception(s"Malformed CorporateAction: id=$id")
+        case EodBarsRow(id, startTime, endTime, open, high, low, close, volume, securityId) =>
+          EodBar(Some(id), securityId, datetime(startTime), datetime(endTime), open, high, low, close, volume)
       }
     }
 
+    def convertEodBarsRow(record: Option[EodBarsRow]): Option[EodBar] = record.map(convertEodBarsRow(_))
 
-    type QuarterlyReportRecord = (Int, SecurityId, Timestamp, Timestamp, Timestamp, String, String, String)
-    class QuarterlyReports(tag: Tag) extends Table[QuarterlyReportRecord](tag, "quarterly_reports") {
-      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
-      def securityId = column[SecurityId]("security_id")
-      def startTime = column[Timestamp]("start_time")
-      def endTime = column[Timestamp]("end_time")
-      def publicationTime = column[Timestamp]("publication_time")
-      def incomeStatement = column[String]("income_statement", O.DBType("text"))
-      def balanceSheet = column[String]("balance_sheet", O.DBType("text"))
-      def cashFlowStatement = column[String]("cash_flow_statement", O.DBType("text"))
-
-      // Every table needs a * projection with the same type as the table's type parameter
-      def * = (id, securityId, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement)
+    def convertCorporateActionsRow(record: CorporateActionsRow): CorporateAction = {
+      record match {
+        case CorporateActionsRow(id, "Split", exDate, declarationDate, recordDate, payableDate, ratio, securityId) =>
+          Split(securityId, date(exDate), ratio)
+        case CorporateActionsRow(id, "CashDividend", exDate, declarationDate, recordDate, payableDate, amount, securityId) =>
+          CashDividend(securityId, declarationDate.map(date _), date(exDate), recordDate.map(date _), payableDate.map(date _), amount)
+        case CorporateActionsRow(id, kind, exDate, declarationDate, recordDate, payableDate, ratio, securityId) =>
+          throw new Exception(s"Malformed CorporateAction: id=$id")
+      }
     }
-
-    object QuarterlyReports extends TableQuery(new QuarterlyReports(_))
-
-    type AnnualReportRecord = (Int, SecurityId, Timestamp, Timestamp, Timestamp, String, String, String)
-    class AnnualReports(tag: Tag) extends Table[AnnualReportRecord](tag, "annual_reports") {
-      def id = column[Int]("id", O.PrimaryKey, O.AutoInc)   // This is the primary key column
-      def securityId = column[SecurityId]("security_id")
-      def startTime = column[Timestamp]("start_time")
-      def endTime = column[Timestamp]("end_time")
-      def publicationTime = column[Timestamp]("publication_time")
-      def incomeStatement = column[String]("income_statement", O.DBType("text"))
-      def balanceSheet = column[String]("balance_sheet", O.DBType("text"))
-      def cashFlowStatement = column[String]("cash_flow_statement", O.DBType("text"))
-
-      // Every table needs a * projection with the same type as the table's type parameter
-      def * = (id, securityId, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement)
-    }
-
-    object AnnualReports extends TableQuery(new AnnualReports(_))
 
     // assumes json is of the form: [ "header", [attribute, value], [attribute, value], "header", [attr, val], ... ]
     // where the json structure is no more than 1 level deep (i.e. there are no sub-sections)
@@ -287,48 +163,44 @@ object db {
       case _ => None
     }
 
-    def convertQuarterlyReportRecord(record: QuarterlyReportRecord): QuarterlyReport = {
+    def convertQuarterlyReportsRow(record: QuarterlyReportsRow): QuarterlyReport = {
       record match {
-        case (_, securityId, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement) =>
+        case QuarterlyReportsRow(id, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement, securityId) =>
           QuarterlyReport(
             securityId,
             datetime(startTime),
             datetime(endTime),
             datetime(publicationTime),
-            convertJsonToStatement(incomeStatement),
-            convertJsonToStatement(balanceSheet),
-            convertJsonToStatement(cashFlowStatement)
+            convertJsonToStatement(incomeStatement.toString),     // todo: the .toString is just to make this compile - it is wrong - fix it
+            convertJsonToStatement(balanceSheet.toString),        // todo: the .toString is just to make this compile - it is wrong - fix it
+            convertJsonToStatement(cashFlowStatement.toString)    // todo: the .toString is just to make this compile - it is wrong - fix it
           )
       }
     }
 
-    def convertQuarterlyReportRecord(record: Option[QuarterlyReportRecord]): Option[QuarterlyReport] =
-      record.map(convertQuarterlyReportRecord(_))
+    def convertQuarterlyReportsRow(record: Option[QuarterlyReportsRow]): Option[QuarterlyReport] =
+      record.map(convertQuarterlyReportsRow(_))
 
-    def convertAnnualReportRecord(record: AnnualReportRecord): AnnualReport = {
+    def convertAnnualReportsRow(record: AnnualReportsRow): AnnualReport = {
       record match {
-        case (_, securityId, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement) =>
+        case AnnualReportsRow(id, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement, securityId) =>
           AnnualReport(
             securityId,
             datetime(startTime),
             datetime(endTime),
             datetime(publicationTime),
-            convertJsonToStatement(incomeStatement),
-            convertJsonToStatement(balanceSheet),
-            convertJsonToStatement(cashFlowStatement)
+            convertJsonToStatement(incomeStatement.toString),     // todo: the .toString is just to make this compile - it is wrong - fix it
+            convertJsonToStatement(balanceSheet.toString),        // todo: the .toString is just to make this compile - it is wrong - fix it
+            convertJsonToStatement(cashFlowStatement.toString)    // todo: the .toString is just to make this compile - it is wrong - fix it
           )
       }
     }
 
-    def convertAnnualReportRecord(record: Option[AnnualReportRecord]): Option[AnnualReport] =
-      record.map(convertAnnualReportRecord(_))
+    def convertAnnualReportsRow(record: Option[AnnualReportsRow]): Option[AnnualReport] =
+      record.map(convertAnnualReportsRow(_))
 
 
     def withAdapter[T](jdbcConnectionString: String, driver: String, username: String = null, password: String = null)(f: => T): T = {
-//      Database.forURL(jdbcConnectionString, username, password, driver = driver) withSession { session =>
-//        val adapter = new SlickAdapter()(session)
-//        Adapter.withAdapter(adapter)(f)
-//      }
       Database.forURL(jdbcConnectionString, username, password, driver = driver) withDynSession {
         val adapter = new SlickAdapter()(Database.dynamicSession)
         Adapter.withAdapter(adapter)(f)
@@ -346,9 +218,7 @@ object db {
 
 
     def findExchanges(exchangeLabels: Seq[String]): Seq[Exchange] = {
-      Exchanges.
-        filter(_.label inSetBind exchangeLabels).
-        list
+      Exchanges.filter(_.label inSetBind exchangeLabels).list.map(convertExchangesRow _)
     }
 
 
@@ -364,11 +234,12 @@ object db {
                                                              r.nextBooleanOption,
                                                              r.nextIntOption,
                                                              r.nextIntOption,
+                                                             r.nextIntOption,
                                                              r.nextIntOption))
 
-    def findStocks(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security] = {
+    def findSecurities(exchanges: Seq[Exchange], symbols: Seq[String]): Seq[Security] = {
       val sql = s"""
-        |select s.id, s.bb_gid, s.bb_gcid, s.type, s.symbol, s.name, s.start_date, s.end_date, s.cik, s.active, s.fiscal_year_end_date, s.industry_id, s.sector_id
+        |select s.id, s.bb_gid, s.bb_gcid, s.type, s.symbol, s.name, s.start_date, s.end_date, s.cik, s.active, s.fiscal_year_end_date, s.exchange_id, s.industry_id, s.sector_id
         |from securities s
         |inner join exchange_securities etos on etos.security_id = s.id
         |inner join exchanges e on e.id = etos.exchange_id
@@ -380,39 +251,39 @@ object db {
 
 
     def queryEodBar(time: DateTime, securityId: SecurityId): Option[Bar] = {
-      val bars = EodBars.filter(_.securityId === securityId).filter(_.startTime <= time)
+      val bars = EodBars.filter(_.securityId === securityId).filter(_.startTime <= timestamp(time))
       val sortedBars = bars.sortBy(_.startTime.desc)
-      sortedBars.take(1).firstOption
+      sortedBars.take(1).firstOption.map(convertEodBarsRow _)
     }
 
     def queryEodBarPriorTo(time: DateTime, securityId: SecurityId): Option[Bar] = {
-      val bars = EodBars.filter(_.securityId === securityId).filter(_.endTime < time)
+      val bars = EodBars.filter(_.securityId === securityId).filter(_.endTime < timestamp(time))
       val sortedBars = bars.sortBy(_.endTime.desc)
-      sortedBars.take(1).firstOption
+      sortedBars.take(1).firstOption.map(convertEodBarsRow _)
     }
 
     def queryEodBars(securityId: SecurityId): Seq[Bar] = {
       val bars = EodBars.filter(_.securityId === securityId)
-      bars.sortBy(_.startTime).list
+      bars.sortBy(_.startTime).list.map(convertEodBarsRow _)
     }
 
     def queryEodBars(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[Bar] = {
       val bars = EodBars.filter(_.securityId === securityId)
-                        .filter(_.startTime >= earliestTime)
-                        .filter(_.endTime <= latestTime)
-      bars.sortBy(_.startTime).list
+                        .filter(_.startTime >= timestamp(earliestTime))
+                        .filter(_.endTime <= timestamp(latestTime))
+      bars.sortBy(_.startTime).list.map(convertEodBarsRow _)
     }
 
     def findOldestEodBar(securityId: SecurityId): Option[Bar] = {
       val bars = EodBars.filter(_.securityId === securityId)
       val sortedBars = bars.sortBy(_.startTime)
-      sortedBars.take(1).firstOption
+      sortedBars.take(1).firstOption.map(convertEodBarsRow _)
     }
 
     def findMostRecentEodBar(securityId: SecurityId): Option[Bar] = {
       val bars = EodBars.filter(_.securityId === securityId)
       val sortedBars = bars.sortBy(_.startTime.desc)
-      sortedBars.take(1).firstOption
+      sortedBars.take(1).firstOption.map(convertEodBarsRow _)
     }
 
 
@@ -424,7 +295,7 @@ object db {
         |where security_id in (${securityIds.mkString("'", "','", "'")})
         |order by ex_date
       """.stripMargin
-      Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).buildColl[Vector]
+      Q.queryNA[CorporateActionsRow](sql).mapResult(convertCorporateActionsRow(_)).buildColl[Vector]
     }
 
     def queryCorporateActions(securityIds: IndexedSeq[Int], startTime: DateTime, endTime: DateTime): IndexedSeq[CorporateAction] = {
@@ -435,7 +306,7 @@ object db {
         |and ex_date <= ${timestamp(endTime)}
         |order by ex_date
       """.stripMargin
-      Q.queryNA[CorporateActionRecord](sql).mapResult(convertCorporateActionRecord(_)).buildColl[Vector]
+      Q.queryNA[CorporateActionsRow](sql).mapResult(convertCorporateActionsRow(_)).buildColl[Vector]
     }
 
 
@@ -443,20 +314,20 @@ object db {
       val reports = QuarterlyReports.filter(_.securityId === securityId).filter(_.startTime <= timestamp(time))
       val sortedReports = reports.sortBy(_.startTime.desc)
       val record = sortedReports.take(1).firstOption
-      convertQuarterlyReportRecord(record)
+      convertQuarterlyReportsRow(record)
     }
 
     def queryQuarterlyReportPriorTo(time: DateTime, securityId: SecurityId): Option[QuarterlyReport] = {
       val reports = QuarterlyReports.filter(_.securityId === securityId).filter(_.endTime < timestamp(time))
       val sortedReports = reports.sortBy(_.endTime.desc)
       val record = sortedReports.take(1).firstOption
-      convertQuarterlyReportRecord(record)
+      convertQuarterlyReportsRow(record)
     }
 
     def queryQuarterlyReports(securityId: SecurityId): Seq[QuarterlyReport] = {
       val reports = QuarterlyReports.filter(_.securityId === securityId)
       val sortedReports = reports.sortBy(_.startTime)
-      sortedReports.mapResult(convertQuarterlyReportRecord(_)).list
+      sortedReports.mapResult(convertQuarterlyReportsRow(_)).list
     }
 
     def queryQuarterlyReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[QuarterlyReport] = {
@@ -464,7 +335,7 @@ object db {
                                     .filter(_.startTime >= timestamp(earliestTime))
                                     .filter(_.endTime <= timestamp(latestTime))
       val sortedReports = reports.sortBy(_.startTime)
-      sortedReports.mapResult(convertQuarterlyReportRecord(_)).list
+      sortedReports.mapResult(convertQuarterlyReportsRow(_)).list
     }
 
 
@@ -472,20 +343,20 @@ object db {
       val reports = AnnualReports.filter(_.securityId === securityId).filter(_.startTime <= timestamp(time))
       val sortedReports = reports.sortBy(_.startTime.desc)
       val record = sortedReports.take(1).firstOption
-      convertAnnualReportRecord(record)
+      convertAnnualReportsRow(record)
     }
 
     def queryAnnualReportPriorTo(time: DateTime, securityId: SecurityId): Option[AnnualReport] = {
       val reports = AnnualReports.filter(_.securityId === securityId).filter(_.endTime < timestamp(time))
       val sortedReports = reports.sortBy(_.endTime.desc)
       val record = sortedReports.take(1).firstOption
-      convertAnnualReportRecord(record)
+      convertAnnualReportsRow(record)
     }
 
     def queryAnnualReports(securityId: SecurityId): Seq[AnnualReport] = {
       val reports = AnnualReports.filter(_.securityId === securityId)
       val sortedReports = reports.sortBy(_.startTime)
-      sortedReports.mapResult(convertAnnualReportRecord(_)).list
+      sortedReports.mapResult(convertAnnualReportsRow(_)).list
     }
 
     def queryAnnualReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport] = {
@@ -493,51 +364,149 @@ object db {
                                  .filter(_.startTime >= timestamp(earliestTime))
                                  .filter(_.endTime <= timestamp(latestTime))
       val sortedReports = reports.sortBy(_.startTime)
-      sortedReports.mapResult(convertAnnualReportRecord(_)).list
+      sortedReports.mapResult(convertAnnualReportsRow(_)).list
     }
 
 
     // Trial stuff
 
     def insertTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trialStatePairs: Seq[(Trial, StateT)]): Unit = {
-      // trialStatePairs.foreach { pair => 
-      //   Trials.forInsert.insert(buildInsertionTuple(strategyName, pair._1, pair._2))
-      // }
-      trialStatePairs.grouped(500).foreach { pairs =>
-        verbose(s"Building group of records.")
-        val records = pairs.map(pair => buildInsertionTuple(strategy.name, pair._1, pair._2)).toSeq
-        verbose(s"Inserting group of records.")
-        Trials.insertAll(records: _*)
+      trialStatePairs.headOption.foreach { firstTrialStatePair =>
+        val strategyRow = insertStrategy(strategy.name)
+        val trialSetRow = insertTrialSet(strategyRow.id, firstTrialStatePair._1)
+
+        trialStatePairs.grouped(500).foreach { pairs =>
+          verbose(s"Building group of records.")
+          val trialRows = pairs.map(pair => buildTrialsRow(trialSetRow.id, pair._1, pair._2)).toSeq
+          verbose(s"Inserting group of records.")
+          Trials ++= trialRows
+        }
       }
     }
 
-    def insertTrialSet[StateT <: State[StateT]](strategy: Strategy[StateT]): Unit = {
-
+    def insertStrategy(strategyName: String): StrategiesRow = {
+      val insertRow = () => {
+        val row = StrategiesRow(0, strategyName)
+        val strategyId = (Strategies returning Strategies.map(_.id)) += row
+        row.copy(id = strategyId)
+      }
+      Strategies.filter(_.name === strategyName).take(1).firstOption.getOrElse(insertRow())
     }
 
-    def insertStrategy[StateT <: State[StateT]](strategy: Strategy[StateT]): Unit = {
+    def insertTrialSet(strategyId: Int, trial: Trial): TrialSetsRow = {
+      val insertRow = () => {
+        val row = TrialSetsRow(0, Some(trial.principal), Some(trial.commissionPerTrade), Some(trial.commissionPerShare), strategyId)
+        val trialSetId = (TrialSets returning TrialSets.map(_.id)).insert(row)
+        joinTrialSetToSecurities(trialSetId, trial.securityIds)
+        row.copy(id = trialSetId)
+      }
 
+//      val tsId_sId_pairs = (for {
+//        ts <- TrialSets if ts.strategyId === strategyId
+//        sToTs <- SecuritiesTrialSets if sToTs.trialSetId === ts.id
+//        s <- Securities if sToTs.securityId === s.id
+//        if s.id inSetBind trial.securityIds
+//        if ts.principal === trial.principal
+//        if ts.commissionPerTrade === trial.commissionPerTrade
+//        if ts.commissionPerShare === trial.commissionPerShare
+//      } yield (ts.id, s.id)).list
+
+      val tsId_sId_pairs = (for {
+        ((ts, joinTable), s) <- (TrialSets innerJoin SecuritiesTrialSets) innerJoin Securities
+        if ts.strategyId === strategyId
+        if s.id inSetBind trial.securityIds
+        if ts.principal === trial.principal
+        if ts.commissionPerTrade === trial.commissionPerTrade
+        if ts.commissionPerShare === trial.commissionPerShare
+      } yield (ts.id, s.id)).list
+
+      val groupedIdPairs = tsId_sId_pairs.groupBy(_._1)     // group (tsId, sId) pairs by tsId yielding a Map[tsId, Seq[sId]]
+
+      val groupedIdPairReferencingAllSecurities = groupedIdPairs.find(_._2.length == trial.securityIds.length)
+
+      val trialSetId = groupedIdPairReferencingAllSecurities.map(_._1)
+
+      trialSetId.flatMap { trialSetId =>
+        TrialSets.filter(_.id === trialSetId).take(1).firstOption
+      }.getOrElse(insertRow())
     }
 
-    def buildInsertionTuple[StateT <: State[StateT]](strategyName: String, trial: Trial, state: StateT): TrialRecord = {
-      val securityIds = Serialization.write(SecurityIds(trial.securityIds))
-      val principal = trial.principal.toString
-      val commissionPerTrade = trial.commissionPerTrade.toString
-      val commissionPerShare = trial.commissionPerShare.toString
+    def joinTrialSetToSecurities(trialSetId: Int, securityIds: Seq[SecurityId]): Unit = {
+      val rows = securityIds.map(securityId => SecuritiesTrialSetsRow(securityId, trialSetId))
+      SecuritiesTrialSets ++= rows
+    }
+
+    def buildTrialsRow[StateT <: State[StateT]](trialSetId: Int, trial: Trial, state: StateT): TrialsRow = {
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
-      val transactionLog = convertTransactionsToProtobuf(state.transactions).toByteArray
-      val portfolioValueLog = convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray
+      val transactionLog = convertByteArrayToBlob(convertTransactionsToProtobuf(state.transactions).toByteArray)
+      val portfolioValueLog = convertByteArrayToBlob(convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray)
 
-      (0, strategyName, securityIds, principal, commissionPerTrade, commissionPerShare, startTime, endTime, transactionLog, portfolioValueLog)
+      TrialsRow(0, startTime, endTime, transactionLog, portfolioValueLog, trialSetId)
     }
 
     def convertTransactionsToProtobuf(transactions: TransactionLog): protobuf.TransactionLog = {
-      protobuf.TransactionLog()
+      protobuf.TransactionLog(transactions.map(convertTransactionToProtobuf _).to[collection.immutable.Seq])
+    }
+
+    def convertTransactionToProtobuf(transaction: Transaction): protobuf.Transaction = {
+      transaction match {
+        case order: Order =>
+          protobuf.Transaction(protobuf.Transaction.Type.Order, Some(convertOrderToProtobuf(order)), None, None)
+        case splitAdjustment: SplitAdjustment =>
+          protobuf.Transaction(protobuf.Transaction.Type.SplitAdjustment, None, Some(convertSplitAdjustmentToProtobuf(splitAdjustment)), None)
+        case cashDividendPayment: CashDividendPayment =>
+          protobuf.Transaction(protobuf.Transaction.Type.CashDividendPayment, None, None, Some(convertCashDividendPaymentToProtobuf(cashDividendPayment)))
+      }
+    }
+
+    def convertOrderToProtobuf(order: Order): protobuf.Order = {
+      order match {
+        case MarketBuy(time, securityId, qty, fillPrice) =>
+          protobuf.Order(protobuf.Order.Type.MarketBuy, timestamp(time), securityId, qty, fillPrice.map(_.toString), None)
+        case MarketSell(time, securityId, qty, fillPrice) =>
+          protobuf.Order(protobuf.Order.Type.MarketSell, timestamp(time), securityId, qty, fillPrice.map(_.toString), None)
+        case LimitBuy(time, securityId, qty, limitPrice, fillPrice) =>
+          protobuf.Order(protobuf.Order.Type.MarketBuy, timestamp(time), securityId, qty, fillPrice.map(_.toString), Some(limitPrice.toString))
+        case LimitSell(time, securityId, qty, limitPrice, fillPrice) =>
+          protobuf.Order(protobuf.Order.Type.MarketSell, timestamp(time), securityId, qty, fillPrice.map(_.toString), Some(limitPrice.toString))
+      }
+    }
+
+    def convertSplitAdjustmentToProtobuf(splitAdjustment: SplitAdjustment): protobuf.SplitAdjustment = {
+      protobuf.SplitAdjustment(
+        splitAdjustment.securityId,
+        datestamp(splitAdjustment.exDate),
+        splitAdjustment.ratio.toString,
+        timestamp(splitAdjustment.adjustmentTime),
+        splitAdjustment.shareQtyDelta,
+        splitAdjustment.cashPayout.toString
+      )
+    }
+
+    def convertCashDividendPaymentToProtobuf(cashDividendPayment: CashDividendPayment): protobuf.CashDividendPayment = {
+      protobuf.CashDividendPayment(
+        cashDividendPayment.securityId,
+        datestamp(cashDividendPayment.exDate),
+        cashDividendPayment.payableDate.map(datestamp _),
+        cashDividendPayment.amountPerShare.toString,
+        timestamp(cashDividendPayment.adjustmentTime),
+        cashDividendPayment.shareQty,
+        cashDividendPayment.total.toString
+      )
     }
 
     def convertPortfolioValuesToProtobuf(portfolioValues: Seq[PortfolioValue]): protobuf.PortfolioValueLog = {
-      protobuf.PortfolioValueLog()
+      protobuf.PortfolioValueLog(portfolioValues.map(convertPortfolioValueToProtobuf _).to[collection.immutable.Seq])
     }
+
+    def convertPortfolioValueToProtobuf(portfolioValue: PortfolioValue): protobuf.PortfolioValue = {
+      protobuf.PortfolioValue(
+        timestamp(portfolioValue.time),
+        portfolioValue.value.toString
+      )
+    }
+
+    def convertByteArrayToBlob(byteArray: Array[Byte]): java.sql.Blob = new SerialBlob(byteArray)
   }
 }

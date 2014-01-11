@@ -277,7 +277,7 @@ trait Tables {
   class SchemaInfo(tag: Tag) extends Table[SchemaInfoRow](tag, "schema_info") {
     def * = version <> (SchemaInfoRow, SchemaInfoRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = version.?.shaped.<>({r=>import r._; _1.map(_=> SchemaInfoRow(_1.get))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = version.?.shaped.<>({r => r.map(version=> SchemaInfoRow(version))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
     
     /** Database column version Default(0) */
     val version: Column[Int] = column[Int]("version", O.Default(0))
@@ -326,7 +326,7 @@ trait Tables {
    *  @param exchangeId Database column exchange_id 
    *  @param industryId Database column industry_id 
    *  @param sectorId Database column sector_id  */
-  case class SecuritiesRow(id: Int, `type`: String, bbGid: Option[String], bbGcid: Option[String], symbol: String, name: Option[String], startDate: Option[Int], endDate: Option[Int], cik: Option[Int], fiscalYearEndDate: Option[Int], active: Option[Boolean]=false, exchangeId: Option[Int], industryId: Option[Int], sectorId: Option[Int])
+  case class SecuritiesRow(id: Int, `type`: String, bbGid: Option[String], bbGcid: Option[String], symbol: String, name: Option[String], startDate: Option[Int], endDate: Option[Int], cik: Option[Int], fiscalYearEndDate: Option[Int], active: Option[Boolean]=Some(false), exchangeId: Option[Int], industryId: Option[Int], sectorId: Option[Int])
   /** GetResult implicit for fetching SecuritiesRow objects using plain SQL queries */
   implicit def GetResultSecuritiesRow(implicit e0: GR[Int], e1: GR[String], e2: GR[Boolean]): GR[SecuritiesRow] = GR{
     prs => import prs._
@@ -361,7 +361,7 @@ trait Tables {
     /** Database column fiscal_year_end_date  */
     val fiscalYearEndDate: Column[Option[Int]] = column[Option[Int]]("fiscal_year_end_date")
     /** Database column active Default(false) */
-    val active: Column[Option[Boolean]] = column[Option[Boolean]]("active", O.Default(false))
+    val active: Column[Option[Boolean]] = column[Option[Boolean]]("active", O.Default(Some(false)))
     /** Database column exchange_id  */
     val exchangeId: Column[Option[Int]] = column[Option[Int]]("exchange_id")
     /** Database column industry_id  */

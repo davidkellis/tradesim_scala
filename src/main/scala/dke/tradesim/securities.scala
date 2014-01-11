@@ -19,8 +19,8 @@ object securities {
   val OTC_BB = findExchanges(List("UU"))
   val OTC = findExchanges(List("UV"))
 
-  def findStocks(exchanges: Seq[Exchange], symbols: Seq[String])(implicit adapter: Adapter): Seq[Security] = {
-    info(s"findStocks(${exchanges.mkString(",")}}, ${symbols.mkString(",")}})")
-    adapter.findStocks(exchanges, symbols)
+  def findSecurities(exchanges: Seq[Exchange], symbols: Seq[String])(implicit adapter: Adapter): Seq[Security] = {
+    info(s"findSecurities(${exchanges.mkString(",")}}, ${symbols.mkString(",")}})")
+    adapter.findSecurities(exchanges, symbols)
   }
 }
