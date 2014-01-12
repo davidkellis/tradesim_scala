@@ -47,10 +47,8 @@ object buyandhold {
 
     if (!state.hasEnteredPosition) {
       val qty = floor(maxSharesPurchasable(trial, portfolio, time, securityId, adjEodSimQuote _).getOrElse(0)).toLong
-//      info(s"buy $qty shares")
-//      info(s"state = $state")
+      val qtyToBuy = if (qty > 1) qty - 1 else qty      // we're conservative with how many shares we purchase so we don't have to buy on margin if the price unexpectedly goes up
       val newState = buy(state, time, securityId, qty).withHasEnteredPosition(true)
-//      info(s"newState = $newState")
       newState
     } else if (time == endTime) {
 //      info(s"sell all shares")
