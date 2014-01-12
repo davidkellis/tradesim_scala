@@ -87,7 +87,12 @@ object ordering {
 
   def isOrderFillable(order: MarketBuy, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn): Boolean = {
     val cost = purchaseCost(time, order.securityId, order.qty, trial.commissionPerTrade, trial.commissionPerShare, purchaseFillPriceFn)
+
+    // todo: I think this requirement should be removed because http://www.21stcenturyinvestoreducation.com/page/tce/courses/course-101/005/001-cash-vs-margin.html
+    //       says even cash accounts can temporarily have a negative cash balance as long as the necessary funds are depositied within 3 business days after
+    //       the purchase.
     cost.map(_ <= portfolio.cash).getOrElse(false)    // this condition is only applicable to cash-only accounts; this is allowed in margin accounts
+    // the condition should be that the post-purchase cash balance should be within reasonable margin requirements.
   }
 
   def isOrderFillable(order: MarketSell, time: DateTime, trial: Trial, portfolio: Portfolio, saleFillPriceFn: PriceQuoteFn): Boolean = {
