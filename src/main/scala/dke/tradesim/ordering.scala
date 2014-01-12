@@ -85,40 +85,39 @@ object ordering {
     price.map(price => (principal - commissionPerTrade).quot(price + commissionPerShare))
   }
 
-  def isOrderFillable(order: MarketBuy, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean = {
+  def isOrderFillable(order: MarketBuy, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn): Boolean = {
     val cost = purchaseCost(time, order.securityId, order.qty, trial.commissionPerTrade, trial.commissionPerShare, purchaseFillPriceFn)
-//    println(s"isOrderFillable(MarketBuy): ${cost.get} <= ${portfolio.cash} = ${cost.get <= portfolio.cash}")
-    cost.map(_ <= portfolio.cash).getOrElse(false)
+    cost.map(_ <= portfolio.cash).getOrElse(false)    // this condition is only applicable to cash-only accounts; this is allowed in margin accounts
   }
 
-  def isOrderFillable(order: MarketSell, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean = {
+  def isOrderFillable(order: MarketSell, time: DateTime, trial: Trial, portfolio: Portfolio, saleFillPriceFn: PriceQuoteFn): Boolean = {
     val proceeds = saleProceeds(time, order.securityId, order.qty, trial.commissionPerTrade, trial.commissionPerShare, saleFillPriceFn)
     proceeds.map(_ >= 0.0).getOrElse(false)
   }
 
-  def isOrderFillable(order: LimitBuy, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean = {
+  def isOrderFillable(order: LimitBuy, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn): Boolean = {
     val fillPrice = purchaseFillPriceFn(time, order.securityId)
-    fillPrice.map(_ <= order.limitPrice).getOrElse(false) && isOrderFillable(order.asInstanceOf[MarketBuy], time, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
+    fillPrice.map(_ <= order.limitPrice).getOrElse(false) && isOrderFillable(order.asInstanceOf[MarketBuy], time, trial, portfolio, purchaseFillPriceFn)
   }
 
-  def isOrderFillable(order: LimitSell, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean = {
+  def isOrderFillable(order: LimitSell, time: DateTime, trial: Trial, portfolio: Portfolio, saleFillPriceFn: PriceQuoteFn): Boolean = {
     val fillPrice = saleFillPriceFn(time, order.securityId)
-    fillPrice.map(_ >= order.limitPrice).getOrElse(false) && isOrderFillable(order.asInstanceOf[MarketSell], time, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
+    fillPrice.map(_ >= order.limitPrice).getOrElse(false) && isOrderFillable(order.asInstanceOf[MarketSell], time, trial, portfolio, saleFillPriceFn)
   }
 
   def isOrderFillable(order: Order, time: DateTime, trial: Trial, portfolio: Portfolio, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Boolean =
     order match {
-      case marketBuy: MarketBuy => isOrderFillable(marketBuy, time, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
-      case marketSell: MarketSell => isOrderFillable(marketSell, time, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
-      case limitBuy: LimitBuy => isOrderFillable(limitBuy, time, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
-      case limitSell: LimitSell => isOrderFillable(limitSell, time, trial, portfolio, purchaseFillPriceFn, saleFillPriceFn)
+      case marketBuy: MarketBuy => isOrderFillable(marketBuy, time, trial, portfolio, purchaseFillPriceFn)
+      case marketSell: MarketSell => isOrderFillable(marketSell, time, trial, portfolio, saleFillPriceFn)
+      case limitBuy: LimitBuy => isOrderFillable(limitBuy, time, trial, portfolio, purchaseFillPriceFn)
+      case limitSell: LimitSell => isOrderFillable(limitSell, time, trial, portfolio, saleFillPriceFn)
     }
 
-  def orderFillPrice(order: BuyOrder, time: DateTime, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Option[BigDecimal] = purchaseFillPriceFn(time, order.securityId)
-  def orderFillPrice(order: SellOrder, time: DateTime, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Option[BigDecimal] = saleFillPriceFn(time, order.securityId)
+  def orderFillPrice(order: BuyOrder, time: DateTime, purchaseFillPriceFn: PriceQuoteFn): Option[BigDecimal] = purchaseFillPriceFn(time, order.securityId)
+  def orderFillPrice(order: SellOrder, time: DateTime, saleFillPriceFn: PriceQuoteFn): Option[BigDecimal] = saleFillPriceFn(time, order.securityId)
   def orderFillPrice(order: Order, time: DateTime, purchaseFillPriceFn: PriceQuoteFn, saleFillPriceFn: PriceQuoteFn): Option[BigDecimal] = order match {
-    case buyOrder: BuyOrder => orderFillPrice(buyOrder, time, purchaseFillPriceFn, saleFillPriceFn)
-    case sellOrder: SellOrder => orderFillPrice(sellOrder, time, purchaseFillPriceFn, saleFillPriceFn)
+    case buyOrder: BuyOrder => orderFillPrice(buyOrder, time, purchaseFillPriceFn)
+    case sellOrder: SellOrder => orderFillPrice(sellOrder, time, saleFillPriceFn)
   }
 
   def cancelAllPendingOrders[StateT <: State[StateT]](currentState: StateT): StateT = currentState.copy(orders = Vector())
