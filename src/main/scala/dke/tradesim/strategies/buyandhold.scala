@@ -121,7 +121,7 @@ object buyandhold {
       val securityIds = findSecurities(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], years(1), days(1))
                                    .filter(interval => isTradingDay(date(interval.getStart), tradingSchedule))
-      val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds).take(2)
+      val trials = buildTrials(strategy, trialIntervalBuilderFn, trialGenerator, securityIds)
       info(s"${trials.length} trials")
       // runAndLogTrialsInParallel(strategy, trials)
       runAndLogTrials(strategy, trials)
