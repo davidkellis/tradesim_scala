@@ -187,18 +187,19 @@ object trial {
     val isFinalState = strategy.isFinalState
     val incrementTime = trial.incrementTime
 
-//    println("============================================")
-//    println("strategy=" + strategy)
-//    println("trial=" + trial)
+    // println("============================================")
+    // println("strategy=" + strategy)
+    // println("trial=" + trial)
 
     def runTrial(currentState: StateT): StateT = {
-//      println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
-//      println("currentState=" + currentState)
+      // println("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!")
+      // println("currentState=" + currentState)
 
       if (isFinalState(strategy, trial, currentState)) {
         threadThrough(currentState)(
           closeAllOpenPositions(trial, _),
           logCurrentPortfolioValue
+          // printAndReturnState
         )
       } else {
         val currentTime = currentState.time
@@ -221,6 +222,11 @@ object trial {
     var t2 = datetimeUtils.currentTime()
     verbose(s"Time: ${datetimeUtils.prettyFormatPeriod(datetimeUtils.periodBetween(t1, t2))}")
     result
+  }
+  
+  def printAndReturnState[StateT <: State[StateT]](currentState: StateT): StateT = {
+    println("currentState=" + currentState)
+    currentState
   }
 
   def buildAllTrialIntervals(securityIds: IndexedSeq[SecurityId], intervalLength: Period, separationLength: Period): Seq[Interval] = {

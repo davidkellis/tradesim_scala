@@ -37,7 +37,7 @@ object ordering {
   }
 
   def saleProceeds(qty: Long, price: BigDecimal, commissionPerTrade: BigDecimal, commissionPerShare: BigDecimal): BigDecimal =
-    (qty * (price - commissionPerShare)) + commissionPerTrade
+    (qty * (price - commissionPerShare)) - commissionPerTrade
 
   def saleProceeds(time: DateTime,
                    securityId: SecurityId,

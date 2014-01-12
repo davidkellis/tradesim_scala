@@ -17,6 +17,7 @@ object datetimeUtils {
 
   def currentTime(timeZone: DateTimeZone = EasternTimeZone): DateTime = DateTime.now(timeZone)
 
+  def date(time: DateTime): LocalDate = new LocalDate(time.getYear, time.getMonthOfYear, time.getDayOfMonth)
   def date(year: Int): LocalDate = new LocalDate(year, 1, 1)
   def date(year: Int, month: Int): LocalDate = new LocalDate(year, month, 1)
   def date(year: Int, month: Int, day: Int): LocalDate = new LocalDate(year, month, day)
