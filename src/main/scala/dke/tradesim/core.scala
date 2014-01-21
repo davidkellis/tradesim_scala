@@ -1,6 +1,6 @@
 package dke.tradesim
 
-import org.joda.time.{LocalDate, DateTime}
+import org.joda.time.{Period, LocalDate, DateTime}
 import dke.tradesim.datetimeUtils.Datestamp
 
 object core {
@@ -92,6 +92,7 @@ object core {
                    commissionPerShare: BigDecimal,
                    startTime: DateTime,
                    endTime: DateTime,
+                   duration: Period,
                    incrementTime: (DateTime) => DateTime,
                    purchaseFillPrice: PriceQuoteFn,
                    saleFillPrice: PriceQuoteFn)

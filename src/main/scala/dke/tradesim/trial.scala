@@ -234,7 +234,7 @@ object trial {
     startDateRange.map(startDateRange => interspersedIntervals(startDateRange, intervalLength, separationLength)).getOrElse(Vector[Interval]())
   }
 
-  type TrialGenerator = (IndexedSeq[SecurityId], DateTime, DateTime) => Trial
+  type TrialGenerator = (IndexedSeq[SecurityId], DateTime, DateTime, Period) => Trial
 
   def buildTrialGenerator(principal: BigDecimal,
                           commissionPerTrade: BigDecimal,
@@ -244,22 +244,25 @@ object trial {
                           saleFillPriceFn: PriceQuoteFn): TrialGenerator =
     (securityIds: IndexedSeq[SecurityId],
      startTime: DateTime,
-     endTime: DateTime) => Trial(securityIds,
-                                 principal,
-                                 commissionPerShare,
-                                 commissionPerTrade,
-                                 startTime,
-                                 endTime,
-                                 timeIncrementerFn,
-                                 purchaseFillPriceFn,
-                                 saleFillPriceFn)
+     endTime: DateTime,
+     trialDuration: Period) => Trial(securityIds,
+                                     principal,
+                                     commissionPerShare,
+                                     commissionPerTrade,
+                                     startTime,
+                                     endTime,
+                                     trialDuration,
+                                     timeIncrementerFn,
+                                     purchaseFillPriceFn,
+                                     saleFillPriceFn)
 
   def buildTrials[StateT <: State[StateT]](strategy: Strategy[StateT],
-                  trialIntervalGeneratorFn: (IndexedSeq[SecurityId]) => Seq[Interval],
-                  trialGeneratorFn: TrialGenerator,
-                  securityIds: IndexedSeq[SecurityId]): Seq[Trial] = {
-    val trialIntervals = trialIntervalGeneratorFn(securityIds)
-    trialIntervals.map(interval => trialGeneratorFn(securityIds, interval.getStart, interval.getEnd))
+                                           trialIntervalGeneratorFn: (IndexedSeq[SecurityId], Period) => Seq[Interval],
+                                           trialGeneratorFn: TrialGenerator,
+                                           securityIds: IndexedSeq[SecurityId],
+                                           trialDuration: Period): Seq[Trial] = {
+    val trialIntervals = trialIntervalGeneratorFn(securityIds, trialDuration)
+    trialIntervals.map(interval => trialGeneratorFn(securityIds, interval.getStart, interval.getEnd, trialDuration))
   }
 
   def runTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trials: Seq[Trial]): Seq[StateT] = trials.map(runTrial(strategy, _)).toVector

@@ -369,7 +369,8 @@ object db {
 
     // Trial stuff
 
-    def insertTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trialStatePairs: Seq[(Trial, StateT)]): Unit = {
+    def insertTrials[StateT <: State[StateT]](strategy: Strategy[StateT],
+                                              trialStatePairs: Seq[(Trial, StateT)]): Unit = {
       trialStatePairs.headOption.foreach { firstTrialStatePair =>
         val strategyRow = insertStrategy(strategy.name)
         val trialSetRow = insertTrialSet(strategyRow.id, firstTrialStatePair._1)
@@ -444,10 +445,11 @@ object db {
     def buildTrialsRow[StateT <: State[StateT]](trialSetId: Int, trial: Trial, state: StateT): TrialsRow = {
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
+      val trialDuration = trial.duration.toString
       val transactionLog = convertTransactionsToProtobuf(state.transactions).toByteArray
       val portfolioValueLog = convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray
 
-      TrialsRow(0, startTime, endTime, transactionLog, portfolioValueLog, trialSetId)
+      TrialsRow(0, startTime, endTime, trialDuration, transactionLog, portfolioValueLog, trialSetId)
     }
 
     def convertTransactionsToProtobuf(transactions: TransactionLog): protobuf.TransactionLog = {

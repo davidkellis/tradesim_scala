@@ -450,20 +450,21 @@ trait Tables {
    *  @param id Database column id AutoInc, PrimaryKey
    *  @param startTime Database column start_time 
    *  @param endTime Database column end_time 
-   *  @param transactionLog Database column transaction_log 
+   *  @param duration Database column duration
+   *  @param transactionLog Database column transaction_log
    *  @param portfolioValueLog Database column portfolio_value_log 
    *  @param trialSetId Database column trial_set_id  */
-  case class TrialsRow(id: Int, startTime: Long, endTime: Long, transactionLog: Array[Byte], portfolioValueLog: Array[Byte], trialSetId: Int)
+  case class TrialsRow(id: Int, startTime: Long, endTime: Long, duration: String, transactionLog: Array[Byte], portfolioValueLog: Array[Byte], trialSetId: Int)
   /** GetResult implicit for fetching TrialsRow objects using plain SQL queries */
   implicit def GetResultTrialsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[Array[Byte]]): GR[TrialsRow] = GR{
     prs => import prs._
-    TrialsRow.tupled((<<[Int], <<[Long], <<[Long], <<[Array[Byte]], <<[Array[Byte]], <<[Int]))
+    TrialsRow.tupled((<<[Int], <<[Long], <<[Long], <<[String], <<[Array[Byte]], <<[Array[Byte]], <<[Int]))
   }
   /** Table description of table trials. Objects of this class serve as prototypes for rows in queries. */
   class Trials(tag: Tag) extends Table[TrialsRow](tag, "trials") {
-    def * = (id, startTime, endTime, transactionLog, portfolioValueLog, trialSetId) <> (TrialsRow.tupled, TrialsRow.unapply)
+    def * = (id, startTime, endTime, duration, transactionLog, portfolioValueLog, trialSetId) <> (TrialsRow.tupled, TrialsRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (id.?, startTime.?, endTime.?, transactionLog.?, portfolioValueLog.?, trialSetId.?).shaped.<>({r=>import r._; _1.map(_=> TrialsRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (id.?, startTime.?, endTime.?, duration.?, transactionLog.?, portfolioValueLog.?, trialSetId.?).shaped.<>({r=>import r._; _1.map(_=> TrialsRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
     
     /** Database column id AutoInc, PrimaryKey */
     val id: Column[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
@@ -471,6 +472,8 @@ trait Tables {
     val startTime: Column[Long] = column[Long]("start_time")
     /** Database column end_time  */
     val endTime: Column[Long] = column[Long]("end_time")
+    /** Database column duration  */
+    val duration: Column[String] = column[String]("duration")
     /** Database column transaction_log  */
     val transactionLog: Column[Array[Byte]] = column[Array[Byte]]("transaction_log")
     /** Database column portfolio_value_log  */
