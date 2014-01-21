@@ -514,6 +514,5 @@ object db {
       )
     }
 
-    def convertByteArrayToBlob(byteArray: Array[Byte]): java.sql.Blob = new SerialBlob(byteArray)
   }
 }
