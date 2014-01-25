@@ -60,7 +60,7 @@ trait Tables {
     val index2 = index("annual_reports_security_id_end_time_index", (securityId, endTime), unique=true)
   }
   /** Collection-like TableQuery object for table AnnualReports */
-  lazy val AnnualReports = TableQuery[AnnualReports]
+  lazy val AnnualReports = new TableQuery(tag => new AnnualReports(tag))
   
   /** Entity class storing rows of table CorporateActions
    *  @param id Database column id AutoInc, PrimaryKey
@@ -109,7 +109,7 @@ trait Tables {
     val index1 = index("corporate_actions_type_security_id_ex_date_index", (`type`, securityId, exDate), unique=true)
   }
   /** Collection-like TableQuery object for table CorporateActions */
-  lazy val CorporateActions = TableQuery[CorporateActions]
+  lazy val CorporateActions = new TableQuery(tag => new CorporateActions(tag))
   
   /** Entity class storing rows of table EodBars
    *  @param id Database column id AutoInc, PrimaryKey
@@ -159,7 +159,7 @@ trait Tables {
     val index1 = index("eod_bars_security_id_start_time_index", (securityId, startTime), unique=true)
   }
   /** Collection-like TableQuery object for table EodBars */
-  lazy val EodBars = TableQuery[EodBars]
+  lazy val EodBars = new TableQuery(tag => new EodBars(tag))
   
   /** Entity class storing rows of table Exchanges
    *  @param id Database column id AutoInc, PrimaryKey
@@ -188,7 +188,7 @@ trait Tables {
     val index1 = index("exchanges_label_index", label, unique=true)
   }
   /** Collection-like TableQuery object for table Exchanges */
-  lazy val Exchanges = TableQuery[Exchanges]
+  lazy val Exchanges = new TableQuery(tag => new Exchanges(tag))
   
   /** Entity class storing rows of table Industries
    *  @param id Database column id AutoInc, PrimaryKey
@@ -214,7 +214,7 @@ trait Tables {
     val index1 = index("industries_name_index", name, unique=true)
   }
   /** Collection-like TableQuery object for table Industries */
-  lazy val Industries = TableQuery[Industries]
+  lazy val Industries = new TableQuery(tag => new Industries(tag))
   
   /** Entity class storing rows of table QuarterlyReports
    *  @param id Database column id AutoInc, PrimaryKey
@@ -263,7 +263,78 @@ trait Tables {
     val index2 = index("quarterly_reports_security_id_end_time_index", (securityId, endTime), unique=true)
   }
   /** Collection-like TableQuery object for table QuarterlyReports */
-  lazy val QuarterlyReports = TableQuery[QuarterlyReports]
+  lazy val QuarterlyReports = new TableQuery(tag => new QuarterlyReports(tag))
+  
+  /** Entity class storing rows of table SamplingDistributions
+   *  @param id Database column id AutoInc, PrimaryKey
+   *  @param sampleStatistic Database column sample_statistic 
+   *  @param distribution Database column distribution 
+   *  @param n Database column n 
+   *  @param average Database column average 
+   *  @param min Database column min 
+   *  @param max Database column max 
+   *  @param percentile10 Database column percentile_10 
+   *  @param percentile20 Database column percentile_20 
+   *  @param percentile30 Database column percentile_30 
+   *  @param percentile40 Database column percentile_40 
+   *  @param percentile50 Database column percentile_50 
+   *  @param percentile60 Database column percentile_60 
+   *  @param percentile70 Database column percentile_70 
+   *  @param percentile80 Database column percentile_80 
+   *  @param percentile90 Database column percentile_90 
+   *  @param trialSampleId Database column trial_sample_id  */
+  case class SamplingDistributionsRow(id: Int, sampleStatistic: String, distribution: Array[Byte], n: Option[Int], average: Option[scala.math.BigDecimal], min: Option[scala.math.BigDecimal], max: Option[scala.math.BigDecimal], percentile10: Option[scala.math.BigDecimal], percentile20: Option[scala.math.BigDecimal], percentile30: Option[scala.math.BigDecimal], percentile40: Option[scala.math.BigDecimal], percentile50: Option[scala.math.BigDecimal], percentile60: Option[scala.math.BigDecimal], percentile70: Option[scala.math.BigDecimal], percentile80: Option[scala.math.BigDecimal], percentile90: Option[scala.math.BigDecimal], trialSampleId: Int)
+  /** GetResult implicit for fetching SamplingDistributionsRow objects using plain SQL queries */
+  implicit def GetResultSamplingDistributionsRow(implicit e0: GR[Int], e1: GR[String], e2: GR[Array[Byte]], e3: GR[scala.math.BigDecimal]): GR[SamplingDistributionsRow] = GR{
+    prs => import prs._
+    SamplingDistributionsRow.tupled((<<[Int], <<[String], <<[Array[Byte]], <<?[Int], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<[Int]))
+  }
+  /** Table description of table sampling_distributions. Objects of this class serve as prototypes for rows in queries. */
+  class SamplingDistributions(tag: Tag) extends Table[SamplingDistributionsRow](tag, "sampling_distributions") {
+    def * = (id, sampleStatistic, distribution, n, average, min, max, percentile10, percentile20, percentile30, percentile40, percentile50, percentile60, percentile70, percentile80, percentile90, trialSampleId) <> (SamplingDistributionsRow.tupled, SamplingDistributionsRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (id.?, sampleStatistic.?, distribution.?, n, average, min, max, percentile10, percentile20, percentile30, percentile40, percentile50, percentile60, percentile70, percentile80, percentile90, trialSampleId.?).shaped.<>({r=>import r._; _1.map(_=> SamplingDistributionsRow.tupled((_1.get, _2.get, _3.get, _4, _5, _6, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    
+    /** Database column id AutoInc, PrimaryKey */
+    val id: Column[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+    /** Database column sample_statistic  */
+    val sampleStatistic: Column[String] = column[String]("sample_statistic")
+    /** Database column distribution  */
+    val distribution: Column[Array[Byte]] = column[Array[Byte]]("distribution")
+    /** Database column n  */
+    val n: Column[Option[Int]] = column[Option[Int]]("n")
+    /** Database column average  */
+    val average: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("average")
+    /** Database column min  */
+    val min: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("min")
+    /** Database column max  */
+    val max: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("max")
+    /** Database column percentile_10  */
+    val percentile10: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_10")
+    /** Database column percentile_20  */
+    val percentile20: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_20")
+    /** Database column percentile_30  */
+    val percentile30: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_30")
+    /** Database column percentile_40  */
+    val percentile40: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_40")
+    /** Database column percentile_50  */
+    val percentile50: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_50")
+    /** Database column percentile_60  */
+    val percentile60: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_60")
+    /** Database column percentile_70  */
+    val percentile70: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_70")
+    /** Database column percentile_80  */
+    val percentile80: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_80")
+    /** Database column percentile_90  */
+    val percentile90: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_90")
+    /** Database column trial_sample_id  */
+    val trialSampleId: Column[Int] = column[Int]("trial_sample_id")
+    
+    /** Foreign key referencing TrialSamples (database name sampling_distributions_trial_sample_id_fkey) */
+    val trialSamplesFk = foreignKey("sampling_distributions_trial_sample_id_fkey", trialSampleId, TrialSamples)(r => r.id, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+  }
+  /** Collection-like TableQuery object for table SamplingDistributions */
+  lazy val SamplingDistributions = new TableQuery(tag => new SamplingDistributions(tag))
   
   /** Entity class storing rows of table SchemaInfo
    *  @param version Database column version Default(0) */
@@ -283,7 +354,7 @@ trait Tables {
     val version: Column[Int] = column[Int]("version", O.Default(0))
   }
   /** Collection-like TableQuery object for table SchemaInfo */
-  lazy val SchemaInfo = TableQuery[SchemaInfo]
+  lazy val SchemaInfo = new TableQuery(tag => new SchemaInfo(tag))
   
   /** Entity class storing rows of table Sectors
    *  @param id Database column id AutoInc, PrimaryKey
@@ -309,7 +380,7 @@ trait Tables {
     val index1 = index("sectors_name_index", name, unique=true)
   }
   /** Collection-like TableQuery object for table Sectors */
-  lazy val Sectors = TableQuery[Sectors]
+  lazy val Sectors = new TableQuery(tag => new Sectors(tag))
   
   /** Entity class storing rows of table Securities
    *  @param id Database column id AutoInc, PrimaryKey
@@ -384,7 +455,7 @@ trait Tables {
     val index3 = index("securities_symbol_index", symbol)
   }
   /** Collection-like TableQuery object for table Securities */
-  lazy val Securities = TableQuery[Securities]
+  lazy val Securities = new TableQuery(tag => new Securities(tag))
   
   /** Entity class storing rows of table SecuritiesTrialSets
    *  @param securityId Database column security_id 
@@ -418,7 +489,7 @@ trait Tables {
     val index1 = index("securities_trial_sets_trial_set_id_security_id_index", (trialSetId, securityId))
   }
   /** Collection-like TableQuery object for table SecuritiesTrialSets */
-  lazy val SecuritiesTrialSets = TableQuery[SecuritiesTrialSets]
+  lazy val SecuritiesTrialSets = new TableQuery(tag => new SecuritiesTrialSets(tag))
   
   /** Entity class storing rows of table Strategies
    *  @param id Database column id AutoInc, PrimaryKey
@@ -444,27 +515,31 @@ trait Tables {
     val index1 = index("strategies_name_index", name, unique=true)
   }
   /** Collection-like TableQuery object for table Strategies */
-  lazy val Strategies = TableQuery[Strategies]
+  lazy val Strategies = new TableQuery(tag => new Strategies(tag))
   
   /** Entity class storing rows of table Trials
    *  @param id Database column id AutoInc, PrimaryKey
    *  @param startTime Database column start_time 
    *  @param endTime Database column end_time 
-   *  @param duration Database column duration
-   *  @param transactionLog Database column transaction_log
+   *  @param transactionLog Database column transaction_log 
    *  @param portfolioValueLog Database column portfolio_value_log 
+   *  @param `yield` Database column yield 
+   *  @param mfe Database column mfe 
+   *  @param mae Database column mae 
+   *  @param dailyStdDev Database column daily_std_dev 
    *  @param trialSetId Database column trial_set_id  */
-  case class TrialsRow(id: Int, startTime: Long, endTime: Long, duration: String, transactionLog: Array[Byte], portfolioValueLog: Array[Byte], trialSetId: Int)
+  case class TrialsRow(id: Int, startTime: Long, endTime: Long, transactionLog: Array[Byte], portfolioValueLog: Array[Byte], `yield`: Option[scala.math.BigDecimal], mfe: Option[scala.math.BigDecimal], mae: Option[scala.math.BigDecimal], dailyStdDev: Option[scala.math.BigDecimal], trialSetId: Int)
   /** GetResult implicit for fetching TrialsRow objects using plain SQL queries */
-  implicit def GetResultTrialsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[Array[Byte]]): GR[TrialsRow] = GR{
+  implicit def GetResultTrialsRow(implicit e0: GR[Int], e1: GR[Long], e2: GR[Array[Byte]], e3: GR[scala.math.BigDecimal]): GR[TrialsRow] = GR{
     prs => import prs._
-    TrialsRow.tupled((<<[Int], <<[Long], <<[Long], <<[String], <<[Array[Byte]], <<[Array[Byte]], <<[Int]))
+    TrialsRow.tupled((<<[Int], <<[Long], <<[Long], <<[Array[Byte]], <<[Array[Byte]], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<[Int]))
   }
-  /** Table description of table trials. Objects of this class serve as prototypes for rows in queries. */
+  /** Table description of table trials. Objects of this class serve as prototypes for rows in queries.
+   *  NOTE: The following names collided with Scala keywords and were escaped: yield */
   class Trials(tag: Tag) extends Table[TrialsRow](tag, "trials") {
-    def * = (id, startTime, endTime, duration, transactionLog, portfolioValueLog, trialSetId) <> (TrialsRow.tupled, TrialsRow.unapply)
+    def * = (id, startTime, endTime, transactionLog, portfolioValueLog, `yield`, mfe, mae, dailyStdDev, trialSetId) <> (TrialsRow.tupled, TrialsRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (id.?, startTime.?, endTime.?, duration.?, transactionLog.?, portfolioValueLog.?, trialSetId.?).shaped.<>({r=>import r._; _1.map(_=> TrialsRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (id.?, startTime.?, endTime.?, transactionLog.?, portfolioValueLog.?, `yield`, mfe, mae, dailyStdDev, trialSetId.?).shaped.<>({r=>import r._; _1.map(_=> TrialsRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6, _7, _8, _9, _10.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
     
     /** Database column id AutoInc, PrimaryKey */
     val id: Column[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
@@ -472,12 +547,19 @@ trait Tables {
     val startTime: Column[Long] = column[Long]("start_time")
     /** Database column end_time  */
     val endTime: Column[Long] = column[Long]("end_time")
-    /** Database column duration  */
-    val duration: Column[String] = column[String]("duration")
     /** Database column transaction_log  */
     val transactionLog: Column[Array[Byte]] = column[Array[Byte]]("transaction_log")
     /** Database column portfolio_value_log  */
     val portfolioValueLog: Column[Array[Byte]] = column[Array[Byte]]("portfolio_value_log")
+    /** Database column yield 
+     *  NOTE: The name was escaped because it collided with a Scala keyword. */
+    val `yield`: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("yield")
+    /** Database column mfe  */
+    val mfe: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("mfe")
+    /** Database column mae  */
+    val mae: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("mae")
+    /** Database column daily_std_dev  */
+    val dailyStdDev: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("daily_std_dev")
     /** Database column trial_set_id  */
     val trialSetId: Column[Int] = column[Int]("trial_set_id")
     
@@ -485,25 +567,106 @@ trait Tables {
     val trialSetsFk = foreignKey("trials_trial_set_id_fkey", trialSetId, TrialSets)(r => r.id, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
   }
   /** Collection-like TableQuery object for table Trials */
-  lazy val Trials = TableQuery[Trials]
+  lazy val Trials = new TableQuery(tag => new Trials(tag))
+  
+  /** Entity class storing rows of table TrialSamples
+   *  @param id Database column id AutoInc, PrimaryKey
+   *  @param attribute Database column attribute 
+   *  @param startTime Database column start_time 
+   *  @param endTime Database column end_time 
+   *  @param overlappingTrials Database column overlapping_trials Default(false)
+   *  @param distribution Database column distribution 
+   *  @param n Database column n 
+   *  @param average Database column average 
+   *  @param min Database column min 
+   *  @param max Database column max 
+   *  @param percentile10 Database column percentile_10 
+   *  @param percentile20 Database column percentile_20 
+   *  @param percentile30 Database column percentile_30 
+   *  @param percentile40 Database column percentile_40 
+   *  @param percentile50 Database column percentile_50 
+   *  @param percentile60 Database column percentile_60 
+   *  @param percentile70 Database column percentile_70 
+   *  @param percentile80 Database column percentile_80 
+   *  @param percentile90 Database column percentile_90 
+   *  @param trialSetId Database column trial_set_id  */
+  case class TrialSamplesRow(id: Int, attribute: String, startTime: Long, endTime: Long, overlappingTrials: Boolean=false, distribution: Array[Byte], n: Option[Int], average: Option[scala.math.BigDecimal], min: Option[scala.math.BigDecimal], max: Option[scala.math.BigDecimal], percentile10: Option[scala.math.BigDecimal], percentile20: Option[scala.math.BigDecimal], percentile30: Option[scala.math.BigDecimal], percentile40: Option[scala.math.BigDecimal], percentile50: Option[scala.math.BigDecimal], percentile60: Option[scala.math.BigDecimal], percentile70: Option[scala.math.BigDecimal], percentile80: Option[scala.math.BigDecimal], percentile90: Option[scala.math.BigDecimal], trialSetId: Int)
+  /** GetResult implicit for fetching TrialSamplesRow objects using plain SQL queries */
+  implicit def GetResultTrialSamplesRow(implicit e0: GR[Array[Byte]], e1: GR[Boolean], e2: GR[Long], e3: GR[Int], e4: GR[scala.math.BigDecimal], e5: GR[String]): GR[TrialSamplesRow] = GR{
+    prs => import prs._
+    TrialSamplesRow.tupled((<<[Int], <<[String], <<[Long], <<[Long], <<[Boolean], <<[Array[Byte]], <<?[Int], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<[Int]))
+  }
+  /** Table description of table trial_samples. Objects of this class serve as prototypes for rows in queries. */
+  class TrialSamples(tag: Tag) extends Table[TrialSamplesRow](tag, "trial_samples") {
+    def * = (id, attribute, startTime, endTime, overlappingTrials, distribution, n, average, min, max, percentile10, percentile20, percentile30, percentile40, percentile50, percentile60, percentile70, percentile80, percentile90, trialSetId) <> (TrialSamplesRow.tupled, TrialSamplesRow.unapply)
+    /** Maps whole row to an option. Useful for outer joins. */
+    def ? = (id.?, attribute.?, startTime.?, endTime.?, overlappingTrials.?, distribution.?, n, average, min, max, percentile10, percentile20, percentile30, percentile40, percentile50, percentile60, percentile70, percentile80, percentile90, trialSetId.?).shaped.<>({r=>import r._; _1.map(_=> TrialSamplesRow.tupled((_1.get, _2.get, _3.get, _4.get, _5.get, _6.get, _7, _8, _9, _10, _11, _12, _13, _14, _15, _16, _17, _18, _19, _20.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    
+    /** Database column id AutoInc, PrimaryKey */
+    val id: Column[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
+    /** Database column attribute  */
+    val attribute: Column[String] = column[String]("attribute")
+    /** Database column start_time  */
+    val startTime: Column[Long] = column[Long]("start_time")
+    /** Database column end_time  */
+    val endTime: Column[Long] = column[Long]("end_time")
+    /** Database column overlapping_trials Default(false) */
+    val overlappingTrials: Column[Boolean] = column[Boolean]("overlapping_trials", O.Default(false))
+    /** Database column distribution  */
+    val distribution: Column[Array[Byte]] = column[Array[Byte]]("distribution")
+    /** Database column n  */
+    val n: Column[Option[Int]] = column[Option[Int]]("n")
+    /** Database column average  */
+    val average: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("average")
+    /** Database column min  */
+    val min: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("min")
+    /** Database column max  */
+    val max: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("max")
+    /** Database column percentile_10  */
+    val percentile10: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_10")
+    /** Database column percentile_20  */
+    val percentile20: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_20")
+    /** Database column percentile_30  */
+    val percentile30: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_30")
+    /** Database column percentile_40  */
+    val percentile40: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_40")
+    /** Database column percentile_50  */
+    val percentile50: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_50")
+    /** Database column percentile_60  */
+    val percentile60: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_60")
+    /** Database column percentile_70  */
+    val percentile70: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_70")
+    /** Database column percentile_80  */
+    val percentile80: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_80")
+    /** Database column percentile_90  */
+    val percentile90: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("percentile_90")
+    /** Database column trial_set_id  */
+    val trialSetId: Column[Int] = column[Int]("trial_set_id")
+    
+    /** Foreign key referencing TrialSets (database name trial_samples_trial_set_id_fkey) */
+    val trialSetsFk = foreignKey("trial_samples_trial_set_id_fkey", trialSetId, TrialSets)(r => r.id, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
+  }
+  /** Collection-like TableQuery object for table TrialSamples */
+  lazy val TrialSamples = new TableQuery(tag => new TrialSamples(tag))
   
   /** Entity class storing rows of table TrialSets
    *  @param id Database column id AutoInc, PrimaryKey
    *  @param principal Database column principal 
    *  @param commissionPerTrade Database column commission_per_trade 
    *  @param commissionPerShare Database column commission_per_share 
+   *  @param duration Database column duration 
    *  @param strategyId Database column strategy_id  */
-  case class TrialSetsRow(id: Int, principal: Option[scala.math.BigDecimal], commissionPerTrade: Option[scala.math.BigDecimal], commissionPerShare: Option[scala.math.BigDecimal], strategyId: Int)
+  case class TrialSetsRow(id: Int, principal: Option[scala.math.BigDecimal], commissionPerTrade: Option[scala.math.BigDecimal], commissionPerShare: Option[scala.math.BigDecimal], duration: Option[String], strategyId: Int)
   /** GetResult implicit for fetching TrialSetsRow objects using plain SQL queries */
-  implicit def GetResultTrialSetsRow(implicit e0: GR[Int], e1: GR[scala.math.BigDecimal]): GR[TrialSetsRow] = GR{
+  implicit def GetResultTrialSetsRow(implicit e0: GR[Int], e1: GR[scala.math.BigDecimal], e2: GR[String]): GR[TrialSetsRow] = GR{
     prs => import prs._
-    TrialSetsRow.tupled((<<[Int], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<[Int]))
+    TrialSetsRow.tupled((<<[Int], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[scala.math.BigDecimal], <<?[String], <<[Int]))
   }
   /** Table description of table trial_sets. Objects of this class serve as prototypes for rows in queries. */
   class TrialSets(tag: Tag) extends Table[TrialSetsRow](tag, "trial_sets") {
-    def * = (id, principal, commissionPerTrade, commissionPerShare, strategyId) <> (TrialSetsRow.tupled, TrialSetsRow.unapply)
+    def * = (id, principal, commissionPerTrade, commissionPerShare, duration, strategyId) <> (TrialSetsRow.tupled, TrialSetsRow.unapply)
     /** Maps whole row to an option. Useful for outer joins. */
-    def ? = (id.?, principal, commissionPerTrade, commissionPerShare, strategyId.?).shaped.<>({r=>import r._; _1.map(_=> TrialSetsRow.tupled((_1.get, _2, _3, _4, _5.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
+    def ? = (id.?, principal, commissionPerTrade, commissionPerShare, duration, strategyId.?).shaped.<>({r=>import r._; _1.map(_=> TrialSetsRow.tupled((_1.get, _2, _3, _4, _5, _6.get)))}, (_:Any) =>  throw new Exception("Inserting into ? projection not supported."))
     
     /** Database column id AutoInc, PrimaryKey */
     val id: Column[Int] = column[Int]("id", O.AutoInc, O.PrimaryKey)
@@ -513,6 +676,8 @@ trait Tables {
     val commissionPerTrade: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("commission_per_trade")
     /** Database column commission_per_share  */
     val commissionPerShare: Column[Option[scala.math.BigDecimal]] = column[Option[scala.math.BigDecimal]]("commission_per_share")
+    /** Database column duration  */
+    val duration: Column[Option[String]] = column[Option[String]]("duration")
     /** Database column strategy_id  */
     val strategyId: Column[Int] = column[Int]("strategy_id")
     
@@ -520,5 +685,5 @@ trait Tables {
     val strategiesFk = foreignKey("trial_sets_strategy_id_fkey", strategyId, Strategies)(r => r.id, onUpdate=ForeignKeyAction.NoAction, onDelete=ForeignKeyAction.NoAction)
   }
   /** Collection-like TableQuery object for table TrialSets */
-  lazy val TrialSets = TableQuery[TrialSets]
+  lazy val TrialSets = new TableQuery(tag => new TrialSets(tag))
 }

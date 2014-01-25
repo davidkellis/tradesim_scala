@@ -2,4 +2,4 @@ To auto-generate the Slick table definitions from the live schema, do this:
 1. Run: sbt console
 2. In the console:
 import scala.slick.model.codegen.SourceCodeGenerator
-SourceCodeGenerator.main(Array("scala.slick.driver.PostgresDriver", "org.postgresql.Driver", "jdbc:postgresql:tradesim2", "src/main/scala/", "dke.tradesim.database"))
+SourceCodeGenerator.main(Array("scala.slick.driver.PostgresDriver", "org.postgresql.Driver", "jdbc:postgresql:tradesim", "src/main/scala/", "dke.tradesim.database"))

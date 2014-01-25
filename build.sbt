@@ -35,7 +35,7 @@ libraryDependencies ++= Seq(
   "com.github.nscala-time" %% "nscala-time" % "0.6.0",
   "javax.transaction" % "jta" % "1.1",
   "net.sf.ehcache" % "ehcache" % "2.7.4",
-  "com.typesafe.slick" %% "slick" % "2.0.0-RC1",
+  "com.typesafe.slick" %% "slick" % "2.0.0",
   "org.slf4j" % "slf4j-nop" % "1.6.4",
   "postgresql" % "postgresql" % "9.1-901.jdbc4",
   "org.rogach" %% "scallop" % "0.9.2",
