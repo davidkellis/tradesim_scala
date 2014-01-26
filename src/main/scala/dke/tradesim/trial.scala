@@ -10,6 +10,7 @@ import dke.tradesim.quotes.{barClose, barSimQuote}
 import dke.tradesim.portfolio.{portfolioValue}
 import dke.tradesim.priceHistory.{commonTrialPeriodStartDates}
 import dke.tradesim.splitsDividends.{adjustPortfolioForCorporateActions, adjustPriceForCorporateActions, adjustOpenOrdersForCorporateActions}
+import dke.tradesim.stats.sample
 import dke.tradesim.logger.{verbose, info}
 
 object trial {
@@ -227,6 +228,29 @@ object trial {
   def printAndReturnState[StateT <: State[StateT]](currentState: StateT): StateT = {
     println("currentState=" + currentState)
     currentState
+  }
+
+  def computeTrialYield[StateT <: State[StateT]](trial: Trial, state: StateT): Option[BigDecimal] = {
+    state.portfolioValueHistory.lastOption.map(_.value / trial.principal)
+  }
+
+  def computeTrialMfe[StateT <: State[StateT]](trial: Trial, state: StateT): Option[BigDecimal] = {
+    val ordering = Ordering.by((_: PortfolioValue).value)
+    val maxPortfolioValue = state.portfolioValueHistory.reduceOption(ordering.max)
+    maxPortfolioValue.map(_.value / trial.principal)
+  }
+
+  def computeTrialMae[StateT <: State[StateT]](trial: Trial, state: StateT): Option[BigDecimal] = {
+    val ordering = Ordering.by((_: PortfolioValue).value)
+    val minPortfolioValue = state.portfolioValueHistory.reduceOption(ordering.min)
+    minPortfolioValue.map(_.value / trial.principal)
+  }
+
+  def computeTrialStdDev[StateT <: State[StateT]](state: StateT): Option[BigDecimal] = {
+    if (state.portfolioValueHistory.isEmpty)
+      None
+    else
+      Some(sample.stdDev(state.portfolioValueHistory.map(_.value)))
   }
 
   def buildAllTrialIntervals(securityIds: IndexedSeq[SecurityId], intervalLength: Period, separationLength: Period): Seq[Interval] = {

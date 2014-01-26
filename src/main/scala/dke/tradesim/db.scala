@@ -8,6 +8,7 @@ import dke.tradesim.core._
 import dke.tradesim.database.Tables._
 import dke.tradesim.datetimeUtils.{timestamp, datestamp, datetime, date, Datestamp, Timestamp}
 import dke.tradesim.logger.{verbose, info}
+import dke.tradesim.trial.{computeTrialYield, computeTrialMfe, computeTrialMae, computeTrialStdDev}
 import org.joda.time.DateTime
 import scala.util.DynamicVariable
 
@@ -401,7 +402,7 @@ object db {
 
     def insertTrialSet(strategyId: Int, trial: Trial): TrialSetsRow = {
       val insertRow = () => {
-        val row = TrialSetsRow(0, Some(trial.principal), Some(trial.commissionPerTrade), Some(trial.commissionPerShare), strategyId)
+        val row = TrialSetsRow(0, Some(trial.principal), Some(trial.commissionPerTrade), Some(trial.commissionPerShare), Some(trial.duration.toString), strategyId)
         val trialSetId = (TrialSets returning TrialSets.map(_.id)).insert(row)
         joinTrialSetToSecurities(trialSetId, trial.securityIds)
         row.copy(id = trialSetId)
@@ -445,11 +446,14 @@ object db {
     def buildTrialsRow[StateT <: State[StateT]](trialSetId: Int, trial: Trial, state: StateT): TrialsRow = {
       val startTime = timestamp(trial.startTime)
       val endTime = timestamp(trial.endTime)
-      val trialDuration = trial.duration.toString
       val transactionLog = convertTransactionsToProtobuf(state.transactions).toByteArray
       val portfolioValueLog = convertPortfolioValuesToProtobuf(state.portfolioValueHistory).toByteArray
+      val trialYield = computeTrialYield(trial, state)
+      val mfe = computeTrialMfe(trial, state)
+      val mae = computeTrialMae(trial, state)
+      val dailyStdDev = computeTrialStdDev(state)
 
-      TrialsRow(0, startTime, endTime, trialDuration, transactionLog, portfolioValueLog, trialSetId)
+      TrialsRow(0, startTime, endTime, transactionLog, portfolioValueLog, trialYield, mfe, mae, dailyStdDev, trialSetId)
     }
 
     def convertTransactionsToProtobuf(transactions: TransactionLog): protobuf.TransactionLog = {

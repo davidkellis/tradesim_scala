@@ -49,6 +49,7 @@ object datetimeUtils {
   }
 
   def datetime(date: LocalDate): DateTime = datetime(date.getYear, date.getMonthOfYear, date.getDayOfMonth)
+  def datetime(date: LocalDate, hour: Int, minute: Int, second: Int): DateTime = datetime(date.getYear, date.getMonthOfYear, date.getDayOfMonth).withTime(hour, minute, second, 0)
 
   def timestamp(date: LocalDate): Timestamp = datetime(date).toString("yyyyMMddHHmmss").toLong
   def timestamp(datetime: ReadableDateTime): Timestamp = datetime.toString("yyyyMMddHHmmss").toLong
