@@ -7,7 +7,6 @@ import dke.tradesim.datetimeUtils.{periodBetween, randomDateTime, datetime, year
 import dke.tradesim.logger._
 import dke.tradesim.math.floor
 import dke.tradesim.ordering.{maxSharesPurchasable, sharesOnHand, buy, sell}
-import dke.tradesim.portfolio.portfolioValue
 import dke.tradesim.quotes.{barHigh, barLow, barClose, barSimQuote, findEodBar}
 import dke.tradesim.schedule.{buildTradingSchedule, defaultTradingSchedule, defaultHolidaySchedule, isTradingDay}
 import dke.tradesim.securities.{findSecurities, PrimaryUsExchanges}
@@ -17,6 +16,8 @@ import dke.tradesim.core.Strategy
 import dke.tradesim.core.Trial
 
 object buyandhold {
+
+  val StrategyName = "Buy And Hold"
 
   case class State(previousTime: DateTime,
                    time: DateTime,
@@ -58,7 +59,7 @@ object buyandhold {
     }
   }
 
-  def buildStrategy(): Strategy[State] = Strategy("Buy And Hold", initialState, nextState, fixedTradingPeriodIsFinalState)
+  def buildStrategy(): Strategy[State] = Strategy(StrategyName, initialState, nextState, fixedTradingPeriodIsFinalState)
 
   object scenarios {
     def runSingleTrial1() {

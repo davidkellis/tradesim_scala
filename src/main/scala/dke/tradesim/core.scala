@@ -216,6 +216,16 @@ object core {
     }
   }
 
+  def extractNumericAttributes(bar: Bar): Map[String, BigDecimal] = {
+    Map(
+      "open" -> bar.open,
+      "high" -> bar.high,
+      "low" -> bar.low,
+      "close" -> bar.close,
+      "volume" -> BigDecimal(bar.volume)
+    )
+  }
+
   // like the -> (thread) operator in clojure
   def threadThrough[T](o: T)(fns: Function[T, T]*): T = fns.foldLeft(o)((intermediateObject, transform) => transform(intermediateObject))
 }
