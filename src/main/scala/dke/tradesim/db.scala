@@ -141,29 +141,6 @@ object db {
       }
     }
 
-    // assumes json is of the form: [ "header", [attribute, value], [attribute, value], "header", [attr, val], ... ]
-    // where the json structure is no more than 1 level deep (i.e. there are no sub-sections)
-    def convertJsonToStatement(jsonString: String): Statement = {
-      val pairs = for {
-        JObject(attributes) <- parse(jsonString, useBigDecimalForDouble = true)
-        keyValuePair <- attributes
-      } yield keyValuePair match {
-        case (attributeName, JNull) => (attributeName -> HeaderAttribute(attributeName))
-        case (attributeName, attributeValue) => attributeValue match {
-          case JString(value) => (attributeName -> StringAttribute(value))
-          case JDecimal(value) => (attributeName -> NumericAttribute(value))
-          case _ => throw new Exception(s"Unable to parse key/value pair: $attributeName/$attributeValue. The statement is malformed: $jsonString")
-        }
-        case _ => throw new Exception(s"Unable to parse statement. It is malformed: $jsonString")
-      }
-      pairs.toMap
-    }
-
-    def getString(jValue: JValue): Option[String] = jValue match {
-      case JString(str) => Option(str)
-      case _ => None
-    }
-
     def convertQuarterlyReportsRow(record: QuarterlyReportsRow): QuarterlyReport = {
       record match {
         case QuarterlyReportsRow(id, startTime, endTime, publicationTime, incomeStatement, balanceSheet, cashFlowStatement, securityId) =>
@@ -172,9 +149,9 @@ object db {
             datetime(startTime),
             datetime(endTime),
             datetime(publicationTime),
-            convertJsonToStatement(incomeStatement.toString),     // todo: the .toString is just to make this compile - it is wrong - fix it
-            convertJsonToStatement(balanceSheet.toString),        // todo: the .toString is just to make this compile - it is wrong - fix it
-            convertJsonToStatement(cashFlowStatement.toString)    // todo: the .toString is just to make this compile - it is wrong - fix it
+            convertFinancialStatementToStatement(protobuf.FinancialStatement.parseFrom(incomeStatement)),
+            convertFinancialStatementToStatement(protobuf.FinancialStatement.parseFrom(balanceSheet)),
+            convertFinancialStatementToStatement(protobuf.FinancialStatement.parseFrom(cashFlowStatement))
           )
       }
     }
@@ -190,9 +167,9 @@ object db {
             datetime(startTime),
             datetime(endTime),
             datetime(publicationTime),
-            convertJsonToStatement(incomeStatement.toString),     // todo: the .toString is just to make this compile - it is wrong - fix it
-            convertJsonToStatement(balanceSheet.toString),        // todo: the .toString is just to make this compile - it is wrong - fix it
-            convertJsonToStatement(cashFlowStatement.toString)    // todo: the .toString is just to make this compile - it is wrong - fix it
+            convertFinancialStatementToStatement(protobuf.FinancialStatement.parseFrom(incomeStatement)),
+            convertFinancialStatementToStatement(protobuf.FinancialStatement.parseFrom(balanceSheet)),
+            convertFinancialStatementToStatement(protobuf.FinancialStatement.parseFrom(cashFlowStatement))
           )
       }
     }
@@ -200,6 +177,18 @@ object db {
     def convertAnnualReportsRow(record: Option[AnnualReportsRow]): Option[AnnualReport] =
       record.map(convertAnnualReportsRow(_))
 
+    def convertFinancialStatementToStatement(financialStateent: protobuf.FinancialStatement): Statement = {
+      financialStateent.lineItems.map { lineItem =>
+        lineItem.`type` match {
+          case protobuf.StatementLineItem.Type.Decimal =>
+            (lineItem.attribute -> NumericAttribute(BigDecimal(lineItem.value.getOrElse("0"))))
+          case protobuf.StatementLineItem.Type.String =>
+            (lineItem.attribute -> StringAttribute(lineItem.value.getOrElse("")))
+          case _ =>
+            throw new Exception("Unable to convert line item. Unknown line item type.")
+        }
+      }.toMap
+    }
 
     def withAdapter[T](jdbcConnectionString: String, driver: String, username: String = null, password: String = null)(f: => T): T = {
       Database.forURL(jdbcConnectionString, username, password, driver = driver) withDynSession {

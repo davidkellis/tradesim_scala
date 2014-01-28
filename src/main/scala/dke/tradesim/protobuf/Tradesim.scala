@@ -726,6 +726,187 @@ object PortfolioValue {
 	def newBuilder(prototype: PortfolioValue) = defaultInstance.mergeFrom(prototype)
 
 }
+final case class FinancialStatement (
+	`lineItems`: scala.collection.immutable.Seq[StatementLineItem] = Vector.empty[StatementLineItem]
+) extends com.google.protobuf.GeneratedMessageLite
+	with com.google.protobuf.MessageLite.Builder
+	with net.sandrogrzicic.scalabuff.Message[FinancialStatement]
+	with net.sandrogrzicic.scalabuff.Parser[FinancialStatement] {
+
+	def setLineItems(_i: Int, _v: StatementLineItem) = copy(`lineItems` = `lineItems`.updated(_i, _v))
+	def addLineItems(_f: StatementLineItem) = copy(`lineItems` = `lineItems` :+ _f)
+	def addAllLineItems(_f: StatementLineItem*) = copy(`lineItems` = `lineItems` ++ _f)
+	def addAllLineItems(_f: TraversableOnce[StatementLineItem]) = copy(`lineItems` = `lineItems` ++ _f)
+
+	def clearLineItems = copy(`lineItems` = Vector.empty[StatementLineItem])
+
+	def writeTo(output: com.google.protobuf.CodedOutputStream) {
+		for (_v <- `lineItems`) output.writeMessage(1, _v)
+	}
+
+	def getSerializedSize = {
+		import com.google.protobuf.CodedOutputStream._
+		var __size = 0
+		for (_v <- `lineItems`) __size += computeMessageSize(1, _v)
+
+		__size
+	}
+
+	def mergeFrom(in: com.google.protobuf.CodedInputStream, extensionRegistry: com.google.protobuf.ExtensionRegistryLite): FinancialStatement = {
+		import com.google.protobuf.ExtensionRegistryLite.{getEmptyRegistry => _emptyRegistry}
+		val __lineItems: scala.collection.mutable.Buffer[StatementLineItem] = `lineItems`.toBuffer
+
+		def __newMerged = FinancialStatement(
+			Vector(__lineItems: _*)
+		)
+		while (true) in.readTag match {
+			case 0 => return __newMerged
+			case 10 => __lineItems += readMessage[StatementLineItem](in, StatementLineItem.defaultInstance, _emptyRegistry)
+			case default => if (!in.skipField(default)) return __newMerged
+		}
+		null
+	}
+
+	def mergeFrom(m: FinancialStatement) = {
+		FinancialStatement(
+			`lineItems` ++ m.`lineItems`
+		)
+	}
+
+	def getDefaultInstanceForType = FinancialStatement.defaultInstance
+	def clear = getDefaultInstanceForType
+	def isInitialized = true
+	def build = this
+	def buildPartial = this
+	def parsePartialFrom(cis: com.google.protobuf.CodedInputStream, er: com.google.protobuf.ExtensionRegistryLite) = mergeFrom(cis, er)
+	override def getParserForType = this
+	def newBuilderForType = getDefaultInstanceForType
+	def toBuilder = this
+	def toJson(indent: Int = 0): String = "ScalaBuff JSON generation not enabled. Use --generate_json_method to enable."
+}
+
+object FinancialStatement {
+	@reflect.BeanProperty val defaultInstance = new FinancialStatement()
+
+	def parseFrom(data: Array[Byte]): FinancialStatement = defaultInstance.mergeFrom(data)
+	def parseFrom(data: Array[Byte], offset: Int, length: Int): FinancialStatement = defaultInstance.mergeFrom(data, offset, length)
+	def parseFrom(byteString: com.google.protobuf.ByteString): FinancialStatement = defaultInstance.mergeFrom(byteString)
+	def parseFrom(stream: java.io.InputStream): FinancialStatement = defaultInstance.mergeFrom(stream)
+	def parseDelimitedFrom(stream: java.io.InputStream): Option[FinancialStatement] = defaultInstance.mergeDelimitedFromStream(stream)
+
+	val LINEITEMS_FIELD_NUMBER = 1
+
+	def newBuilder = defaultInstance.newBuilderForType
+	def newBuilder(prototype: FinancialStatement) = defaultInstance.mergeFrom(prototype)
+
+}
+final case class StatementLineItem (
+	`type`: StatementLineItem.Type.EnumVal = StatementLineItem.Type._UNINITIALIZED,
+	`attribute`: String = "",
+	`value`: Option[String] = None
+) extends com.google.protobuf.GeneratedMessageLite
+	with com.google.protobuf.MessageLite.Builder
+	with net.sandrogrzicic.scalabuff.Message[StatementLineItem]
+	with net.sandrogrzicic.scalabuff.Parser[StatementLineItem] {
+
+	def setValue(_f: String) = copy(`value` = Some(_f))
+
+	def clearValue = copy(`value` = None)
+
+	def writeTo(output: com.google.protobuf.CodedOutputStream) {
+		output.writeEnum(1, `type`)
+		output.writeString(2, `attribute`)
+		if (`value`.isDefined) output.writeString(3, `value`.get)
+	}
+
+	def getSerializedSize = {
+		import com.google.protobuf.CodedOutputStream._
+		var __size = 0
+		__size += computeEnumSize(1, `type`)
+		__size += computeStringSize(2, `attribute`)
+		if (`value`.isDefined) __size += computeStringSize(3, `value`.get)
+
+		__size
+	}
+
+	def mergeFrom(in: com.google.protobuf.CodedInputStream, extensionRegistry: com.google.protobuf.ExtensionRegistryLite): StatementLineItem = {
+		import com.google.protobuf.ExtensionRegistryLite.{getEmptyRegistry => _emptyRegistry}
+		var __type: StatementLineItem.Type.EnumVal = StatementLineItem.Type._UNINITIALIZED
+		var __attribute: String = ""
+		var __value: Option[String] = `value`
+
+		def __newMerged = StatementLineItem(
+			__type,
+			__attribute,
+			__value
+		)
+		while (true) in.readTag match {
+			case 0 => return __newMerged
+			case 8 => __type = StatementLineItem.Type.valueOf(in.readEnum())
+			case 18 => __attribute = in.readString()
+			case 26 => __value = Some(in.readString())
+			case default => if (!in.skipField(default)) return __newMerged
+		}
+		null
+	}
+
+	def mergeFrom(m: StatementLineItem) = {
+		StatementLineItem(
+			m.`type`,
+			m.`attribute`,
+			m.`value`.orElse(`value`)
+		)
+	}
+
+	def getDefaultInstanceForType = StatementLineItem.defaultInstance
+	def clear = getDefaultInstanceForType
+	def isInitialized = true
+	def build = this
+	def buildPartial = this
+	def parsePartialFrom(cis: com.google.protobuf.CodedInputStream, er: com.google.protobuf.ExtensionRegistryLite) = mergeFrom(cis, er)
+	override def getParserForType = this
+	def newBuilderForType = getDefaultInstanceForType
+	def toBuilder = this
+	def toJson(indent: Int = 0): String = "ScalaBuff JSON generation not enabled. Use --generate_json_method to enable."
+}
+
+object StatementLineItem {
+	@reflect.BeanProperty val defaultInstance = new StatementLineItem()
+
+	def parseFrom(data: Array[Byte]): StatementLineItem = defaultInstance.mergeFrom(data)
+	def parseFrom(data: Array[Byte], offset: Int, length: Int): StatementLineItem = defaultInstance.mergeFrom(data, offset, length)
+	def parseFrom(byteString: com.google.protobuf.ByteString): StatementLineItem = defaultInstance.mergeFrom(byteString)
+	def parseFrom(stream: java.io.InputStream): StatementLineItem = defaultInstance.mergeFrom(stream)
+	def parseDelimitedFrom(stream: java.io.InputStream): Option[StatementLineItem] = defaultInstance.mergeDelimitedFromStream(stream)
+
+	val TYPE_FIELD_NUMBER = 1
+	val ATTRIBUTE_FIELD_NUMBER = 2
+	val VALUE_FIELD_NUMBER = 3
+
+	def newBuilder = defaultInstance.newBuilderForType
+	def newBuilder(prototype: StatementLineItem) = defaultInstance.mergeFrom(prototype)
+
+	object Type extends net.sandrogrzicic.scalabuff.Enum {
+		sealed trait EnumVal extends Value
+		val _UNINITIALIZED = new EnumVal { val name = "UNINITIALIZED ENUM VALUE"; val id = -1 }
+
+		val String = new EnumVal { val name = "String"; val id = 0 }
+		val Decimal = new EnumVal { val name = "Decimal"; val id = 1 }
+
+		val String_VALUE = 0
+		val Decimal_VALUE = 1
+
+		def valueOf(id: Int) = id match {
+			case 0 => String
+			case 1 => Decimal
+			case _default => throw new net.sandrogrzicic.scalabuff.UnknownEnumException(_default)
+		}
+		val internalGetValueMap = new com.google.protobuf.Internal.EnumLiteMap[EnumVal] {
+			def findValueByNumber(id: Int): EnumVal = valueOf(id)
+		}
+	}
+
+}
 
 object Tradesim {
 	def registerAllExtensions(registry: com.google.protobuf.ExtensionRegistryLite) {
