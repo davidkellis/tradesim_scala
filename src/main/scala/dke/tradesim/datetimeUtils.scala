@@ -18,11 +18,14 @@ object datetimeUtils {
   def currentTime(timeZone: DateTimeZone = EasternTimeZone): DateTime = DateTime.now(timeZone)
 
   def date(time: DateTime): LocalDate = new LocalDate(time.getYear, time.getMonthOfYear, time.getDayOfMonth)
+  def date(timestamp: Timestamp): LocalDate = date(datetime(timestamp))
   def date(year: Int): LocalDate = new LocalDate(year, 1, 1)
   def date(year: Int, month: Int): LocalDate = new LocalDate(year, month, 1)
   def date(year: Int, month: Int, day: Int): LocalDate = new LocalDate(year, month, day)
 
   def datestamp(date: LocalDate): Datestamp = date.toString("yyyyMMdd").toInt
+  def datestamp(time: Timestamp): Datestamp = time.toString.substring(0, 8).toInt
+  def datestamp(time: DateTime): Datestamp = time.toString("yyyyMMdd").toInt
 
   def datetime(year: Int, month: Int): DateTime = datetime(year, month, 1, 0, 0, 0)
   def datetime(year: Int, month: Int, day: Int): DateTime = datetime(year, month, day, 0, 0, 0)

@@ -2,22 +2,14 @@ package dke.tradesim
 
 import scala.slick.driver.PostgresDriver.simple._
 import scala.slick.jdbc.{GetResult, StaticQuery => Q}
-import javax.sql.rowset.serial.SerialBlob
 
 import dke.tradesim.core._
 import dke.tradesim.database.Tables._
 import dke.tradesim.datetimeUtils.{timestamp, datestamp, datetime, date, Datestamp, Timestamp}
 import dke.tradesim.logger.{verbose, info}
 import dke.tradesim.trial.{computeTrialYield, computeTrialMfe, computeTrialMae, computeTrialStdDev}
-import org.joda.time.DateTime
+import org.joda.time.{LocalDate, Period, DateTime}
 import scala.util.DynamicVariable
-
-import org.json4s._
-import org.json4s.jackson.JsonMethods._
-import org.json4s.jackson.Serialization
-import org.json4s.JsonDSL.WithBigDecimal._
-
-import dke.tradesim.json.LiftJValueWithFilter
 
 //import scala.collection.JavaConversions._
 
@@ -70,31 +62,18 @@ object db {
     def queryAnnualReports(securityId: SecurityId, earliestTime: DateTime, latestTime: DateTime): Seq[AnnualReport]
 
     def insertTrials[StateT <: State[StateT]](strategy: Strategy[StateT], trialStatePairs: Seq[(Trial, StateT)]): Unit
+
+    def queryForTrial(strategyName: String,
+                      securityId: SecurityId,
+                      trialDuration: Period,
+                      startDate: LocalDate,
+                      principal: BigDecimal,
+                      commissionPerTrade: BigDecimal,
+                      commissionPerShare: BigDecimal): Option[TrialsRow]
+
   }
 
   object SlickAdapter {
-    class DateTimeSerializer extends CustomSerializer[DateTime](format => (
-      {
-        case JObject(JField("timestamp", JInt(timestamp)) :: Nil) => datetime(timestamp.toLong)
-      },
-      {
-        case t: DateTime => JObject(JField("timestamp", JInt(timestamp(t))) :: Nil)
-      }
-      )
-    )
-
-    implicit val formats = Serialization.formats(ShortTypeHints(List(
-      classOf[MarketBuy],
-      classOf[MarketSell],
-      classOf[LimitBuy],
-      classOf[LimitSell],
-      classOf[SplitAdjustment],
-      classOf[CashDividendPayment]
-    ))) + new DateTimeSerializer
-
-//    implicit val formats = Serialization.formats(NoTypeHints) + new DateTimeSerializer
-
-
     def convertExchangesRow(record: ExchangesRow): Exchange = {
       record match {
         case ExchangesRow(id, label, name) =>
@@ -488,7 +467,7 @@ object db {
       protobuf.CashDividendPayment(
         cashDividendPayment.securityId,
         datestamp(cashDividendPayment.exDate),
-        cashDividendPayment.payableDate.map(datestamp _),
+        cashDividendPayment.payableDate.map(datestamp(_).toLong),
         cashDividendPayment.amountPerShare.toString,
         timestamp(cashDividendPayment.adjustmentTime),
         cashDividendPayment.shareQty,
@@ -507,5 +486,30 @@ object db {
       )
     }
 
+
+    def queryForTrial(strategyName: String,
+                      securityId: SecurityId,
+                      trialDuration: Period,
+                      startDate: LocalDate,
+                      principal: BigDecimal,
+                      commissionPerTrade: BigDecimal,
+                      commissionPerShare: BigDecimal): Option[TrialsRow] = {
+      val trialRows = (for {
+        strategy <- Strategies
+        ts <- TrialSets if ts.strategyId === strategy.id
+        t <- Trials if t.trialSetId === ts.id
+        sToTs <- SecuritiesTrialSets if sToTs.trialSetId === ts.id
+        s <- Securities if s.id === sToTs.securityId
+        if strategy.name === strategyName
+        if s.id === securityId
+        if ts.principal === principal
+        if ts.duration === trialDuration.toString
+        if ts.commissionPerTrade === commissionPerTrade
+        if ts.commissionPerShare === commissionPerShare
+        if t.startTime >= timestamp(datetime(startDate, 0, 0, 0)) && t.startTime <= timestamp(datetime(startDate, 23, 59, 59))
+      } yield t)
+
+      trialRows.take(1).firstOption
+    }
   }
 }
