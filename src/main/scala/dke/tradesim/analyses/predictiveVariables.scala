@@ -13,8 +13,24 @@ import dke.tradesim.core.QuarterlyReport
 import Adapter.dynamicAdapter
 
 object predictiveVariables {
-  case class CompanyReportsSnapshot(quarterlyReport: Option[QuarterlyReport], eodBar: Option[Bar])
-  case class AttributeSetSnapshot(time: DateTime, attributes: Map[String, BigDecimal], futureReturns: Map[String, BigDecimal])
+  case class CompanyReportsSnapshot(time: DateTime, quarterlyReport: Option[QuarterlyReport], eodBar: Option[Bar])
+  case class AttributeSetSnapshot(time: DateTime, quarterlyReportAttributes: Map[String, BigDecimal], eodBarAttributes: Map[String, BigDecimal], futureReturns: Map[String, BigDecimal])
+
+  def buildAttributesTable(attributeSetSnapshots: Seq[AttributeSetSnapshot], headersRow: Seq[String] = Seq[String](), tableData: Seq[Seq[String]] = Seq[Seq[String]]()): Seq[Seq[String]] = {
+    attributeSetSnapshots.headOption match {
+      case None =>
+        tableData.+:(headersRow)
+      case Some(attributeSetSnapshot) =>
+        val headers = (attributeSetSnapshot.eodBarAttributes.keys ++
+          attributeSetSnapshot.quarterlyReportAttributes.keys ++
+          attributeSetSnapshot.futureReturns.keys).toSeq
+        val missingHeaders = headers.diff(headers)
+        val newHeadersRow = headersRow ++ missingHeaders
+        val newRow = Seq[String]()
+        val newTableData = tableData :+ newRow
+        buildAttributesTable(attributeSetSnapshots.tail, newHeadersRow, newTableData)
+    }
+  }
 
   def attributeSetSnapshotSeries(securityId: SecurityId,
                                  tradingSchedule: TradingSchedule,
@@ -47,31 +63,30 @@ object predictiveVariables {
                            commissionPerTrade: BigDecimal,
                            commissionPerShare: BigDecimal): AttributeSetSnapshot = {
     val reportsSnapshot = companyReportsSnapshot(time, securityId)
-    val attributes = extractNumericAttributesFromReportsSnapshot(reportsSnapshot)
+    val quarterlyReportAttributes = reportsSnapshot.quarterlyReport.map(extractNumericAttributesFromReportSnapshot(_)).getOrElse(Map[String, BigDecimal]())
+    val eodBarAttributes = reportsSnapshot.eodBar.map(extractNumericAttributes(_)).getOrElse(Map[String, BigDecimal]())
 
     val futureReturns = queryForFutureReturns(securityId, time, timeInFutureOffsets, principal, commissionPerTrade, commissionPerShare)
 
-    AttributeSetSnapshot(time, attributes, futureReturns)
+    AttributeSetSnapshot(time, quarterlyReportAttributes, eodBarAttributes, futureReturns)
   }
 
+  // companyReportsSnapshot(datetime(2005, 1, 1), 123)
+  // => CompanyReportsSnapshot(<DateTime@20050101000000>, Some(<QuarterlyReport object>), Some(<EodBar object>))
   def companyReportsSnapshot(time: DateTime, securityId: SecurityId): CompanyReportsSnapshot = {
     CompanyReportsSnapshot(
+      time,
       quarterlyReports.findQuarterlyReport(time, securityId),
       quotes.findEodBar(time, securityId)
     )
   }
 
-
-  def extractNumericAttributesFromReportsSnapshot(reportsSnapshot: CompanyReportsSnapshot): Map[String, BigDecimal] = {
-    val quarterlyReportNumericAttributes = reportsSnapshot.quarterlyReport.map { quarterlyReport =>
-      extractNumericAttributes(quarterlyReport.incomeStatement) ++
-        extractNumericAttributes(quarterlyReport.balanceSheet) ++
-        extractNumericAttributes(quarterlyReport.cashFlowStatement)
-    }.getOrElse(Map[String, BigDecimal]())
-
-    val eodAttributes = reportsSnapshot.eodBar.map(extractNumericAttributes(_)).getOrElse(Map[String, BigDecimal]())
-
-    quarterlyReportNumericAttributes ++ eodAttributes
+  // extractNumericAttributesFromReportsSnapshot(companyReportsSnapshot(datetime(2005, 1, 1), 123))
+  // => Map("Revenue" -> BigDecimal(50000000), "Cost of goods sold" -> BigDecimal(35000000), ...)
+  def extractNumericAttributesFromReportSnapshot(quarterlyReport: QuarterlyReport): Map[String, BigDecimal] = {
+    extractNumericAttributes(quarterlyReport.incomeStatement) ++
+      extractNumericAttributes(quarterlyReport.balanceSheet) ++
+      extractNumericAttributes(quarterlyReport.cashFlowStatement)
   }
 
   // queryForFutureReturn(123, 20050101120000, Seq(days(1), days(2), days(3)), 10000, 7, 0)
