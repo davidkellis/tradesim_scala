@@ -2,6 +2,7 @@ package dke.tradesim
 
 import org.rogach.scallop._
 import net.sf.ehcache.{CacheManager}
+import dke.tradesim.distributionBuilder
 import dke.tradesim.strategies.buyandhold
 import dke.tradesim.db.{Adapter, SlickAdapter}
 
@@ -10,11 +11,12 @@ import dke.tradesim.db.{Adapter, SlickAdapter}
 object Runner {
   class RuntimeConfig(arguments: Seq[String]) extends ScallopConf(arguments) {
     version("tradesim 1.0.0 (c) 2013 David K Ellis")
-    banner("""Usage: tradesim [--jdbc jdbc:postgresql://localhost[:port]/tradesim] [--username <username>] [--password <password>] [--setup-db | --scenario <scenarioName>]
+    banner("""Usage: tradesim [--jdbc jdbc:postgresql://localhost[:port]/tradesim] [--username <username>] [--password <password>] [--setup-db | --build-trial-samples | --scenario <scenarioName>]
              |Options:
              |""".stripMargin)
 
     val setupDb = opt[Boolean](default = Some(false), descr = "Setup the DB tables", noshort = true)
+    val buildTrialSamples = opt[Boolean](default = Some(false), descr = "Build missing trial samples", noshort = true)
     val scenario = opt[String](descr = "Identify the scenario to run.", short = 's')
     val jdbc = opt[String](descr = "Identify the scenario to run.", short = 'j')
     val username = opt[String](descr = "Database username", short = 'u')
@@ -28,8 +30,11 @@ object Runner {
     val password = config.password.get.getOrElse("")
 
     SlickAdapter.withAdapter(jdbcConnectionString, "org.postgresql.Driver", username, password) {
+
       if (config.setupDb()) {
         Adapter.dynamicAdapter.createDb()
+      } else if (config.buildTrialSamples()) {
+        distributionBuilder.buildMissingTrialSamples()
       } else if (config.scenario.isSupplied) {
         readLine("Press any key to start")
         config.scenario.get match {
@@ -42,6 +47,7 @@ object Runner {
           case _ => println("No scenario was specified.")
         }
       }
+
     }
 
     cleanupCache()
