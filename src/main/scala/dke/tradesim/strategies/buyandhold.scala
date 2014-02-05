@@ -118,7 +118,7 @@ object buyandhold {
       val purchaseFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barHigh _, 0.3)
       val saleFillPriceFn = tradingBloxFillPriceWithSlippage(findEodBar, barSimQuote _, barLow _, 0.3)
       val strategy = buildStrategy()
-      val securityIds = findSecurities(PrimaryUsExchanges, Seq("AAPL")).flatMap(_.id).toVector
+      val securityIds = findSecurities(PrimaryUsExchanges, Seq("GE")).flatMap(_.id).toVector
       val trialGenerator = buildTrialGenerator(10000, 0.0, 7.0, timeIncrementerFn, purchaseFillPriceFn, saleFillPriceFn)
       val trialIntervalBuilderFn = buildAllTrialIntervals(_: IndexedSeq[SecurityId], _: Period, days(1))
                                    .filter(interval => isTradingDay(date(interval.getStart), tradingSchedule))

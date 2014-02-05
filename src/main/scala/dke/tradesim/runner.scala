@@ -2,7 +2,6 @@ package dke.tradesim
 
 import org.rogach.scallop._
 import net.sf.ehcache.{CacheManager}
-import dke.tradesim.distributionBuilder
 import dke.tradesim.strategies.buyandhold
 import dke.tradesim.db.{Adapter, SlickAdapter}
 
