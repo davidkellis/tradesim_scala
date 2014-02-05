@@ -371,7 +371,7 @@ object db {
     def insertTrialSet(strategyId: Int, trial: Trial): TrialSetsRow = {
       val insertRow = () => {
         val row = TrialSetsRow(0, Some(trial.principal), Some(trial.commissionPerTrade), Some(trial.commissionPerShare), Some(trial.duration.toString), strategyId)
-        val trialSetId = (TrialSets returning TrialSets.map(_.id)).insert(row)
+        val trialSetId = (TrialSets returning TrialSets.map(_.id)) += row
         joinTrialSetToSecurities(trialSetId, trial.securityIds)
         row.copy(id = trialSetId)
       }

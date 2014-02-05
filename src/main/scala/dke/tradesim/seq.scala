@@ -1,6 +1,6 @@
 package dke.tradesim
 
-import scala.collection.immutable.LinearSeq
+import scala.collection.immutable.{TreeMap, LinearSeq}
 
 object seq {
   // example:
@@ -22,5 +22,11 @@ object seq {
   def liftOption[T](seqO: LinearSeq[Option[T]]): Option[LinearSeq[T]] = {
     if (seqO.forall(_.isDefined)) Some(seqO.flatten)
     else None
+  }
+
+  def treeMap[E, K : Ordering](entities: Seq[E], keyExtractorFn: E => K): TreeMap[K, E] = {
+    entities.foldLeft(TreeMap.empty[K, E]) { (map, entity) =>
+      map + (keyExtractorFn(entity) -> entity)
+    }
   }
 }

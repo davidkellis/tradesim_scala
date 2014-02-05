@@ -33,7 +33,9 @@ object Runner {
       if (config.setupDb()) {
         Adapter.dynamicAdapter.createDb()
       } else if (config.buildTrialSamples()) {
-        distributionBuilder.buildMissingTrialSamples()
+        distributionBuilder.buildMissingTrialSamples(distributionBuilder.Yield)
+        distributionBuilder.buildMissingTrialSamples(distributionBuilder.MaximumFavorableExcursion)
+        distributionBuilder.buildMissingTrialSamples(distributionBuilder.MaximumAdverseExcursion)
       } else if (config.scenario.isSupplied) {
         readLine("Press any key to start")
         config.scenario.get match {

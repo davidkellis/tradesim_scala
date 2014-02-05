@@ -90,15 +90,30 @@ object sample {
   }
 
   // copied from http://www.johndcook.com/standard_deviation.html
+  //   except for the min/max logic
   class OnlineVariance {
     var k: Long = 0
     var m_k: BigDecimal = 0
     var s_k: BigDecimal = 0
+    var minValue: BigDecimal = 0
+    var maxValue: BigDecimal = 0
+
+    def pushAll(xs: Seq[BigDecimal]) = xs.foreach(push(_))
 
     // invariant:
     // m_k = m_kMinus1 + (x_k - m_kMinus1) / k
     // s_k = s_kMinus1 + (x_k - m_kMinus1) * (x_k - m_k)
     def push(x: BigDecimal) {
+      if (k == 0) {
+        minValue = x
+        maxValue = x
+      } else {
+        if (x < minValue)
+          minValue = x
+        else if (x > maxValue)
+          maxValue = x
+      }
+
       k += 1
 
       // See Knuth TAOCP vol 2, 3rd edition, page 232
@@ -120,6 +135,10 @@ object sample {
     def variance: BigDecimal = if (k > 1) s_k / (k - 1) else 0
 
     def stdDev: BigDecimal = variance.sqrt
+
+    def min: Option[BigDecimal] = if (k > 1) Some(minValue) else None
+
+    def max: Option[BigDecimal] = if (k > 1) Some(maxValue) else None
   }
 
   def stdDev(xs: Seq[BigDecimal]): BigDecimal = {
