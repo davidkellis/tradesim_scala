@@ -5,6 +5,8 @@ import spire.implicits._
 import breeze.linalg._
 import nak.regress._
 
+import dke.tradesim.math.round
+
 object sample {
   // returns the sample correlation coefficient (Pearson's r coefficient)
   def correlation(xs: Seq[BigDecimal], ys: Seq[BigDecimal]): BigDecimal = {
@@ -165,5 +167,29 @@ object sample {
     }
     if (xs.isEmpty) 0
     else onlineVariance(xs.tail, xs.head, 0, 1)
+  }
+
+  val One = BigDecimal(1)
+
+  // see http://www.stanford.edu/class/archive/anthsci/anthsci192/anthsci192.1064/handouts/calculating%20percentiles.pdf
+  // see http://en.wikipedia.org/wiki/Percentile
+  // see http://www.mathworks.com/help/stats/quantiles-and-percentiles.html
+  def percentiles(xs: Seq[BigDecimal], percentages: Seq[Int], interpolate: Boolean = true, isSorted: Boolean = false): Seq[BigDecimal] = {
+    val sortedXs = (if (isSorted) xs else xs.sorted).toIndexedSeq
+    val n = BigDecimal(sortedXs.length)
+    val indices = percentages.map(p => n * p / 100 + 0.5)   // NOTE: these indices are 1-based indices into sortedXs
+
+    if (interpolate) {      // interpolate
+      indices.map { i =>
+        val (k, f) = i /% One     // k is now a 1-based index into sortedXs
+        val zeroBasedK = k.intValue - 1
+        (1 - f) * sortedXs(zeroBasedK) + f * sortedXs(zeroBasedK + 1)
+      }
+    } else {                // round (instead of interpolating)
+      indices.map { i =>
+        val zeroBasedI = round(i).toInt - 1
+        sortedXs(zeroBasedI)
+      }
+    }
   }
 }

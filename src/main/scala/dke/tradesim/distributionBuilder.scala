@@ -61,27 +61,41 @@ object distributionBuilder {
   def createTrialSample(trialSetId: Int, trialSampleAttribute: TrialSampleAttribute, trialsByEndTime: TreeMap[Long, TrialsRow]): TrialSamplesRow = {
     val oldestTrial = trialsByEndTime.head._2
     val mostRecentTrial = trialsByEndTime.head._2
-    val distribution = Array[Byte]()    // todo, encode the distribution with the DIST distribution format
     val trialCount = trialsByEndTime.size
 
     val trialsRows = trialsByEndTime.values.toSeq
     val onlineVariance = new sample.OnlineVariance
-    onlineVariance.pushAll(trialsRows.flatMap(trialsRow => trialSampleAttribute.trialAttributeExtractorFn(trialsRow)))
+    val trialReturns = trialsRows.flatMap(trialsRow => trialSampleAttribute.trialAttributeExtractorFn(trialsRow))
+    onlineVariance.pushAll(trialReturns)
 
+    val distribution = Array[Byte]()    // todo, encode the distribution with the DIST distribution format
     val average = onlineVariance.mean
     val min = onlineVariance.min
     val max = onlineVariance.max
-    val percentile10 = Some(BigDecimal(1))      // todo, compute the percentiles
-    val percentile20 = Some(BigDecimal(1))
-    val percentile30 = Some(BigDecimal(1))
-    val percentile40 = Some(BigDecimal(1))
-    val percentile50 = Some(BigDecimal(1))
-    val percentile60 = Some(BigDecimal(1))
-    val percentile70 = Some(BigDecimal(1))
-    val percentile80 = Some(BigDecimal(1))
-    val percentile90 = Some(BigDecimal(1))
+    val Seq(percentile10, percentile20, percentile30, percentile40, percentile50, percentile60, percentile70, percentile80, percentile90) = sample.percentiles(trialReturns, 10.to(90, 10))
 
-    val row = TrialSamplesRow(0, trialSampleAttribute.name, oldestTrial.startTime, mostRecentTrial.endTime, true, distribution, Some(trialCount), Some(average), min, max, percentile10, percentile20, percentile30, percentile40, percentile50, percentile60, percentile70, percentile80, percentile90, trialSetId)
+    val row = TrialSamplesRow(
+      0,
+      trialSampleAttribute.name,
+      oldestTrial.startTime,
+      mostRecentTrial.endTime,
+      true,
+      distribution,
+      Some(trialCount),
+      Some(average),
+      min,
+      max,
+      Some(percentile10),
+      Some(percentile20),
+      Some(percentile30),
+      Some(percentile40),
+      Some(percentile50),
+      Some(percentile60),
+      Some(percentile70),
+      Some(percentile80),
+      Some(percentile90),
+      trialSetId
+    )
     val trialSampleId = (TrialSamples returning TrialSamples.map(_.id)).insert(row)
     row
   }
