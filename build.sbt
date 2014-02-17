@@ -46,6 +46,6 @@ libraryDependencies ++= Seq(
   "org.scala-lang" % "scala-compiler" % "2.10.2",
   "org.scala-lang" % "jline" % "2.10.2",
   "org.spire-math" %% "spire" % "0.6.0",
-  "org.scalanlp" %% "breeze" % "0.6-SNAPSHOT",
+  "org.scalanlp" % "breeze_2.10" % "0.6",
   "org.scalanlp" % "nak" % "1.2.0"
 )
