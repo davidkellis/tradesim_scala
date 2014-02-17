@@ -41,8 +41,8 @@ object bitManipulation {
   def bitLengthLongs(ints: Seq[Long]): Int = ints.foldLeft(0){ (sum, i) => sum + bitLength(i) }
   def bitLengthBigInts(ints: Seq[BigInt]): Int = ints.foldLeft(0){ (sum, i) => sum + bitLength(i) }
 
-  def sToU(signedInt: BigInt, bitCount: Int = 64): BigInt = {
-
+  def uToS(unsignedInt: BigInt, bitCount: Int = 64): BigInt = {
+    0x00000000FFFFFFFFL & x
   }
 
   /**

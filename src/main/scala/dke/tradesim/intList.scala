@@ -12,7 +12,7 @@ object intList {
     var currentByte = 0
     var out = new java.io.ByteArrayOutputStream()
 
-    def write(int: Int, n: Int) {
+    def write(int: BigInt, n: Int) {
       nextPos = pos + n
 
       while (remainingBitsToWrite > 0) {
@@ -25,7 +25,7 @@ object intList {
         }
         val rightmostBitsMask = (1 << numberOfBitsToWrite) - 1
         val rightShiftCount = remainingBitsToWrite - numberOfBitsToWrite
-        currentByte = (currentByte << numberOfBitsToWrite) | ((int >>> rightShiftCount) & rightmostBitsMask)
+        currentByte = (currentByte << numberOfBitsToWrite) | ((int >> rightShiftCount).toInt & rightmostBitsMask)
         pos += numberOfBitsToWrite
 
         if (isAtBeginningOfByteBoundary) writeByte    // if we're at the beginning of a byte-boundary, we need to write the current byte to the bitstring and create a new byte-buffer
@@ -62,6 +62,7 @@ object intList {
     var bytesRead = 0
     var currentByte: Byte = 0
 
+    // returns an unsigned integer representing the <n> bits read from the bit-stream
     def read(n: Int): BigInt = {
       var sum = BigInt(0)
       if (n > 0) {
@@ -91,7 +92,6 @@ object intList {
       byte.toByte
     }
 
-
     def isAtBeginningOfByteBoundary = currentByteBitPosition == 0
 
     def currentByteBitPosition = pos % 8
@@ -109,12 +109,16 @@ object intList {
         val offsets = ints.map(_ - signedMin)   // all offsets are guaranteed to be non-negative
         val intBitSize = bitLength(offsets.max)
 
-        val unsignedMinInt =
+        VariableByteIntEncoder.write(bw, signedMin)
+        VariableByteIntEncoder.write(bw, numberOfInts)
+        VariableByteIntEncoder.write(bw, intBitSize)
+        
+        offsets.foreach(int => bw.write(int, intBitSize))
       }
     }
 
     def read(br: BitReader): Seq[BigInt] = {
-
+      Seq[BigInt]()
     }
   }
 
