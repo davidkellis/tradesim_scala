@@ -106,7 +106,7 @@ object intList {
     def encode(ints: Seq[BigInt]): java.io.ByteArrayOutputStream = {
       val bw = new BitWriter
       if (ints.nonEmpty) {
-        val deltaEncodedInts = deltaEncodeInts(ints)
+        val deltaEncodedInts = deltaEncodeInts(ints.sorted)
 
         val signedStartInt = deltaEncodedInts.head
         val remainingInts = deltaEncodedInts.tail
