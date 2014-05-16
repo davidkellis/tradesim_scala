@@ -136,7 +136,7 @@ object sample {
 
     def variance: BigDecimal = if (k > 1) s_k / (k - 1) else 0
 
-    def stdDev: BigDecimal = variance.sqrt
+    def stdDev: BigDecimal = this.variance.sqrt
 
     def min: Option[BigDecimal] = if (k > 1) Some(minValue) else None
 

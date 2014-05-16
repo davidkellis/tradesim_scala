@@ -5,6 +5,7 @@ import scala.tools.nsc.Settings
 import dke.tradesim.db.SlickAdapter
 
 // this code taken from http://stackoverflow.com/questions/18628516/embedded-scala-repl-interpreter-example-for-2-10
+// also taken from http://stackoverflow.com/questions/12630018/scala-initialize-repl-environment
 // Run this REPL from within sbt like this: sbt "runMain dke.tradesim.Repl"
 
 object Repl extends App {
@@ -23,17 +24,22 @@ object Repl extends App {
 
 class TradesimRepl extends ILoop {
 
-  addThunk {
-    intp.beQuietDuring {
-      intp.addImports("scala.slick.driver.PostgresDriver.simple._",
-                      "scala.slick.lifted.Query",
-                      "scala.slick.session.Database",
-                      "scala.slick.jdbc.{GetResult, StaticQuery => Q}",
-                      "dke.tradesim.datetimeUtils._",
-                      "dke.tradesim.db.{Adapter, SlickAdapter}",
-                      "dke.tradesim.db.SlickAdapter._",
-                      "Database.dynamicSession")
+  override def createInterpreter(): Unit = {
+    def binder: Unit = intp beQuietDuring {
+      intp directBind ("foo", "bar")
+      intp bind ("baz", "boo")
+// todo: fix this
+//      intp.addImports("scala.slick.driver.PostgresDriver.simple._",
+//        "scala.slick.lifted.Query",
+//        "scala.slick.session.Database",
+//        "scala.slick.jdbc.{GetResult, StaticQuery => Q}",
+//        "dke.tradesim.datetimeUtils._",
+//        "dke.tradesim.db.{Adapter, SlickAdapter}",
+//        "dke.tradesim.db.SlickAdapter._",
+//        "Database.dynamicSession")
     }
+    super.createInterpreter()
+    intp initialize binder
   }
 
   override def loop(): Unit = {

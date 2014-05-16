@@ -3,3 +3,6 @@ To auto-generate the Slick table definitions from the live schema, do this:
 2. In the console:
 import scala.slick.model.codegen.SourceCodeGenerator
 SourceCodeGenerator.main(Array("scala.slick.driver.PostgresDriver", "org.postgresql.Driver", "jdbc:postgresql:tradesim", "src/main/scala/", "dke.tradesim.database"))
+
+To generate the protobuf implementation from the .proto files:
+1. Run: sbt "run --proto_path=src/main/protobuf --scala_out=src/main/scala/protobuf"

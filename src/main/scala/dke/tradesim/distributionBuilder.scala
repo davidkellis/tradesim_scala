@@ -101,7 +101,9 @@ object distributionBuilder {
   }
 
   def trialSets(): Seq[TrialSetsRow] = {
-    TrialSets.list()
+    // todo: fix this
+//    TrialSets.list()
+    List.empty[TrialSetsRow]
   }
 
   def trialSamples(trialSetId: Int): Seq[TrialSamplesRow] = {

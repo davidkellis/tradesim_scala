@@ -63,7 +63,7 @@ final case class TransactionLog (
 }
 
 object TransactionLog {
-	@reflect.BeanProperty val defaultInstance = new TransactionLog()
+	val defaultInstance = new TransactionLog()
 
 	def parseFrom(data: Array[Byte]): TransactionLog = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): TransactionLog = defaultInstance.mergeFrom(data, offset, length)
@@ -168,7 +168,7 @@ final case class Transaction (
 }
 
 object Transaction {
-	@reflect.BeanProperty val defaultInstance = new Transaction()
+	val defaultInstance = new Transaction()
 
 	def parseFrom(data: Array[Byte]): Transaction = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): Transaction = defaultInstance.mergeFrom(data, offset, length)
@@ -302,7 +302,7 @@ final case class Order (
 }
 
 object Order {
-	@reflect.BeanProperty val defaultInstance = new Order()
+	val defaultInstance = new Order()
 
 	def parseFrom(data: Array[Byte]): Order = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): Order = defaultInstance.mergeFrom(data, offset, length)
@@ -437,7 +437,7 @@ final case class SplitAdjustment (
 }
 
 object SplitAdjustment {
-	@reflect.BeanProperty val defaultInstance = new SplitAdjustment()
+	val defaultInstance = new SplitAdjustment()
 
 	def parseFrom(data: Array[Byte]): SplitAdjustment = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): SplitAdjustment = defaultInstance.mergeFrom(data, offset, length)
@@ -555,7 +555,7 @@ final case class CashDividendPayment (
 }
 
 object CashDividendPayment {
-	@reflect.BeanProperty val defaultInstance = new CashDividendPayment()
+	val defaultInstance = new CashDividendPayment()
 
 	def parseFrom(data: Array[Byte]): CashDividendPayment = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): CashDividendPayment = defaultInstance.mergeFrom(data, offset, length)
@@ -635,7 +635,7 @@ final case class PortfolioValueLog (
 }
 
 object PortfolioValueLog {
-	@reflect.BeanProperty val defaultInstance = new PortfolioValueLog()
+	val defaultInstance = new PortfolioValueLog()
 
 	def parseFrom(data: Array[Byte]): PortfolioValueLog = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): PortfolioValueLog = defaultInstance.mergeFrom(data, offset, length)
@@ -711,7 +711,7 @@ final case class PortfolioValue (
 }
 
 object PortfolioValue {
-	@reflect.BeanProperty val defaultInstance = new PortfolioValue()
+	val defaultInstance = new PortfolioValue()
 
 	def parseFrom(data: Array[Byte]): PortfolioValue = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): PortfolioValue = defaultInstance.mergeFrom(data, offset, length)
@@ -786,7 +786,7 @@ final case class FinancialStatement (
 }
 
 object FinancialStatement {
-	@reflect.BeanProperty val defaultInstance = new FinancialStatement()
+	val defaultInstance = new FinancialStatement()
 
 	def parseFrom(data: Array[Byte]): FinancialStatement = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): FinancialStatement = defaultInstance.mergeFrom(data, offset, length)
@@ -871,7 +871,7 @@ final case class StatementLineItem (
 }
 
 object StatementLineItem {
-	@reflect.BeanProperty val defaultInstance = new StatementLineItem()
+	val defaultInstance = new StatementLineItem()
 
 	def parseFrom(data: Array[Byte]): StatementLineItem = defaultInstance.mergeFrom(data)
 	def parseFrom(data: Array[Byte], offset: Int, length: Int): StatementLineItem = defaultInstance.mergeFrom(data, offset, length)

@@ -20,14 +20,14 @@ object splitsDividends {
   case class QtyAdjustmentFactor(corporateAction: CorporateAction, adjustmentFactor: BigDecimal)
 
 
-  def queryCorporateActions(securityId: SecurityId)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(securityId))
+  def queryCorporateActions(securityId: SecurityId)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = queryCorporateActions(Vector(securityId))(adapter)
   def queryCorporateActions(securityIds: IndexedSeq[Int])(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
     info(s"queryCorporateActions(${securityIds.mkString(",")})")
     adapter.queryCorporateActions(securityIds)
   }
 
   def queryCorporateActions(securityId: SecurityId, startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] =
-    queryCorporateActions(Vector(securityId), startTime, endTime)
+    queryCorporateActions(Vector(securityId), startTime, endTime)(adapter)
   def queryCorporateActions(securityIds: IndexedSeq[Int], startTime: DateTime, endTime: DateTime)(implicit adapter: Adapter): IndexedSeq[CorporateAction] = {
     info(s"queryCorporateActions(${securityIds.mkString(",")}, $startTime, $endTime)")
     adapter.queryCorporateActions(securityIds, startTime, endTime)
